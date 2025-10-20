@@ -57,10 +57,19 @@ export function deleteProject(projectId) {
 }
 
 // 获取项目下的模块列表
-export function getModulesByProject(projectId) {
+export function getModulesByProject(projectId, params = {}) {
   return request({
     url: `/projects/${projectId}/modules`,
-    method: 'get'
+    method: 'get',
+    params: {
+      structure: params.structure || 'tree',
+      status: params.status || 'active',
+      include_deleted: params.includeDeleted || false,
+      include_statistics: params.includeStatistics || false,
+      search_keyword: params.searchKeyword,
+      sort_by: params.sortBy || 'sort_order',
+      sort_order: params.sortOrder || 'asc'
+    }
   })
 }
 

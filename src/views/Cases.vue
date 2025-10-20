@@ -31,7 +31,7 @@
             <span class="search-icon">🔍</span>
           </div>
 
-          <div class="tree-list">
+          <div class="tree-list" v-loading="loading">
             <TreeNode
               v-for="project in filteredProjects"
               :key="project.id"
@@ -388,42 +388,182 @@ const handleSelectNode = async (node, level) => {
   selectedNode.value = node
   selectedLevel.value = level
   
+  // 如果是项目，按需加载模块
+  if (level === 'project') {
+    await loadProjectModules(node)
+  }
+  // 如果是模块，按需加载接口
+  else if (level === 'module') {
+    await loadModuleApis(node)
+  }
+  // 如果是接口，按需加载测试用例
+  else if (level === 'api') {
+    await loadApiTestCases(node)
+  }
   // 如果是用例，加载执行历史
-  if (level === 'case') {
-    if (USE_REAL_API && node.case_id) {
-      try {
-        const response = await getTestCaseHistory(node.case_id, { pageSize: 5 })
-        if (response.code === 1) {
-          executionHistory.value = (response.data.items || []).map(item => ({
-            action: item.executor_name || '系统自动',
-            note: item.result_summary || (item.status === 'passed' ? '执行通过' : '执行失败'),
-            executed_time: item.executed_at || item.created_at,
-            status: item.status
-          }))
-        } else {
-          executionHistory.value = []
-        }
-      } catch (error) {
-        console.error('加载执行历史失败:', error)
-        executionHistory.value = []
+  else if (level === 'case') {
+    await loadTestCaseHistory(node)
+  }
+}
+
+// 加载项目模块
+const loadProjectModules = async (project) => {
+  // 如果模块已经加载过，直接返回
+  if (project.modules && project.modules.length > 0) {
+    return
+  }
+  
+  // 防止重复加载
+  if (project._loadingModules) {
+    return
+  }
+  
+  try {
+    project._loadingModules = true
+    loading.value = true
+    
+    const response = await getModulesByProject(project.project_id, {
+      structure: 'tree',
+      includeStatistics: true
+    })
+    
+    if (response.code === 1) {
+      const modules = response.data.modules || []
+      // 转换模块数据并添加到项目中
+      project.modules = modules.map(transformModule)
+      
+      if (modules.length > 0) {
+        ElMessage.success(`加载了 ${modules.length} 个模块`)
       }
     } else {
-      // 使用假数据
-      executionHistory.value = [
-        {
-          action: '系统自动',
-          note: node.status === 'failed' ? '执行失败，权限不足' : '执行通过',
-          executed_time: node.last_executed_time || '2024-03-10 14:40',
-          status: node.status
-        },
-        {
-          action: '手动测试',
-          note: '执行通过',
-          executed_time: '2024-03-05 09:15',
-          status: 'passed'
-        }
-      ]
+      ElMessage.error(response.msg || '加载模块失败')
+      project.modules = []
     }
+  } catch (error) {
+    console.error('加载项目模块失败:', error)
+    ElMessage.error('加载模块失败，请稍后重试')
+    project.modules = []
+  } finally {
+    project._loadingModules = false
+    loading.value = false
+  }
+}
+
+// 加载模块接口
+const loadModuleApis = async (module) => {
+  // 如果接口已经加载过，直接返回
+  if (module.apis && module.apis.length > 0) {
+    return
+  }
+  
+  // 防止重复加载
+  if (module._loadingApis) {
+    return
+  }
+  
+  try {
+    module._loadingApis = true
+    loading.value = true
+    
+    const response = await getApisByModule(module.module_id)
+    
+    if (response.code === 1) {
+      const apis = response.data.items || []
+      // 转换接口数据并添加到模块中
+      module.apis = apis.map(transformApi)
+      
+      if (apis.length > 0) {
+        ElMessage.success(`加载了 ${apis.length} 个接口`)
+      }
+    } else {
+      ElMessage.error(response.msg || '加载接口失败')
+      module.apis = []
+    }
+  } catch (error) {
+    console.error('加载模块接口失败:', error)
+    ElMessage.error('加载接口失败，请稍后重试')
+    module.apis = []
+  } finally {
+    module._loadingApis = false
+    loading.value = false
+  }
+}
+
+// 加载接口测试用例
+const loadApiTestCases = async (api) => {
+  // 如果测试用例已经加载过，直接返回
+  if (api.cases && api.cases.length > 0) {
+    return
+  }
+  
+  // 防止重复加载
+  if (api._loadingCases) {
+    return
+  }
+  
+  try {
+    api._loadingCases = true
+    loading.value = true
+    
+    const response = await getTestCasesByApi(api.api_id, { pageSize: 100 })
+    
+    if (response.code === 1) {
+      const cases = response.data.items || []
+      // 转换测试用例数据并添加到接口中
+      api.cases = cases.map(transformTestCase)
+      
+      if (cases.length > 0) {
+        ElMessage.success(`加载了 ${cases.length} 个测试用例`)
+      }
+    } else {
+      ElMessage.error(response.msg || '加载测试用例失败')
+      api.cases = []
+    }
+  } catch (error) {
+    console.error('加载接口测试用例失败:', error)
+    ElMessage.error('加载测试用例失败，请稍后重试')
+    api.cases = []
+  } finally {
+    api._loadingCases = false
+    loading.value = false
+  }
+}
+
+// 加载测试用例执行历史
+const loadTestCaseHistory = async (testCase) => {
+  if (USE_REAL_API && testCase.case_id) {
+    try {
+      const response = await getTestCaseHistory(testCase.case_id, { pageSize: 5 })
+      if (response.code === 1) {
+        executionHistory.value = (response.data.items || []).map(item => ({
+          action: item.executor_name || '系统自动',
+          note: item.result_summary || (item.status === 'passed' ? '执行通过' : '执行失败'),
+          executed_time: item.executed_at || item.created_at,
+          status: item.status
+        }))
+      } else {
+        executionHistory.value = []
+      }
+    } catch (error) {
+      console.error('加载执行历史失败:', error)
+      executionHistory.value = []
+    }
+  } else {
+    // 使用假数据
+    executionHistory.value = [
+      {
+        action: '系统自动',
+        note: testCase.status === 'failed' ? '执行失败，权限不足' : '执行通过',
+        executed_time: testCase.last_executed_time || '2024-03-10 14:40',
+        status: testCase.status
+      },
+      {
+        action: '手动测试',
+        note: '执行通过',
+        executed_time: '2024-03-05 09:15',
+        status: 'passed'
+      }
+    ]
   }
 }
 
@@ -982,7 +1122,7 @@ const initMockData = () => {
 const loadProjectTree = async () => {
   loading.value = true
   try {
-    // 1. 获取所有项目
+    // 只获取项目列表，不预加载模块、接口和测试用例
     const projectsRes = await getProjects({ pageSize: 100 })
     if (projectsRes.code !== 1) {
       ElMessage.error(projectsRes.msg || '加载项目失败')
@@ -991,72 +1131,14 @@ const loadProjectTree = async () => {
     
     const projectList = projectsRes.data.items || []
     
-    // 2. 为每个项目加载模块
-    const projectsWithModules = await Promise.all(
-      projectList.map(async (project) => {
-        try {
-          const modulesRes = await getModulesByProject(project.project_id)
-          if (modulesRes.code === 1) {
-            const modules = modulesRes.data || []
-            
-            // 3. 为每个模块加载接口
-            const modulesWithApis = await Promise.all(
-              modules.map(async (module) => {
-                try {
-                  const apisRes = await getApisByModule(module.module_id)
-                  if (apisRes.code === 1) {
-                    const apis = apisRes.data || []
-                    
-                    // 4. 为每个接口加载测试用例
-                    const apisWithCases = await Promise.all(
-                      apis.map(async (api) => {
-                        try {
-                          const casesRes = await getTestCasesByApi(api.api_id, { pageSize: 100 })
-                          if (casesRes.code === 1) {
-                            return {
-                              ...transformApi(api),
-                              api_id: api.api_id,
-                              cases: (casesRes.data.items || []).map(transformTestCase)
-                            }
-                          }
-                          return { ...transformApi(api), api_id: api.api_id, cases: [] }
-                        } catch (error) {
-                          console.error('加载测试用例失败:', error)
-                          return { ...transformApi(api), api_id: api.api_id, cases: [] }
-                        }
-                      })
-                    )
-                    
-                    return {
-                      ...transformModule(module),
-                      module_id: module.module_id,
-                      apis: apisWithCases
-                    }
-                  }
-                  return { ...transformModule(module), module_id: module.module_id, apis: [] }
-                } catch (error) {
-                  console.error('加载接口失败:', error)
-                  return { ...transformModule(module), module_id: module.module_id, apis: [] }
-                }
-              })
-            )
-            
-            return {
-              ...transformProject(project),
-              project_id: project.project_id,
-              modules: modulesWithApis
-            }
-          }
-          return { ...transformProject(project), project_id: project.project_id, modules: [] }
-        } catch (error) {
-          console.error('加载模块失败:', error)
-          return { ...transformProject(project), project_id: project.project_id, modules: [] }
-        }
-      })
-    )
+    // 转换项目数据，但不加载子级数据
+    projects.value = projectList.map(project => ({
+      ...transformProject(project),
+      project_id: project.projectId || project.project_id,
+      modules: [] // 初始为空，按需加载
+    }))
     
-    projects.value = projectsWithModules
-    ElMessage.success('数据加载成功')
+    ElMessage.success(`加载了 ${projectList.length} 个项目`)
   } catch (error) {
     console.error('加载项目树失败:', error)
     ElMessage.error('加载数据失败，请稍后重试')
