@@ -85,32 +85,43 @@ export function transformTestCase(testCase) {
   return {
     id: testCase.caseId || testCase.case_id, // 兼容两种命名方式
     case_id: testCase.caseId || testCase.case_id, // 保留原始ID用于API调用
+    case_code: testCase.caseCode || testCase.case_code,
     api_id: testCase.apiId || testCase.api_id,
+    api_name: testCase.apiName || testCase.api_name,
+    api_method: testCase.apiMethod || testCase.api_method,
+    api_path: testCase.apiPath || testCase.api_path,
+    module_id: testCase.moduleId || testCase.module_id,
+    module_name: testCase.moduleName || testCase.module_name,
+    project_id: testCase.projectId || testCase.project_id,
+    project_name: testCase.projectName || testCase.project_name,
     name: testCase.name,
     description: testCase.description,
-    api_url: testCase.apiPath || testCase.api_path || '',
-    request_params: testCase.requestOverride ? JSON.stringify(testCase.requestOverride) : (testCase.request_override ? JSON.stringify(testCase.request_override) : ''),
-    expected_status_code: testCase.expectedHttpStatus || testCase.expected_http_status || 200,
-    validation_rules: formatAssertions(testCase.assertions),
     priority: testCase.priority,
     severity: testCase.severity,
     tags: testCase.tags || [],
     is_enabled: testCase.isEnabled !== undefined ? testCase.isEnabled : testCase.is_enabled,
     is_template: testCase.isTemplate !== undefined ? testCase.isTemplate : testCase.is_template,
+    template_id: testCase.templateId || testCase.template_id,
     version: testCase.version,
-    status: testCase.lastExecutionStatus || testCase.last_execution_status || 'not_executed',
-    last_executed_time: testCase.lastExecutedAt || testCase.last_executed_at || null,
+    creator_info: testCase.creatorInfo || testCase.creator_info,
     created_time: testCase.createdAt || testCase.created_at,
     updated_time: testCase.updatedAt || testCase.updated_at,
-    creator_name: testCase.creatorName || testCase.creator_name,
-    // 额外字段
-    actual_status_code: testCase.actualHttpStatus || testCase.actual_http_status,
-    actual_result: testCase.actualResponseBody || testCase.actual_response_body,
+    is_deleted: testCase.isDeleted || testCase.is_deleted,
+    // 测试相关字段
     pre_conditions: testCase.preConditions || testCase.pre_conditions,
     test_steps: testCase.testSteps || testCase.test_steps,
+    request_override: testCase.requestOverride || testCase.request_override,
+    expected_http_status: testCase.expectedHttpStatus || testCase.expected_http_status,
+    expected_response_schema: testCase.expectedResponseSchema || testCase.expected_response_schema,
+    expected_response_body: testCase.expectedResponseBody || testCase.expected_response_body,
     assertions: testCase.assertions,
     extractors: testCase.extractors,
-    validators: testCase.validators
+    validators: testCase.validators,
+    // 执行相关字段
+    status: testCase.status || 'not_executed',
+    last_executed_time: testCase.lastExecutedTime || testCase.last_executed_time,
+    actual_status_code: testCase.actualStatusCode || testCase.actual_status_code,
+    actual_result: testCase.actualResult || testCase.actual_result
   }
 }
 

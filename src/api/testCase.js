@@ -7,18 +7,24 @@ import request from './request'
 // 获取接口的测试用例列表（分页）
 export function getTestCasesByApi(apiId, params = {}) {
   return request({
-    url: `/apis/${apiId}/test-cases`,
+    url: '/testcases',
     method: 'get',
     params: {
+      api_id: apiId,
       name: params.name,
+      case_code: params.case_code,
       priority: params.priority,
       severity: params.severity,
-      is_enabled: params.is_enabled,
+      status: params.status,
       is_template: params.is_template,
       tags: params.tags,
       created_by: params.created_by,
+      include_deleted: params.include_deleted || false,
+      search_keyword: params.search_keyword,
+      sort_by: params.sort_by || 'created_at',
+      sort_order: params.sort_order || 'desc',
       page: params.page || 1,
-      page_size: params.pageSize || 10
+      page_size: params.pageSize || params.page_size || 100
     }
   })
 }
@@ -26,9 +32,10 @@ export function getTestCasesByApi(apiId, params = {}) {
 // 创建测试用例
 export function createTestCase(apiId, data) {
   return request({
-    url: `/apis/${apiId}/test-cases`,
+    url: '/testcases',
     method: 'post',
     data: {
+      api_id: apiId,
       case_code: data.case_code,
       name: data.name,
       description: data.description,
@@ -54,9 +61,10 @@ export function createTestCase(apiId, data) {
 // 更新测试用例
 export function updateTestCase(apiId, caseId, data) {
   return request({
-    url: `/apis/${apiId}/test-cases/${caseId}`,
+    url: `/testcases/${caseId}`,
     method: 'put',
     data: {
+      api_id: apiId,
       case_code: data.case_code,
       name: data.name,
       description: data.description,
@@ -83,7 +91,7 @@ export function updateTestCase(apiId, caseId, data) {
 // 删除测试用例
 export function deleteTestCase(apiId, caseId) {
   return request({
-    url: `/apis/${apiId}/test-cases/${caseId}`,
+    url: `/testcases/${caseId}`,
     method: 'delete'
   })
 }
@@ -123,7 +131,7 @@ export function exportTestCases(apiId, params = {}) {
 // 执行测试用例
 export function executeTestCase(apiId, caseId) {
   return request({
-    url: `/apis/${apiId}/test-cases/${caseId}/execute`,
+    url: `/testcases/${caseId}/execute`,
     method: 'post'
   })
 }
@@ -131,9 +139,10 @@ export function executeTestCase(apiId, caseId) {
 // 批量执行测试用例
 export function batchExecuteTestCases(apiId, caseIds) {
   return request({
-    url: `/apis/${apiId}/test-cases/batch-execute`,
+    url: '/testcases/batch-execute',
     method: 'post',
     data: {
+      api_id: apiId,
       case_ids: caseIds
     }
   })
@@ -154,7 +163,7 @@ export function getTestCaseHistory(caseId, params = {}) {
 // 获取测试用例详情
 export function getTestCaseDetail(apiId, caseId) {
   return request({
-    url: `/apis/${apiId}/test-cases/${caseId}`,
+    url: `/testcases/${caseId}`,
     method: 'get'
   })
 }
