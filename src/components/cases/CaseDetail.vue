@@ -128,32 +128,54 @@
         <!-- 测试步骤 -->
         <div class="section-card">
           <h3 class="section-title">测试步骤</h3>
-          <div class="steps-list">
+          <div v-if="displaySteps.length > 0" class="steps-list">
             <div v-for="(step, index) in displaySteps" :key="index" class="step-item">
               <div class="step-number">{{ index + 1 }}</div>
               <div class="step-content">
                 <div class="step-operation">{{ step.operation }}</div>
                 <div class="step-expected" v-if="step.expected">
                   预期结果：{{ step.expected }}
-        </div>
+                </div>
                 <div class="step-actual" v-if="step.actual">
                   实际结果：{{ step.actual }}
+                </div>
+              </div>
+            </div>
           </div>
+          <div v-else class="empty-steps">
+            <el-empty 
+              :image-size="80"
+              description="暂无测试步骤"
+            >
+              <template #description>
+                <p>该测试用例尚未配置测试步骤</p>
+                <p class="empty-tip">请联系测试人员添加具体的测试步骤</p>
+              </template>
+            </el-empty>
           </div>
-          </div>
-          </div>
-          </div>
+        </div>
 
         <!-- 测试数据 -->
         <div class="section-card">
           <h3 class="section-title">测试数据</h3>
-          <div class="data-grid">
+          <div v-if="displayTestData.length > 0" class="data-grid">
             <div v-for="(item, index) in displayTestData" :key="index" class="data-item">
               <span class="data-label">{{ item.label }}</span>
               <span class="data-value">{{ item.value }}</span>
+            </div>
+          </div>
+          <div v-else class="empty-data">
+            <el-empty 
+              :image-size="60"
+              description="暂无测试数据"
+            >
+              <template #description>
+                <p>该测试用例尚未配置测试数据</p>
+                <p class="empty-tip">请联系测试人员添加具体的测试数据</p>
+              </template>
+            </el-empty>
           </div>
         </div>
-      </div>
 
         <!-- 预期响应 -->
         <div class="section-card">
@@ -229,10 +251,10 @@
         <!-- 执行历史 -->
         <div class="sidebar-section">
           <h4 class="sidebar-title">执行历史</h4>
-          <div class="history-list">
+          <div v-if="displayHistory.length > 0" class="history-list">
             <div 
               v-for="(history, index) in displayHistory" 
-              :key="index"
+              :key="index" 
               class="history-card"
             >
               <div class="history-header">
@@ -244,12 +266,23 @@
                   <CircleCloseFilled v-else />
                 </el-icon>
                 <span class="history-executor">{{ history.action }}</span>
-        </div>
+              </div>
               <div class="history-body">{{ history.note }}</div>
               <div class="history-footer">{{ history.executed_time }}</div>
+            </div>
+          </div>
+          <div v-else class="empty-history">
+            <el-empty 
+              :image-size="50"
+              description="暂无执行记录"
+            >
+              <template #description>
+                <p>该测试用例尚未执行</p>
+                <p class="empty-tip">执行测试后将显示历史记录</p>
+              </template>
+            </el-empty>
           </div>
         </div>
-      </div>
 
         <!-- 关联信息 -->
         <div class="sidebar-section">
@@ -803,21 +836,8 @@ const displaySteps = computed(() => {
     return props.testCase.test_steps
   }
   
-  // 默认测试步骤
-  return [
-    {
-      operation: '访问登录页面',
-      expected: '显示登录表单'
-    },
-    {
-      operation: '输入正确的用户名和密码',
-      expected: '显示登录成功提示'
-    },
-    {
-      operation: '点击登录按钮',
-      expected: '跳转到首页'
-    }
-  ]
+  // 如果没有测试步骤，返回空数组
+  return []
 })
 
 // 显示测试数据
@@ -847,11 +867,8 @@ const displayTestData = computed(() => {
     }
   }
   
-  // 默认测试数据
-  return [
-    { label: 'username', value: 'testuser' },
-    { label: 'password', value: 'Test@123' }
-  ]
+  // 如果没有测试数据，返回空数组
+  return []
 })
 
 // 显示执行历史
@@ -860,27 +877,8 @@ const displayHistory = computed(() => {
     return props.executionHistory
   }
   
-  // 默认执行历史
-  return [
-    {
-      action: '李华',
-      note: '开发环境',
-      executed_time: '2024-01-20 16:45',
-      status: 'passed'
-    },
-    {
-      action: '王芳',
-      note: '测试环境',
-      executed_time: '2024-01-19 15:30',
-      status: 'failed'
-    },
-    {
-      action: '张明',
-      note: '开发环境',
-      executed_time: '2024-01-18 11:20',
-      status: 'passed'
-    }
-  ]
+  // 如果没有执行历史，返回空数组
+  return []
 })
 
 // 显示验证规则
@@ -1650,6 +1648,28 @@ const handleDelete = async () => {
 .step-actual {
   font-size: 13px;
   color: #909399;
+}
+
+/* 空状态样式 */
+.empty-steps {
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
+}
+
+.empty-data {
+  padding: 30px 20px;
+  text-align: center;
+}
+
+.empty-history {
+  padding: 20px;
+  text-align: center;
 }
 
 /* 测试数据 */
