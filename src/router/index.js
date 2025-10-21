@@ -67,6 +67,15 @@ const routes = [
     }
   },
   {
+    path: '/share/testcase/:shareId',
+    name: 'ShareTestCase',
+    component: () => import('../views/ShareTestCase.vue'),
+    meta: {
+      title: '分享测试用例',
+      requiresAuth: false  // 分享页面不需要登录
+    }
+  },
+  {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
     component: () => import('../views/NotFound.vue'),

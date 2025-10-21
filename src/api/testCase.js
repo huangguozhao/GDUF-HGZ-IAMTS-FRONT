@@ -198,3 +198,44 @@ export function getTestCaseForCopy(caseId) {
     method: 'get'
   })
 }
+
+// 生成测试用例分享链接
+export function createTestCaseShare(caseId, data) {
+  return request({
+    url: `/testcases/${caseId}/share`,
+    method: 'post',
+    data: {
+      title: data.title,
+      expireDays: data.expireDays,
+      password: data.password,
+      permissions: data.permissions
+    }
+  })
+}
+
+// 获取分享链接信息
+export function getTestCaseShareInfo(shareId) {
+  return request({
+    url: `/testcases/share/${shareId}`,
+    method: 'get'
+  })
+}
+
+// 撤销分享链接
+export function revokeTestCaseShare(shareId) {
+  return request({
+    url: `/testcases/share/${shareId}`,
+    method: 'delete'
+  })
+}
+
+// 通过分享链接获取测试用例详情
+export function getTestCaseByShare(shareId, password) {
+  return request({
+    url: `/testcases/share/${shareId}/view`,
+    method: 'post',
+    data: {
+      password: password
+    }
+  })
+}

@@ -567,6 +567,150 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 分享测试用例对话框 -->
+    <el-dialog
+      v-model="shareDialogVisible"
+      title="分享测试用例"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div class="share-content">
+        <div class="share-info">
+          <el-alert
+            title="分享说明"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <p>生成分享链接后，其他用户可以通过链接查看此测试用例的详细信息。</p>
+              <ul>
+                <li>• 分享链接包含用例的完整信息</li>
+                <li>• 链接具有访问权限控制</li>
+                <li>• 可以设置链接有效期</li>
+                <li>• 支持密码保护（可选）</li>
+              </ul>
+            </template>
+          </el-alert>
+        </div>
+
+        <el-form
+          ref="shareFormRef"
+          :model="shareFormData"
+          :rules="shareFormRules"
+          label-width="100px"
+          style="margin-top: 20px;"
+        >
+          <el-form-item label="分享标题" prop="title">
+            <el-input 
+              v-model="shareFormData.title" 
+              placeholder="请输入分享标题"
+              maxlength="100"
+              show-word-limit
+            />
+          </el-form-item>
+          
+          <el-form-item label="有效期" prop="expireDays">
+            <el-select 
+              v-model="shareFormData.expireDays" 
+              placeholder="选择有效期"
+              style="width: 100%;"
+            >
+              <el-option label="1天" :value="1" />
+              <el-option label="7天" :value="7" />
+              <el-option label="30天" :value="30" />
+              <el-option label="90天" :value="90" />
+              <el-option label="永久" :value="0" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="访问密码" prop="password">
+            <el-input 
+              v-model="shareFormData.password" 
+              type="password"
+              placeholder="设置访问密码（可选）"
+              maxlength="20"
+              show-password
+            />
+            <div class="form-tip">设置密码后，访问者需要输入密码才能查看</div>
+          </el-form-item>
+          
+          <el-form-item label="权限设置" prop="permissions">
+            <el-checkbox-group v-model="shareFormData.permissions">
+              <el-checkbox label="view">允许查看</el-checkbox>
+              <el-checkbox label="download">允许下载</el-checkbox>
+              <el-checkbox label="comment">允许评论</el-checkbox>
+            </el-checkbox-group>
+          </el-form-item>
+        </el-form>
+
+        <!-- 生成的分享链接 -->
+        <div v-if="shareLink" class="share-result">
+          <el-alert
+            title="分享链接已生成"
+            type="success"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <div class="share-link-container">
+                <div class="share-link">
+                  <el-input
+                    v-model="shareLink"
+                    readonly
+                    placeholder="分享链接"
+                  >
+                    <template #append>
+                      <el-button 
+                        @click="copyShareLink"
+                        :icon="CopyDocument"
+                      >
+                        复制
+                      </el-button>
+                    </template>
+                  </el-input>
+                </div>
+                <div class="share-stats">
+                  <span>访问次数: {{ shareStats.views || 0 }}</span>
+                  <span>有效期: {{ shareStats.expireTime || '永久' }}</span>
+                </div>
+              </div>
+            </template>
+          </el-alert>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="shareDialogVisible = false">取消</el-button>
+          <el-button 
+            v-if="!shareLink"
+            type="primary" 
+            @click="handleGenerateShare" 
+            :loading="generating"
+          >
+            {{ generating ? '生成中...' : '生成分享链接' }}
+          </el-button>
+          <el-button 
+            v-if="shareLink"
+            type="success" 
+            @click="copyShareLink"
+            :icon="CopyDocument"
+          >
+            复制链接
+          </el-button>
+          <el-button 
+            v-if="shareLink"
+            type="danger" 
+            @click="handleRevokeShare"
+            :icon="Delete"
+          >
+            撤销分享
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -591,7 +735,7 @@ import {
   Document,
   Refresh
 } from '@element-plus/icons-vue'
-import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase } from '../../api/testCase'
+import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase, createTestCaseShare, revokeTestCaseShare } from '../../api/testCase'
 
 const props = defineProps({
   testCase: {
@@ -931,6 +1075,35 @@ const copyFormRules = {
   ]
 }
 
+// 分享相关数据
+const shareDialogVisible = ref(false)
+const generating = ref(false)
+const shareFormRef = ref(null)
+const shareFormData = reactive({
+  title: '',
+  expireDays: 7,
+  password: '',
+  permissions: ['view']
+})
+
+// 分享表单验证规则
+const shareFormRules = {
+  title: [
+    { required: true, message: '请输入分享标题', trigger: 'blur' },
+    { min: 2, max: 100, message: '标题长度在 2 到 100 个字符', trigger: 'blur' }
+  ],
+  expireDays: [
+    { required: true, message: '请选择有效期', trigger: 'change' }
+  ]
+}
+
+// 分享链接和统计
+const shareLink = ref('')
+const shareStats = ref({
+  views: 0,
+  expireTime: ''
+})
+
 // 执行测试
 const handleExecute = () => {
   executeDialogVisible.value = true
@@ -1105,6 +1278,124 @@ const handleConfirmCopy = async () => {
   }
 }
 
+// 分享测试用例
+const handleShare = () => {
+  // 初始化分享表单数据
+  shareFormData.title = `分享测试用例: ${props.testCase.name}`
+  shareFormData.expireDays = 7
+  shareFormData.password = ''
+  shareFormData.permissions = ['view']
+  
+  // 重置分享链接
+  shareLink.value = ''
+  shareStats.value = {
+    views: 0,
+    expireTime: ''
+  }
+  
+  shareDialogVisible.value = true
+}
+
+// 生成分享链接
+const handleGenerateShare = async () => {
+  if (!shareFormRef.value) return
+  
+  try {
+    await shareFormRef.value.validate()
+    
+    generating.value = true
+    
+    console.log('开始生成分享链接...')
+    console.log('分享表单数据:', shareFormData)
+    
+    const caseId = props.testCase.case_id || props.testCase.id
+    const shareData = {
+      title: shareFormData.title,
+      expireDays: shareFormData.expireDays,
+      password: shareFormData.password,
+      permissions: shareFormData.permissions
+    }
+    
+    console.log('分享数据:', shareData)
+    
+    // 调用创建分享链接API
+    const response = await createTestCaseShare(caseId, shareData)
+    console.log('分享响应:', response)
+    
+    if (response.code === 1) {
+      shareLink.value = response.data.shareUrl
+      shareStats.value = {
+        views: response.data.views || 0,
+        expireTime: response.data.expireTime || (shareFormData.expireDays === 0 ? '永久' : `${shareFormData.expireDays}天`)
+      }
+      
+      ElMessage.success('分享链接生成成功')
+    } else {
+      ElMessage.error(response.msg || '生成分享链接失败')
+    }
+    
+  } catch (error) {
+    console.error('生成分享链接失败:', error)
+    console.error('错误详情:', error.response || error.message)
+    ElMessage.error('生成分享链接失败，请重试')
+  } finally {
+    generating.value = false
+  }
+}
+
+// 复制分享链接
+const copyShareLink = async () => {
+  try {
+    await navigator.clipboard.writeText(shareLink.value)
+    ElMessage.success('分享链接已复制到剪贴板')
+  } catch (error) {
+    console.error('复制失败:', error)
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
+// 撤销分享
+const handleRevokeShare = async () => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要撤销分享链接吗？撤销后该链接将无法访问。',
+      '撤销分享',
+      {
+        confirmButtonText: '确定撤销',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 从分享链接中提取shareId
+    const shareId = shareLink.value.split('/').pop()
+    console.log('撤销分享链接:', shareLink.value, 'shareId:', shareId)
+    
+    // 调用撤销分享API
+    const response = await revokeTestCaseShare(shareId)
+    console.log('撤销分享响应:', response)
+    
+    if (response.code === 1) {
+      // 重置分享状态
+      shareLink.value = ''
+      shareStats.value = {
+        views: 0,
+        expireTime: ''
+      }
+      
+      ElMessage.success('分享链接已撤销')
+    } else {
+      ElMessage.error(response.msg || '撤销分享失败')
+    }
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('撤销分享失败:', error)
+      ElMessage.error('撤销分享失败')
+    }
+  }
+}
+
 // 更多操作
 const handleMoreAction = async (command) => {
   switch (command) {
@@ -1119,8 +1410,7 @@ const handleMoreAction = async (command) => {
       break
       
     case 'share':
-      ElMessage.info('分享用例')
-      // TODO: 实现分享功能
+      handleShare()
       break
       
     case 'disable':
@@ -1838,5 +2128,68 @@ const handleDelete = async () => {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
+}
+
+/* 分享对话框样式 */
+.share-content {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.share-info {
+  margin-bottom: 20px;
+}
+
+.share-info .el-alert {
+  margin-bottom: 0;
+}
+
+.share-info ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.share-info li {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #606266;
+}
+
+.share-result {
+  margin-top: 20px;
+}
+
+.share-link-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.share-link {
+  width: 100%;
+}
+
+.share-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.share-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 分享对话框按钮样式 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-footer .el-button {
+  min-width: 80px;
 }
 </style>
