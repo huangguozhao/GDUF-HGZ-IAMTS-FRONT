@@ -67,7 +67,7 @@ request.interceptors.response.use(
       // 请求已发出，但没有收到响应
       ElMessage.error('网络错误，请检查您的网络连接')
       return Promise.reject({ code: -1, msg: '网络错误' })
-          } else {
+    } else {
       // 请求配置出错
       ElMessage.error('请求配置错误')
       return Promise.reject({ code: -1, msg: '请求配置错误' })

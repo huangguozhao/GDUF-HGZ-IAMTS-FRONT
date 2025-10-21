@@ -1125,6 +1125,7 @@ import {
   Delete,
   CaretRight
 } from '@element-plus/icons-vue'
+import { createTestCase } from '@/api/testCase'
 
 const props = defineProps({
   api: {
@@ -1607,37 +1608,70 @@ const handleSaveTestCase = async () => {
     
     savingCase.value = true
     
-    // TODO: 调用创建测试用例API
-    // import { createTestCase } from '@/api/testCase'
-    // const requestData = {
-    //   case_code: caseFormData.caseCode,
-    //   name: caseFormData.name,
-    //   description: caseFormData.description,
-    //   priority: caseFormData.priority,
-    //   severity: caseFormData.severity,
-    //   tags: caseFormData.tags,
-    //   version: caseFormData.version,
-    //   test_steps: caseFormData.testSteps,
-    //   pre_conditions: caseFormData.preConditionsStr ? JSON.parse(caseFormData.preConditionsStr) : null,
-    //   request_override: caseFormData.requestOverrideStr ? JSON.parse(caseFormData.requestOverrideStr) : null,
-    //   expected_http_status: caseFormData.expectedHttpStatus,
-    //   expected_response_body: caseFormData.expectedResponseBody,
-    //   expected_response_schema: caseFormData.expectedResponseSchemaStr ? JSON.parse(caseFormData.expectedResponseSchemaStr) : null,
-    //   assertions: caseFormData.assertions,
-    //   extractors: caseFormData.extractors,
-    //   is_enabled: caseFormData.isEnabled,
-    //   is_template: caseFormData.isTemplate
-    // }
-    // const response = await createTestCase(props.api.api_id, requestData)
-    // if (response.code === 1) {
-    //   ElMessage.success('测试用例创建成功')
-    //   addCaseDialogVisible.value = false
-    //   emit('refresh-cases')
-    // }
+    // 获取API ID，尝试多种可能的字段名
+    let apiId = props.api.api_id || props.api.id || props.api.apiId
     
-    ElMessage.success('测试用例创建成功')
-    addCaseDialogVisible.value = false
-    emit('refresh-cases')
+    // 如果还是没有找到，尝试从其他可能的字段获取
+    if (!apiId) {
+      // 检查是否有其他可能的ID字段
+      const possibleIds = [
+        props.api.api_id,
+        props.api.id, 
+        props.api.apiId,
+        props.api.interface_id,
+        props.api.interfaceId
+      ]
+      apiId = possibleIds.find(id => id !== undefined && id !== null)
+    }
+    
+    console.log('=== 调试API数据结构 ===')
+    console.log('完整的API数据:', JSON.stringify(props.api, null, 2))
+    console.log('props.api.api_id:', props.api.api_id)
+    console.log('props.api.id:', props.api.id)
+    console.log('props.api.apiId:', props.api.apiId)
+    console.log('最终使用的API ID:', apiId)
+    console.log('=== 调试结束 ===')
+    
+    if (!apiId) {
+      ElMessage.error('无法获取接口ID，请刷新页面重试。请检查控制台输出的API数据结构。')
+      savingCase.value = false
+      return
+    }
+    
+    // 调用创建测试用例API
+    const requestData = {
+      api_id: apiId,
+      case_code: caseFormData.caseCode,
+      name: caseFormData.name,
+      description: caseFormData.description,
+      priority: caseFormData.priority,
+      severity: caseFormData.severity,
+      tags: caseFormData.tags,
+      version: caseFormData.version,
+      test_steps: caseFormData.testSteps,
+      pre_conditions: caseFormData.preConditionsStr ? JSON.parse(caseFormData.preConditionsStr) : null,
+      request_override: caseFormData.requestOverrideStr ? JSON.parse(caseFormData.requestOverrideStr) : null,
+      expected_http_status: caseFormData.expectedHttpStatus,
+      expected_response_body: caseFormData.expectedResponseBody,
+      expected_response_schema: caseFormData.expectedResponseSchemaStr ? JSON.parse(caseFormData.expectedResponseSchemaStr) : null,
+      assertions: caseFormData.assertions,
+      extractors: caseFormData.extractors,
+      is_enabled: caseFormData.isEnabled,
+      is_template: caseFormData.isTemplate
+    }
+    
+    console.log('发送的请求数据:', JSON.stringify(requestData, null, 2))
+    
+    const response = await createTestCase(requestData)
+    console.log('API响应:', response)
+    
+    if (response.code === 1) {
+      ElMessage.success('测试用例创建成功')
+      addCaseDialogVisible.value = false
+      emit('refresh-cases')
+    } else {
+      ElMessage.error(response.msg || '创建失败')
+    }
     
   } catch (error) {
     console.error('保存测试用例失败:', error)

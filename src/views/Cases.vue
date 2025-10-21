@@ -2055,10 +2055,13 @@ const handleSaveWithAPI = async () => {
       return
     }
     
+    // 添加api_id到数据中
+    data.api_id = apiId
+    
     if (isEdit.value) {
-      await updateTestCase(apiId, formData.case_id, data)
+      await updateTestCase(formData.case_id, data)
     } else {
-      await createTestCase(apiId, data)
+      await createTestCase(data)
     }
     await loadProjectTree()
   }

@@ -30,59 +30,60 @@ export function getTestCasesByApi(apiId, params = {}) {
 }
 
 // 创建测试用例
-export function createTestCase(apiId, data) {
+export function createTestCase(data) {
   return request({
     url: '/testcases',
     method: 'post',
     data: {
-      api_id: apiId,
-      case_code: data.case_code,
+      apiId: data.api_id,  // 后端期望的是apiId字段
+      caseCode: data.case_code,
       name: data.name,
       description: data.description,
       priority: data.priority || 'P2',
       severity: data.severity || 'medium',
       tags: data.tags || [],
-      pre_conditions: data.pre_conditions,
-      test_steps: data.test_steps,
-      request_override: data.request_override,
-      expected_http_status: data.expected_http_status || 200,
-      expected_response_schema: data.expected_response_schema,
-      expected_response_body: data.expected_response_body,
+      preConditions: data.pre_conditions,
+      testSteps: data.test_steps,
+      requestOverride: data.request_override,
+      expectedHttpStatus: data.expected_http_status || 200,
+      expectedResponseSchema: data.expected_response_schema,
+      expectedResponseBody: data.expected_response_body,
       assertions: data.assertions,
       extractors: data.extractors,
       validators: data.validators,
-      is_enabled: data.is_enabled !== undefined ? data.is_enabled : true,
-      is_template: data.is_template || false,
-      template_id: data.template_id
+      isEnabled: data.is_enabled !== undefined ? data.is_enabled : true,
+      isTemplate: data.is_template || false,
+      templateId: data.template_id,
+      version: data.version || '1.0'
     }
   })
 }
 
 // 更新测试用例
-export function updateTestCase(apiId, caseId, data) {
+export function updateTestCase(caseId, data) {
   return request({
     url: `/testcases/${caseId}`,
     method: 'put',
     data: {
-      api_id: apiId,
-      case_code: data.case_code,
+      apiId: data.api_id,  // 后端期望的是apiId字段
+      caseCode: data.case_code,
       name: data.name,
       description: data.description,
       priority: data.priority,
       severity: data.severity,
       tags: data.tags,
-      pre_conditions: data.pre_conditions,
-      test_steps: data.test_steps,
-      request_override: data.request_override,
-      expected_http_status: data.expected_http_status,
-      expected_response_schema: data.expected_response_schema,
-      expected_response_body: data.expected_response_body,
+      preConditions: data.pre_conditions,
+      testSteps: data.test_steps,
+      requestOverride: data.request_override,
+      expectedHttpStatus: data.expected_http_status,
+      expectedResponseSchema: data.expected_response_schema,
+      expectedResponseBody: data.expected_response_body,
       assertions: data.assertions,
       extractors: data.extractors,
       validators: data.validators,
-      is_enabled: data.is_enabled,
-      is_template: data.is_template,
-      template_id: data.template_id,
+      isEnabled: data.is_enabled,
+      isTemplate: data.is_template,
+      templateId: data.template_id,
       version: data.version
     }
   })
