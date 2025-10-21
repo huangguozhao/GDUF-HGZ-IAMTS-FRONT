@@ -177,3 +177,24 @@ export function getTestCaseDetail(apiId, caseId) {
     method: 'get'
   })
 }
+
+// 复制测试用例
+export function copyTestCase(caseId, data) {
+  return request({
+    url: `/testcases/${caseId}/copy`,
+    method: 'post',
+    data: {
+      caseCode: data.caseCode,
+      name: data.name,
+      description: data.description
+    }
+  })
+}
+
+// 获取测试用例详情用于复制
+export function getTestCaseForCopy(caseId) {
+  return request({
+    url: `/testcases/${caseId}`,
+    method: 'get'
+  })
+}

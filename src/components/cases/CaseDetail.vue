@@ -489,6 +489,84 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 复制测试用例对话框 -->
+    <el-dialog
+      v-model="copyDialogVisible"
+      title="复制测试用例"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form
+        ref="copyFormRef"
+        :model="copyFormData"
+        :rules="copyFormRules"
+        label-width="100px"
+      >
+        <el-form-item label="用例编码" prop="caseCode">
+          <el-input 
+            v-model="copyFormData.caseCode" 
+            placeholder="请输入新的用例编码"
+            maxlength="50"
+            show-word-limit
+          />
+          <div class="form-tip">系统将自动生成唯一编码，您也可以自定义</div>
+        </el-form-item>
+        
+        <el-form-item label="用例名称" prop="name">
+          <el-input 
+            v-model="copyFormData.name" 
+            placeholder="请输入新的用例名称"
+            maxlength="100"
+            show-word-limit
+          />
+        </el-form-item>
+        
+        <el-form-item label="用例描述" prop="description">
+          <el-input 
+            v-model="copyFormData.description" 
+            type="textarea"
+            :rows="3"
+            placeholder="请输入用例描述"
+            maxlength="500"
+            show-word-limit
+          />
+        </el-form-item>
+        
+        <div class="copy-info">
+          <el-alert
+            title="复制说明"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <p>复制后将创建新的测试用例，包含以下内容：</p>
+              <ul>
+                <li>• 接口关联和请求配置</li>
+                <li>• 前置条件和测试步骤</li>
+                <li>• 断言规则和验证器</li>
+                <li>• 响应提取规则</li>
+                <li>• 优先级和标签</li>
+              </ul>
+            </template>
+          </el-alert>
+        </div>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="copyDialogVisible = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            @click="handleConfirmCopy" 
+            :loading="copying"
+          >
+            {{ copying ? '复制中...' : '确认复制' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -513,7 +591,7 @@ import {
   Document,
   Refresh
 } from '@element-plus/icons-vue'
-import { executeTestCase } from '../../api/testCase'
+import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase } from '../../api/testCase'
 
 const props = defineProps({
   testCase: {
@@ -827,6 +905,32 @@ const executeFormData = reactive({
 const resultDialogVisible = ref(false)
 const executionResult = ref(null)
 
+// 复制相关数据
+const copyDialogVisible = ref(false)
+const copying = ref(false)
+const copyFormRef = ref(null)
+const copyFormData = reactive({
+  caseCode: '',
+  name: '',
+  description: ''
+})
+
+// 复制表单验证规则
+const copyFormRules = {
+  caseCode: [
+    { required: true, message: '请输入用例编码', trigger: 'blur' },
+    { min: 2, max: 50, message: '编码长度在 2 到 50 个字符', trigger: 'blur' },
+    { pattern: /^[A-Z0-9_-]+$/, message: '编码只能包含大写字母、数字、下划线和连字符', trigger: 'blur' }
+  ],
+  name: [
+    { required: true, message: '请输入用例名称', trigger: 'blur' },
+    { min: 2, max: 100, message: '名称长度在 2 到 100 个字符', trigger: 'blur' }
+  ],
+  description: [
+    { max: 500, message: '描述不能超过 500 个字符', trigger: 'blur' }
+  ]
+}
+
 // 执行测试
 const handleExecute = () => {
   executeDialogVisible.value = true
@@ -944,9 +1048,61 @@ const handleEdit = () => {
 }
 
 // 复制用例
+// 复制测试用例
 const handleCopy = () => {
-  ElMessage.success('用例已复制')
-  // TODO: 实现复制功能
+  // 生成默认的复制数据
+  const originalCode = props.testCase.caseCode || props.testCase.case_code || props.testCase.id
+  const originalName = props.testCase.name
+  
+  // 生成新的编码和名称
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  copyFormData.caseCode = `${originalCode}_COPY_${timestamp}`
+  copyFormData.name = `${originalName}(副本)`
+  copyFormData.description = props.testCase.description || ''
+  
+  copyDialogVisible.value = true
+}
+
+// 确认复制
+const handleConfirmCopy = async () => {
+  if (!copyFormRef.value) return
+  
+  try {
+    await copyFormRef.value.validate()
+    
+    copying.value = true
+    
+    console.log('开始复制测试用例...')
+    console.log('原用例数据:', props.testCase)
+    console.log('复制表单数据:', copyFormData)
+    
+    // 使用复制接口，传递新的编码、名称和描述
+    const copyData = {
+      caseCode: copyFormData.caseCode,
+      name: copyFormData.name,
+      description: copyFormData.description
+    }
+    
+    console.log('复制数据:', copyData)
+    
+    const caseId = props.testCase.case_id || props.testCase.id
+    const copyResponse = await copyTestCase(caseId, copyData)
+    console.log('复制响应:', copyResponse)
+    
+    if (copyResponse.code === 1) {
+      ElMessage.success('测试用例复制成功')
+      copyDialogVisible.value = false
+      emit('refresh') // 通知父组件刷新数据
+    } else {
+      ElMessage.error(copyResponse.msg || '复制失败')
+    }
+  } catch (error) {
+    console.error('复制测试用例失败:', error)
+    console.error('错误详情:', error.response || error.message)
+    ElMessage.error('复制失败，请检查输入信息')
+  } finally {
+    copying.value = false
+  }
 }
 
 // 更多操作
@@ -1656,5 +1812,31 @@ const handleDelete = async () => {
   font-size: 13px;
   color: #606266;
   line-height: 1.6;
+}
+
+/* 复制对话框样式 */
+.copy-info {
+  margin-top: 20px;
+}
+
+.copy-info .el-alert {
+  margin-bottom: 0;
+}
+
+.copy-info ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.copy-info li {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #606266;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
 }
 </style>
