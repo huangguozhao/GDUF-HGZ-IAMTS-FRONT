@@ -790,96 +790,310 @@
     <el-dialog
       v-model="addCaseDialogVisible"
       title="添加测试用例"
-      width="700px"
+      width="900px"
       :close-on-click-modal="false"
     >
       <el-form
         ref="caseFormRef"
         :model="caseFormData"
         :rules="caseFormRules"
-        label-width="120px"
+        label-width="100px"
       >
-        <el-form-item label="用例名称" prop="name">
-          <el-input 
-            v-model="caseFormData.name" 
-            placeholder="请输入用例名称，例如：正常登录测试"
-          />
-        </el-form-item>
+        <el-tabs v-model="caseFormActiveTab" class="case-form-tabs">
+          <!-- 基本信息 -->
+          <el-tab-pane label="基本信息" name="basic">
+            <el-form-item label="用例名称" prop="name">
+              <el-input v-model="caseFormData.name" placeholder="请输入用例名称" />
+            </el-form-item>
+            
+            <el-form-item label="用例编码" prop="caseCode">
+              <el-input 
+                v-model="caseFormData.caseCode" 
+                placeholder="留空则自动生成" 
+              />
+              <span class="form-tip">用例编码在接口内唯一，留空则自动生成</span>
+            </el-form-item>
 
-        <el-form-item label="用例描述" prop="description">
-          <el-input 
-            v-model="caseFormData.description" 
-            type="textarea"
-            :rows="3"
-            placeholder="请输入用例描述"
-          />
-        </el-form-item>
+            <el-form-item label="用例描述" prop="description">
+              <el-input
+                v-model="caseFormData.description"
+                type="textarea"
+                :rows="3"
+                placeholder="请输入用例描述"
+              />
+            </el-form-item>
 
-        <el-form-item label="优先级" prop="priority">
-          <el-select v-model="caseFormData.priority" placeholder="请选择优先级">
-            <el-option label="P0 - 最高" value="P0" />
-            <el-option label="P1 - 高" value="P1" />
-            <el-option label="P2 - 中" value="P2" />
-            <el-option label="P3 - 低" value="P3" />
-          </el-select>
-        </el-form-item>
+            <el-form-item label="优先级" prop="priority">
+              <el-select v-model="caseFormData.priority" placeholder="请选择优先级">
+                <el-option label="P0（最高优先级）" value="P0" />
+                <el-option label="P1（高优先级）" value="P1" />
+                <el-option label="P2（中等优先级）" value="P2" />
+                <el-option label="P3（低优先级）" value="P3" />
+              </el-select>
+            </el-form-item>
 
-        <el-form-item label="严重程度" prop="severity">
-          <el-select v-model="caseFormData.severity" placeholder="请选择严重程度">
-            <el-option label="严重" value="critical" />
-            <el-option label="高" value="high" />
-            <el-option label="中" value="medium" />
-            <el-option label="低" value="low" />
-          </el-select>
-        </el-form-item>
+            <el-form-item label="严重程度" prop="severity">
+              <el-select v-model="caseFormData.severity" placeholder="请选择严重程度">
+                <el-option label="严重" value="critical" />
+                <el-option label="高" value="high" />
+                <el-option label="中" value="medium" />
+                <el-option label="低" value="low" />
+              </el-select>
+            </el-form-item>
 
-        <el-form-item label="测试数据" prop="preConditions">
-          <el-input 
-            v-model="caseFormData.preConditions" 
-            type="textarea"
-            :rows="4"
-            placeholder='请输入JSON格式的测试数据，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
-          />
-        </el-form-item>
+            <el-form-item label="标签" prop="tags">
+              <el-select
+                v-model="caseFormData.tags"
+                multiple
+                filterable
+                allow-create
+                placeholder="请选择或输入标签"
+                style="width: 100%"
+              >
+                <el-option label="登录" value="登录" />
+                <el-option label="注册" value="注册" />
+                <el-option label="认证" value="认证" />
+                <el-option label="支付" value="支付" />
+                <el-option label="订单" value="订单" />
+              </el-select>
+            </el-form-item>
 
-        <el-form-item label="预期状态码" prop="expectedHttpStatus">
-          <el-input-number
-            v-model="caseFormData.expectedHttpStatus"
-            :min="100"
-            :max="599"
-            placeholder="200"
-          />
-        </el-form-item>
+            <el-form-item label="版本号" prop="version">
+              <el-input v-model="caseFormData.version" placeholder="例如：1.0" />
+            </el-form-item>
 
-        <el-form-item label="预期响应" prop="expectedResponseBody">
-          <el-input 
-            v-model="caseFormData.expectedResponseBody" 
-            type="textarea"
-            :rows="6"
-            placeholder='请输入JSON格式的预期响应，例如：&#10;{&#10;  "code": 200,&#10;  "message": "操作成功",&#10;  "data": {...}&#10;}'
-          />
-        </el-form-item>
+            <el-form-item label="是否启用">
+              <el-switch v-model="caseFormData.isEnabled" />
+            </el-form-item>
 
-        <el-form-item label="标签" prop="tags">
-          <el-select 
-            v-model="caseFormData.tags" 
-            multiple 
-            filterable 
-            allow-create 
-            placeholder="选择或输入标签"
-          >
-            <el-option label="冒烟测试" value="冒烟测试" />
-            <el-option label="回归测试" value="回归测试" />
-            <el-option label="功能测试" value="功能测试" />
-            <el-option label="边界测试" value="边界测试" />
-            <el-option label="异常测试" value="异常测试" />
-            <el-option label="安全测试" value="安全测试" />
-          </el-select>
-        </el-form-item>
+            <el-form-item label="设为模板">
+              <el-switch v-model="caseFormData.isTemplate" />
+              <span class="form-tip">模板用例可以被其他用例引用</span>
+            </el-form-item>
+          </el-tab-pane>
 
-        <el-form-item label="是否启用">
-          <el-switch v-model="caseFormData.isEnabled" />
-        </el-form-item>
+          <!-- 测试步骤 -->
+          <el-tab-pane label="测试步骤" name="steps">
+            <div class="test-steps-section">
+              <div class="steps-header">
+                <span class="steps-title">测试步骤列表</span>
+                <el-button size="small" type="primary" @click="handleAddTestStep">
+                  + 添加步骤
+                </el-button>
+              </div>
+              
+              <div class="steps-list" v-if="caseFormData.testSteps && caseFormData.testSteps.length > 0">
+                <div 
+                  v-for="(step, index) in caseFormData.testSteps" 
+                  :key="index"
+                  class="step-item-edit"
+                >
+                  <div class="step-number">{{ index + 1 }}</div>
+                  <div class="step-content-edit">
+                    <el-input
+                      v-model="step.operation"
+                      placeholder="操作步骤"
+                      class="step-input"
+                    />
+                    <el-input
+                      v-model="step.expected"
+                      placeholder="预期结果"
+                      class="step-input"
+                    />
+                  </div>
+                  <el-button
+                    size="small"
+                    type="danger"
+                    text
+                    @click="handleRemoveTestStep(index)"
+                  >
+                    删除
+                  </el-button>
+                </div>
+              </div>
+              
+              <el-empty 
+                v-else 
+                description="暂无测试步骤，点击上方按钮添加"
+                :image-size="80"
+              />
+            </div>
+          </el-tab-pane>
+
+          <!-- 前置条件与请求参数 -->
+          <el-tab-pane label="请求参数" name="request">
+            <el-form-item label="前置条件">
+              <el-input
+                v-model="caseFormData.preConditionsStr"
+                type="textarea"
+                :rows="6"
+                placeholder='JSON格式的前置条件，例如：&#10;{&#10;  "token": "xxxx",&#10;  "userId": 123&#10;}'
+              />
+              <span class="form-tip">用于设置环境变量、登录状态等</span>
+            </el-form-item>
+
+            <el-form-item label="请求参数覆盖">
+              <el-input
+                v-model="caseFormData.requestOverrideStr"
+                type="textarea"
+                :rows="8"
+                placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
+              />
+              <span class="form-tip">将覆盖接口的默认请求参数</span>
+            </el-form-item>
+          </el-tab-pane>
+
+          <!-- 预期响应 -->
+          <el-tab-pane label="预期响应" name="response">
+            <el-form-item label="预期状态码" prop="expectedHttpStatus">
+              <el-input-number
+                v-model="caseFormData.expectedHttpStatus"
+                :min="100"
+                :max="599"
+                placeholder="200"
+              />
+            </el-form-item>
+
+            <el-form-item label="预期响应体">
+              <el-input
+                v-model="caseFormData.expectedResponseBody"
+                type="textarea"
+                :rows="8"
+                placeholder='预期的响应内容，例如：&#10;{&#10;  "code": 1,&#10;  "msg": "成功",&#10;  "data": {}&#10;}'
+              />
+            </el-form-item>
+
+            <el-form-item label="响应Schema">
+              <el-input
+                v-model="caseFormData.expectedResponseSchemaStr"
+                type="textarea"
+                :rows="8"
+                placeholder='JSON Schema格式，例如：&#10;{&#10;  "type": "object",&#10;  "properties": {&#10;    "code": {"type": "number"}&#10;  }&#10;}'
+              />
+              <span class="form-tip">用于验证响应结构</span>
+            </el-form-item>
+          </el-tab-pane>
+
+          <!-- 断言规则 -->
+          <el-tab-pane label="断言规则" name="assertions">
+            <div class="assertions-section">
+              <div class="assertions-header">
+                <span class="assertions-title">断言列表</span>
+                <el-button size="small" type="primary" @click="handleAddAssertion">
+                  + 添加断言
+                </el-button>
+              </div>
+
+              <div class="assertions-list" v-if="caseFormData.assertions && caseFormData.assertions.length > 0">
+                <div 
+                  v-for="(assertion, index) in caseFormData.assertions" 
+                  :key="index"
+                  class="assertion-item-edit"
+                >
+                  <div class="assertion-form">
+                    <el-select 
+                      v-model="assertion.type" 
+                      placeholder="断言类型"
+                      style="width: 180px"
+                    >
+                      <el-option label="状态码" value="status_code" />
+                      <el-option label="JSON路径" value="json_path" />
+                      <el-option label="JSON路径存在" value="json_path_exists" />
+                      <el-option label="响应时间" value="response_time" />
+                      <el-option label="包含文本" value="contains" />
+                    </el-select>
+
+                    <el-input
+                      v-if="assertion.type === 'json_path' || assertion.type === 'json_path_exists'"
+                      v-model="assertion.path"
+                      placeholder="$.data.token"
+                      style="flex: 1"
+                    />
+
+                    <el-input
+                      v-if="assertion.type !== 'json_path_exists'"
+                      v-model="assertion.expected"
+                      placeholder="预期值"
+                      style="flex: 1"
+                    />
+
+                    <el-button
+                      size="small"
+                      type="danger"
+                      text
+                      @click="handleRemoveAssertion(index)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+
+              <el-empty 
+                v-else 
+                description="暂无断言规则，点击上方按钮添加"
+                :image-size="80"
+              />
+            </div>
+          </el-tab-pane>
+
+          <!-- 响应提取规则 -->
+          <el-tab-pane label="提取规则" name="extractors">
+            <div class="extractors-section">
+              <div class="extractors-header">
+                <span class="extractors-title">提取器列表</span>
+                <el-button size="small" type="primary" @click="handleAddExtractor">
+                  + 添加提取器
+                </el-button>
+              </div>
+
+              <div class="extractors-list-edit" v-if="caseFormData.extractors && caseFormData.extractors.length > 0">
+                <div 
+                  v-for="(extractor, index) in caseFormData.extractors" 
+                  :key="index"
+                  class="extractor-item-edit"
+                >
+                  <div class="extractor-form">
+                    <el-input
+                      v-model="extractor.name"
+                      placeholder="变量名"
+                      style="width: 150px"
+                    />
+                    <el-input
+                      v-model="extractor.expression"
+                      placeholder="JSONPath表达式，如：$.data.token"
+                      style="flex: 2"
+                    />
+                    <el-input
+                      v-model="extractor.description"
+                      placeholder="描述"
+                      style="flex: 1"
+                    />
+                    <el-button
+                      size="small"
+                      type="danger"
+                      text
+                      @click="handleRemoveExtractor(index)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </div>
+              </div>
+
+              <el-empty 
+                v-else 
+                description="暂无提取规则，点击上方按钮添加"
+                :image-size="80"
+              />
+
+              <div class="extractor-tip">
+                <el-icon color="#409eff"><InfoFilled /></el-icon>
+                <span>提取器用于从响应中提取数据供后续用例使用，如提取登录token、订单ID等</span>
+              </div>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </el-form>
 
       <template #footer>
@@ -1228,17 +1442,31 @@ const truncateText = (text, maxLength) => {
 const addCaseDialogVisible = ref(false)
 const caseFormRef = ref(null)
 const savingCase = ref(false)
+const caseFormActiveTab = ref('basic')
 
 const caseFormData = reactive({
   name: '',
   description: '',
+  caseCode: '',
   priority: 'P2',
   severity: 'medium',
+  tags: [],
+  version: '1.0',
+  isEnabled: true,
+  isTemplate: false,
+  // 测试步骤
+  testSteps: [],
+  // 前置条件和请求参数
   preConditions: '',
+  preConditionsStr: '',
+  requestOverrideStr: '',
+  // 预期响应
   expectedHttpStatus: 200,
   expectedResponseBody: '',
-  tags: [],
-  isEnabled: true
+  expectedResponseSchemaStr: '',
+  // 断言和提取器
+  assertions: [],
+  extractors: []
 })
 
 const caseFormRules = {
@@ -1258,15 +1486,73 @@ const resetCaseForm = () => {
   Object.assign(caseFormData, {
     name: '',
     description: '',
+    caseCode: '',
     priority: 'P2',
     severity: 'medium',
+    tags: [],
+    version: '1.0',
+    isEnabled: true,
+    isTemplate: false,
+    testSteps: [],
     preConditions: '',
+    preConditionsStr: '',
+    requestOverrideStr: '',
     expectedHttpStatus: 200,
     expectedResponseBody: '',
-    tags: [],
-    isEnabled: true
+    expectedResponseSchemaStr: '',
+    assertions: [],
+    extractors: []
   })
+  caseFormActiveTab.value = 'basic'
   caseFormRef.value?.clearValidate()
+}
+
+// 测试步骤相关
+const handleAddTestStep = () => {
+  if (!caseFormData.testSteps) {
+    caseFormData.testSteps = []
+  }
+  caseFormData.testSteps.push({
+    operation: '',
+    expected: '',
+    actual: ''
+  })
+}
+
+const handleRemoveTestStep = (index) => {
+  caseFormData.testSteps.splice(index, 1)
+}
+
+// 断言相关
+const handleAddAssertion = () => {
+  if (!caseFormData.assertions) {
+    caseFormData.assertions = []
+  }
+  caseFormData.assertions.push({
+    type: 'json_path',
+    path: '',
+    expected: ''
+  })
+}
+
+const handleRemoveAssertion = (index) => {
+  caseFormData.assertions.splice(index, 1)
+}
+
+// 提取器相关
+const handleAddExtractor = () => {
+  if (!caseFormData.extractors) {
+    caseFormData.extractors = []
+  }
+  caseFormData.extractors.push({
+    name: '',
+    expression: '',
+    description: ''
+  })
+}
+
+const handleRemoveExtractor = (index) => {
+  caseFormData.extractors.splice(index, 1)
 }
 
 // 添加测试用例
@@ -1283,11 +1569,20 @@ const handleSaveTestCase = async () => {
     await caseFormRef.value.validate()
     
     // 验证JSON格式
-    if (caseFormData.preConditions) {
+    if (caseFormData.preConditionsStr) {
       try {
-        JSON.parse(caseFormData.preConditions)
+        JSON.parse(caseFormData.preConditionsStr)
       } catch (e) {
-        ElMessage.error('测试数据必须是有效的JSON格式')
+        ElMessage.error('前置条件必须是有效的JSON格式')
+        return
+      }
+    }
+    
+    if (caseFormData.requestOverrideStr) {
+      try {
+        JSON.parse(caseFormData.requestOverrideStr)
+      } catch (e) {
+        ElMessage.error('请求参数必须是有效的JSON格式')
         return
       }
     }
@@ -1296,7 +1591,16 @@ const handleSaveTestCase = async () => {
       try {
         JSON.parse(caseFormData.expectedResponseBody)
       } catch (e) {
-        ElMessage.error('预期响应必须是有效的JSON格式')
+        ElMessage.error('预期响应体必须是有效的JSON格式')
+        return
+      }
+    }
+    
+    if (caseFormData.expectedResponseSchemaStr) {
+      try {
+        JSON.parse(caseFormData.expectedResponseSchemaStr)
+      } catch (e) {
+        ElMessage.error('响应Schema必须是有效的JSON格式')
         return
       }
     }
@@ -1306,15 +1610,23 @@ const handleSaveTestCase = async () => {
     // TODO: 调用创建测试用例API
     // import { createTestCase } from '@/api/testCase'
     // const requestData = {
+    //   case_code: caseFormData.caseCode,
     //   name: caseFormData.name,
     //   description: caseFormData.description,
     //   priority: caseFormData.priority,
     //   severity: caseFormData.severity,
-    //   pre_conditions: JSON.parse(caseFormData.preConditions || '{}'),
+    //   tags: caseFormData.tags,
+    //   version: caseFormData.version,
+    //   test_steps: caseFormData.testSteps,
+    //   pre_conditions: caseFormData.preConditionsStr ? JSON.parse(caseFormData.preConditionsStr) : null,
+    //   request_override: caseFormData.requestOverrideStr ? JSON.parse(caseFormData.requestOverrideStr) : null,
     //   expected_http_status: caseFormData.expectedHttpStatus,
     //   expected_response_body: caseFormData.expectedResponseBody,
-    //   tags: caseFormData.tags,
-    //   is_enabled: caseFormData.isEnabled
+    //   expected_response_schema: caseFormData.expectedResponseSchemaStr ? JSON.parse(caseFormData.expectedResponseSchemaStr) : null,
+    //   assertions: caseFormData.assertions,
+    //   extractors: caseFormData.extractors,
+    //   is_enabled: caseFormData.isEnabled,
+    //   is_template: caseFormData.isTemplate
     // }
     // const response = await createTestCase(props.api.api_id, requestData)
     // if (response.code === 1) {
@@ -1325,6 +1637,7 @@ const handleSaveTestCase = async () => {
     
     ElMessage.success('测试用例创建成功')
     addCaseDialogVisible.value = false
+    emit('refresh-cases')
     
   } catch (error) {
     console.error('保存测试用例失败:', error)
@@ -2210,6 +2523,184 @@ const handleDelete = () => {
   padding: 16px 24px;
   background: white;
   border-top: 1px solid #e4e7ed;
+}
+
+/* 用例表单样式 */
+.case-form-tabs {
+  margin: -20px -10px 0 -10px;
+  max-height: 600px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.case-form-tabs :deep(.el-tabs__header) {
+  margin-bottom: 0;
+  padding: 0 20px;
+  /* background: #fafafa; */
+  flex-shrink: 0;
+}
+
+.case-form-tabs :deep(.el-tabs__content) {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 520px;
+}
+
+.case-form-tabs :deep(.el-tabs__content)::-webkit-scrollbar {
+  width: 6px;
+}
+
+.case-form-tabs :deep(.el-tabs__content)::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+.case-form-tabs :deep(.el-tabs__content)::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+.form-tip {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 测试步骤编辑 */
+.test-steps-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.steps-header,
+.assertions-header,
+.extractors-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.steps-title,
+.assertions-title,
+.extractors-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.step-item-edit {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ed;
+}
+
+.step-item-edit:last-child {
+  margin-bottom: 0;
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  background: #409eff;
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+
+.step-content-edit {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.step-input {
+  width: 100%;
+}
+
+/* 断言编辑 */
+.assertions-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.assertions-list {
+  margin-bottom: 12px;
+}
+
+.assertion-item-edit {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ed;
+}
+
+.assertion-item-edit:last-child {
+  margin-bottom: 0;
+}
+
+.assertion-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* 提取器编辑 */
+.extractors-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.extractors-list-edit {
+  margin-bottom: 16px;
+}
+
+.extractor-item-edit {
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  border: 1px solid #e4e7ed;
+}
+
+.extractor-item-edit:last-child {
+  margin-bottom: 0;
+}
+
+.extractor-form {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.extractor-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #ecf5ff;
+  border: 1px solid #b3d8ff;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
 }
 </style>
 

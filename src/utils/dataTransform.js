@@ -216,8 +216,19 @@ export function transformTestCaseToBackend(testCase) {
     tags: testCase.tags || []
   }
   
-  // 处理请求参数
-  if (testCase.request_params) {
+  // 用例编码
+  if (testCase.case_code) {
+    data.case_code = testCase.case_code
+  }
+  
+  // 处理请求参数 - 支持新旧两种方式
+  if (testCase.request_override_str) {
+    try {
+      data.request_override = JSON.parse(testCase.request_override_str)
+    } catch (e) {
+      console.error('解析请求参数覆盖失败:', e)
+    }
+  } else if (testCase.request_params) {
     try {
       data.request_override = typeof testCase.request_params === 'string' 
         ? JSON.parse(testCase.request_params)
@@ -227,9 +238,38 @@ export function transformTestCaseToBackend(testCase) {
     }
   }
   
+  // 处理前置条件
+  if (testCase.pre_conditions_str) {
+    try {
+      data.pre_conditions = JSON.parse(testCase.pre_conditions_str)
+    } catch (e) {
+      console.error('解析前置条件失败:', e)
+    }
+  } else if (testCase.pre_conditions) {
+    data.pre_conditions = testCase.pre_conditions
+  }
+  
   // 处理预期状态码
-  if (testCase.expected_status_code) {
+  if (testCase.expected_http_status) {
+    data.expected_http_status = testCase.expected_http_status
+  } else if (testCase.expected_status_code) {
     data.expected_http_status = testCase.expected_status_code
+  }
+  
+  // 处理预期响应
+  if (testCase.expected_response_body) {
+    data.expected_response_body = testCase.expected_response_body
+  }
+  
+  // 处理响应Schema
+  if (testCase.expected_response_schema_str) {
+    try {
+      data.expected_response_schema = JSON.parse(testCase.expected_response_schema_str)
+    } catch (e) {
+      console.error('解析响应Schema失败:', e)
+    }
+  } else if (testCase.expected_response_schema) {
+    data.expected_response_schema = testCase.expected_response_schema
   }
   
   // 处理验证规则 - 转换为断言数组
@@ -239,14 +279,24 @@ export function transformTestCaseToBackend(testCase) {
     data.assertions = testCase.assertions
   }
   
+  // 测试步骤
+  if (testCase.test_steps) {
+    data.test_steps = testCase.test_steps
+  }
+  
+  // 提取器和验证器
+  if (testCase.extractors) {
+    data.extractors = testCase.extractors
+  }
+  if (testCase.validators) {
+    data.validators = testCase.validators
+  }
+  
   // 其他字段
   if (testCase.is_enabled !== undefined) data.is_enabled = testCase.is_enabled
   if (testCase.is_template !== undefined) data.is_template = testCase.is_template
+  if (testCase.template_id) data.template_id = testCase.template_id
   if (testCase.version) data.version = testCase.version
-  if (testCase.pre_conditions) data.pre_conditions = testCase.pre_conditions
-  if (testCase.test_steps) data.test_steps = testCase.test_steps
-  if (testCase.extractors) data.extractors = testCase.extractors
-  if (testCase.validators) data.validators = testCase.validators
   
   return data
 }
