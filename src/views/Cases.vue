@@ -183,6 +183,7 @@
           @select-case="handleSelectCase"
           @edit-case="handleEditCase"
           @delete-case="handleDeleteCase"
+          @refresh-cases="handleRefreshCases"
         />
 
         <!-- 用例层级 - 显示用例详情 -->
@@ -1503,9 +1504,9 @@ const loadModuleApis = async (module) => {
 }
 
 // 加载接口测试用例
-const loadApiTestCases = async (api) => {
-  // 如果测试用例已经加载过，直接返回
-  if (api.cases && api.cases.length > 0) {
+const loadApiTestCases = async (api, forceRefresh = false) => {
+  // 如果测试用例已经加载过且不是强制刷新，直接返回
+  if (!forceRefresh && api.cases && api.cases.length > 0) {
     return
   }
   
@@ -1525,7 +1526,19 @@ const loadApiTestCases = async (api) => {
       // 转换测试用例数据并添加到接口中
       api.cases = cases.map(transformTestCase)
       
-      if (cases.length > 0) {
+      // 如果当前选中的是用例，且该用例属于当前接口，则更新选中的用例数据
+      if (selectedLevel.value === 'case' && selectedNode.value) {
+        const currentCase = api.cases.find(c => 
+          c.case_id === selectedNode.value.case_id || 
+          c.id === selectedNode.value.id
+        )
+        if (currentCase) {
+          selectedNode.value = currentCase
+        }
+      }
+      
+      // 只在首次加载时显示成功消息，强制刷新时不显示
+      if (!forceRefresh && cases.length > 0) {
         ElMessage.success(`加载了 ${cases.length} 个测试用例`)
       }
     } else {
@@ -1592,6 +1605,67 @@ const handleSelectChild = (child) => {
 // 选择用例
 const handleSelectCase = (testCase) => {
   handleSelectNode(testCase, 'case')
+}
+
+// 刷新测试用例数据
+const handleRefreshCases = async () => {
+  if (selectedLevel.value === 'api' && selectedNode.value) {
+    try {
+      // 强制重新加载当前接口的测试用例
+      await loadApiTestCases(selectedNode.value, true)
+      // 不显示成功消息，避免干扰用户体验
+    } catch (error) {
+      console.error('刷新测试用例失败:', error)
+      ElMessage.error('刷新数据失败')
+    }
+  }
+}
+
+// 更新当前选中的用例数据
+const updateCurrentTestCaseData = async () => {
+  if (selectedLevel.value === 'case' && selectedNode.value) {
+    try {
+      // 获取当前用例的接口ID
+      const apiId = selectedNode.value.api_id || selectedNode.value.apiId
+      if (!apiId) {
+        console.error('无法获取接口ID')
+        return
+      }
+      
+      // 重新加载该接口的测试用例数据
+      const response = await getTestCasesByApi(apiId, { pageSize: 100 })
+      
+      if (response.code === 1) {
+        const cases = response.data.items || []
+        const transformedCases = cases.map(transformTestCase)
+        
+        // 找到当前选中的用例并更新
+        const currentCase = transformedCases.find(c => 
+          c.case_id === selectedNode.value.case_id || 
+          c.id === selectedNode.value.id
+        )
+        
+        if (currentCase) {
+          // 更新当前选中的用例数据
+          selectedNode.value = currentCase
+          
+          // 同时更新项目树中对应的用例数据
+          projects.value.forEach(project => {
+            project.modules?.forEach(module => {
+              module.apis?.forEach(api => {
+                if (api.api_id === apiId || api.id === apiId) {
+                  api.cases = transformedCases
+                }
+              })
+            })
+          })
+        }
+      }
+    } catch (error) {
+      console.error('更新当前用例数据失败:', error)
+      ElMessage.error('更新数据失败')
+    }
+  }
 }
 
 // 新建
@@ -2063,7 +2137,18 @@ const handleSaveWithAPI = async () => {
     } else {
       await createTestCase(data)
     }
-    await loadProjectTree()
+    
+    // 智能更新数据，保持当前状态
+    if (selectedLevel.value === 'api' && selectedNode.value) {
+      // 在接口页面，只刷新测试用例数据
+      await loadApiTestCases(selectedNode.value, true)
+    } else if (selectedLevel.value === 'case' && selectedNode.value) {
+      // 在用例页面，更新当前用例数据
+      await updateCurrentTestCaseData()
+    } else {
+      // 在其他页面，重新加载项目树
+      await loadProjectTree()
+    }
   }
 }
 
