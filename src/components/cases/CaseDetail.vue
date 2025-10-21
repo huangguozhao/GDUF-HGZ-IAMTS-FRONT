@@ -104,6 +104,27 @@
           </div>
       </div>
 
+        <!-- 用例描述 -->
+        <div class="section-card" v-if="testCase.description">
+          <h3 class="section-title">用例描述</h3>
+          <p class="description-text">{{ testCase.description }}</p>
+        </div>
+
+        <!-- 标签 -->
+        <div class="section-card" v-if="displayTags.length > 0">
+          <h3 class="section-title">标签</h3>
+          <div class="tags-container">
+            <el-tag 
+              v-for="(tag, index) in displayTags" 
+              :key="index"
+              class="tag-item"
+              type="info"
+            >
+              {{ tag }}
+            </el-tag>
+          </div>
+        </div>
+
         <!-- 测试步骤 -->
         <div class="section-card">
           <h3 class="section-title">测试步骤</h3>
@@ -168,8 +189,38 @@
               <div class="response-code">
                 <pre>{{ formatExpectedResponse() }}</pre>
               </div>
+            </div>
+            <div class="response-item full-width" v-if="hasExpectedResponseSchema">
+              <span class="response-label">响应Schema</span>
+              <div class="response-code">
+                <pre>{{ formatExpectedResponseSchema() }}</pre>
+              </div>
+            </div>
           </div>
         </div>
+
+        <!-- 响应提取规则 -->
+        <div class="section-card" v-if="displayExtractors.length > 0">
+          <h3 class="section-title">响应提取规则</h3>
+          <div class="extractors-list">
+            <div 
+              v-for="(extractor, index) in displayExtractors" 
+              :key="index"
+              class="extractor-item"
+            >
+              <div class="extractor-header">
+                <span class="extractor-name">{{ extractor.name }}</span>
+                <el-tag size="small" type="success">提取变量</el-tag>
+              </div>
+              <div class="extractor-expression">
+                <span class="expression-label">表达式:</span>
+                <code class="expression-code">{{ extractor.expression }}</code>
+              </div>
+              <div class="extractor-description" v-if="extractor.description">
+                {{ extractor.description }}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -477,6 +528,53 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'edit', 'delete', 'refresh'])
 
+// 显示标签
+const displayTags = computed(() => {
+  const tags = props.testCase.tags
+  
+  if (tags && Array.isArray(tags)) {
+    return tags
+  }
+  
+  if (typeof tags === 'string') {
+    try {
+      const parsed = JSON.parse(tags)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      // 解析失败，返回空数组
+      return []
+    }
+  }
+  
+  return []
+})
+
+// 显示提取器
+const displayExtractors = computed(() => {
+  const extractors = props.testCase.extractors
+  
+  if (extractors && Array.isArray(extractors)) {
+    return extractors
+  }
+  
+  if (typeof extractors === 'string') {
+    try {
+      const parsed = JSON.parse(extractors)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      // 解析失败，返回空数组
+      return []
+    }
+  }
+  
+  return []
+})
+
+// 是否有预期响应Schema
+const hasExpectedResponseSchema = computed(() => {
+  return !!(props.testCase.expectedResponseSchema || props.testCase.expected_response_schema)
+})
+
 // 显示测试步骤
 const displaySteps = computed(() => {
   if (props.testCase.test_steps && Array.isArray(props.testCase.test_steps)) {
@@ -591,8 +689,6 @@ const formatExpectedResponse = () => {
   // 优先使用驼峰命名的字段
   const responseBody = props.testCase.expectedResponseBody 
     || props.testCase.expected_response_body
-  const responseSchema = props.testCase.expectedResponseSchema 
-    || props.testCase.expected_response_schema
   
   if (responseBody) {
     try {
@@ -605,6 +701,19 @@ const formatExpectedResponse = () => {
     }
   }
   
+  // 默认响应
+  return JSON.stringify({
+    code: 200,
+    message: '操作成功',
+    data: null
+  }, null, 2)
+}
+
+// 格式化预期响应Schema
+const formatExpectedResponseSchema = () => {
+  const responseSchema = props.testCase.expectedResponseSchema 
+    || props.testCase.expected_response_schema
+  
   if (responseSchema) {
     try {
       const parsed = typeof responseSchema === 'string'
@@ -616,12 +725,7 @@ const formatExpectedResponse = () => {
     }
   }
   
-  // 默认响应
-  return JSON.stringify({
-    code: 200,
-    message: '操作成功',
-    data: null
-  }, null, 2)
+  return ''
 }
 
 // 获取创建人名称
@@ -1476,5 +1580,81 @@ const handleDelete = async () => {
   display: flex;
   gap: 12px;
   justify-content: center;
+}
+
+/* 用例描述 */
+.description-text {
+  margin: 0;
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.8;
+}
+
+/* 标签容器 */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-item {
+  margin: 0;
+}
+
+/* 响应提取规则 */
+.extractors-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.extractor-item {
+  background: #f5f7fa;
+  border: 1px solid #e4e7ed;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.extractor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.extractor-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.extractor-expression {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.expression-label {
+  font-size: 13px;
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.expression-code {
+  flex: 1;
+  padding: 4px 8px;
+  background: #fff;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+  color: #409eff;
+}
+
+.extractor-description {
+  font-size: 13px;
+  color: #606266;
+  line-height: 1.6;
 }
 </style>
