@@ -7,8 +7,20 @@
         <h2 class="level-title">{{ node.name }}</h2>
       </div>
       <div class="header-right">
-        <el-button size="small" @click="$emit('edit', node)">编辑</el-button>
-        <el-button size="small" type="danger" @click="$emit('delete', node)">删除</el-button>
+        <el-button 
+          v-if="level === 'project'" 
+          size="small" 
+          :icon="Setting"
+          @click="handleConfigEnvironment"
+        >
+          环境配置
+        </el-button>
+        <el-button size="small" :icon="Edit" @click="$emit('edit', node)">
+          编辑
+        </el-button>
+        <el-button size="small" type="danger" :icon="Delete" @click="$emit('delete', node)">
+          删除
+        </el-button>
       </div>
     </div>
 
@@ -122,7 +134,8 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import { Setting, Edit, Delete } from '@element-plus/icons-vue'
 
 const props = defineProps({
   node: {
@@ -135,7 +148,15 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'add', 'edit-child', 'delete-child', 'select-child'])
+const emit = defineEmits(['edit', 'delete', 'add', 'edit-child', 'delete-child', 'select-child', 'config-environment'])
+
+// 环境配置对话框
+const envDialogVisible = ref(false)
+
+// 打开环境配置
+const handleConfigEnvironment = () => {
+  emit('config-environment', props.node)
+}
 
 const children = computed(() => {
   if (props.level === 'project') {

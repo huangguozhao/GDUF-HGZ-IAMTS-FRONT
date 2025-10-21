@@ -10,7 +10,7 @@ export function getTestCasesByApi(apiId, params = {}) {
     url: '/testcases',
     method: 'get',
     params: {
-      api_id: apiId,
+      apiId: apiId,
       name: params.name,
       case_code: params.case_code,
       priority: params.priority,
@@ -129,10 +129,19 @@ export function exportTestCases(apiId, params = {}) {
 }
 
 // 执行测试用例
-export function executeTestCase(apiId, caseId) {
+export function executeTestCase(apiId, caseId, executeData = {}) {
   return request({
-    url: `/testcases/${caseId}/execute`,
-    method: 'post'
+    url: `/test-cases/${caseId}/execute`,
+    method: 'post',
+    data: {
+      environment: executeData.environment,
+      base_url: executeData.base_url,
+      timeout: executeData.timeout,
+      auth_override: executeData.auth_override,
+      variables: executeData.variables,
+      async: executeData.async || false,
+      callback_url: executeData.callback_url
+    }
   })
 }
 

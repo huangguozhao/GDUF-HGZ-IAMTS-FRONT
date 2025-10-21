@@ -19,10 +19,10 @@ export function transformProject(project) {
 }
 
 /**
- * 转换模块数据
+ * 转换模块数据（递归处理子模块）
  */
 export function transformModule(module) {
-  return {
+  const transformed = {
     id: module.moduleId || module.module_id, // 兼容两种命名方式
     module_id: module.moduleId || module.module_id,
     name: module.name,
@@ -33,6 +33,7 @@ export function transformModule(module) {
     sort_order: module.sortOrder || module.sort_order,
     status: module.status,
     owner_info: module.ownerInfo || module.owner_info,
+    creator_name: module.creatorName || module.creator_name,
     tags: module.tags || [],
     api_count: module.apiCount || module.api_count || 0,
     case_count: module.caseCount || module.case_count || 0,
@@ -40,8 +41,16 @@ export function transformModule(module) {
     path: module.path,
     created_time: module.createdAt || module.created_at,
     updated_time: module.updatedAt || module.updated_at,
-    apis: [] // 默认为空，后续填充
+    apis: [], // 默认为空，后续填充
+    children: [] // 子模块，默认为空
   }
+  
+  // 递归处理子模块
+  if (module.children && Array.isArray(module.children) && module.children.length > 0) {
+    transformed.children = module.children.map(transformModule)
+  }
+  
+  return transformed
 }
 
 /**

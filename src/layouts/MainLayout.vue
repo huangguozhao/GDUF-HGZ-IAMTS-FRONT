@@ -157,6 +157,7 @@ const handleUserClick = async () => {
 <style scoped>
 .layout-container {
   height: 100vh;
+  overflow: hidden;
 }
 
 .header {
@@ -167,6 +168,8 @@ const handleUserClick = async () => {
   align-items: center;
   padding: 0 20px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  height: 60px;
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -253,6 +256,8 @@ const handleUserClick = async () => {
   display: flex;
   flex-direction: column;
   transition: width 0.3s;
+  height: calc(100vh - 60px);
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
@@ -262,6 +267,25 @@ const handleUserClick = async () => {
 .sidebar-menu {
   flex: 1;
   padding: 8px 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.sidebar-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+.sidebar-menu::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+.sidebar-menu::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .menu-item {
@@ -335,5 +359,6 @@ const handleUserClick = async () => {
   background: #f5f7fa;
   padding: 0;
   overflow: hidden;
+  height: calc(100vh - 60px);
 }
 </style>

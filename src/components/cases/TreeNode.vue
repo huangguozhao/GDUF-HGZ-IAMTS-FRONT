@@ -70,7 +70,10 @@ const isExpanded = ref(props.defaultExpanded)
 
 const hasChildren = computed(() => {
   if (props.level === 'project') return props.node.modules?.length > 0
-  if (props.level === 'module') return props.node.apis?.length > 0
+  if (props.level === 'module') {
+    // 模块可能有子模块或接口
+    return (props.node.children?.length > 0) || (props.node.apis?.length > 0)
+  }
   if (props.level === 'api') return props.node.cases?.length > 0
   return false
 })

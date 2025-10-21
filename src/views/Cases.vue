@@ -56,6 +56,63 @@
                 @delete="handleDeleteModule"
                 @node-click="handleSelectNode(module, 'module')"
               >
+                <!-- 子模块 -->
+                <TreeNode
+                  v-for="subModule in module.children"
+                  :key="subModule.id"
+                  :node="subModule"
+                  level="module"
+                  :default-expanded="false"
+                  :is-selected="selectedNode?.id === subModule.id && selectedLevel === 'module'"
+                  @add-api="handleAddApi"
+                  @edit="handleEdit"
+                  @delete="handleDeleteModule"
+                  @node-click="handleSelectNode(subModule, 'module')"
+                >
+                  <!-- 子模块的接口 -->
+                  <TreeNode
+                    v-for="api in subModule.apis"
+                    :key="api.id"
+                    :node="api"
+                    level="api"
+                    :default-expanded="false"
+                    :is-selected="selectedNode?.id === api.id && selectedLevel === 'api'"
+                    @edit="handleEdit"
+                    @delete="handleDeleteApi"
+                    @node-click="handleSelectNode(api, 'api')"
+                  >
+                    <!-- 测试用例列表 -->
+                    <div
+                      v-for="testCase in api.cases"
+                      :key="testCase.id"
+                      class="case-item-tree"
+                      :class="{ 'is-selected': selectedNode?.id === testCase.id && selectedLevel === 'case' }"
+                      @click.stop="handleSelectNode(testCase, 'case')"
+                    >
+                      <div class="case-item-content">
+                        <span class="case-item-label">{{ testCase.name }}</span>
+                        <span class="status-dot" :class="'status-' + testCase.status"></span>
+                      </div>
+                      <div class="case-item-menu" @click.stop>
+                        <el-dropdown trigger="click" @command="(cmd) => handleCaseCommand(cmd, testCase)">
+                          <span class="menu-trigger">
+                            <span class="menu-dots">⋯</span>
+                          </span>
+                          <template #dropdown>
+                            <el-dropdown-menu>
+                              <el-dropdown-item command="execute">执行测试</el-dropdown-item>
+                              <el-dropdown-item command="edit">编辑</el-dropdown-item>
+                              <el-dropdown-item command="copy">复制</el-dropdown-item>
+                              <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                            </el-dropdown-menu>
+                          </template>
+                        </el-dropdown>
+                      </div>
+                    </div>
+                  </TreeNode>
+                </TreeNode>
+
+                <!-- 一级模块的接口 -->
                 <TreeNode
                   v-for="api in module.apis"
                   :key="api.id"
@@ -115,6 +172,7 @@
           @edit-child="handleEditChild"
           @delete-child="handleDeleteChild"
           @select-child="handleSelectChild"
+          @config-environment="handleConfigEnvironment"
         />
 
         <!-- 接口层级 - 显示接口详情 -->
@@ -135,6 +193,7 @@
           @close="selectedNode = null"
           @edit="handleEditCase"
           @delete="handleDeleteCase"
+          @refresh="handleRefreshTestCase"
         />
 
         <!-- 默认空状态 -->
@@ -144,6 +203,554 @@
         </div>
       </div>
     </div>
+
+    <!-- 环境配置对话框 -->
+    <el-dialog
+      v-model="envDialogVisible"
+      title=""
+      width="1000px"
+      :close-on-click-modal="false"
+      custom-class="env-config-dialog"
+    >
+      <div class="env-config-layout">
+        <!-- 左侧环境列表 -->
+        <div class="env-sidebar">
+          <div class="env-sidebar-header">
+            <input 
+              v-model="envSearchText" 
+              type="text" 
+              class="env-search-input" 
+              placeholder="搜索环境..."
+            />
+          </div>
+
+          <div class="env-sidebar-list">
+            <div 
+              v-for="(env, index) in envFormData.environments" 
+              :key="index"
+              class="env-sidebar-item"
+              :class="{ 
+                'is-active': currentEnvIndex === index,
+                'is-default': env.is_default
+              }"
+              @click="currentEnvIndex = index"
+            >
+              <div class="env-item-name">{{ env.name || '未命名环境' }}</div>
+              <div class="env-item-badge" v-if="env.is_default">
+                <span class="badge-text">默认</span>
+              </div>
+              <div class="env-item-badge active" v-if="env.status === 'active'">
+                <span class="badge-text">运行中</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="env-sidebar-footer">
+            <button class="env-add-btn" @click="handleAddEnvironment">
+              + 新建环境
+            </button>
+          </div>
+        </div>
+
+        <!-- 右侧环境详情 -->
+        <div class="env-content" v-if="currentEnvironment">
+          <div class="env-content-header">
+            <h3 class="env-content-title">{{ currentEnvironment.name || '未命名环境' }}</h3>
+            <el-button 
+              size="small"
+              @click="handleEditEnvironmentName"
+            >
+              编辑
+            </el-button>
+          </div>
+
+          <div class="env-content-body">
+            <!-- 标签页 -->
+            <div class="env-tabs">
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'basic' }"
+                @click="envActiveTab = 'basic'"
+              >
+                基础配置
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'variables' }"
+                @click="envActiveTab = 'variables'"
+              >
+                数据配置项
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'external' }"
+                @click="envActiveTab = 'external'"
+              >
+                外部服务
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'settings' }"
+                @click="envActiveTab = 'settings'"
+              >
+                环境变量
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'auth' }"
+                @click="envActiveTab = 'auth'"
+              >
+                认证配置
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'switch' }"
+                @click="envActiveTab = 'switch'"
+              >
+                功能开关
+              </div>
+              <div 
+                class="env-tab-item" 
+                :class="{ active: envActiveTab === 'monitoring' }"
+                @click="envActiveTab = 'monitoring'"
+              >
+                部署信息
+              </div>
+            </div>
+
+            <!-- 标签页内容 -->
+            <div class="env-tab-content">
+              <!-- 1. 基础配置 -->
+              <div v-if="envActiveTab === 'basic'" class="env-form-section">
+                <div class="form-group">
+                  <label class="form-label">基础URL</label>
+                  <el-input 
+                    v-model="currentEnvironment.base_url" 
+                    placeholder="https://dev.example.com"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">端口号</label>
+                  <el-input 
+                    v-model="currentEnvironment.port" 
+                    placeholder="8080"
+                    type="number"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">域名</label>
+                  <el-input 
+                    v-model="currentEnvironment.domain" 
+                    placeholder="dev.example.com"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">协议</label>
+                  <el-select v-model="currentEnvironment.protocol" placeholder="请选择协议">
+                    <el-option label="https" value="https" />
+                    <el-option label="http" value="http" />
+                  </el-select>
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label">环境描述</label>
+                  <el-input 
+                    v-model="currentEnvironment.description" 
+                    type="textarea"
+                    :rows="3"
+                    placeholder="开发环境主要用于开发人员本地开发和单元测试"
+                  />
+                </div>
+
+                <!-- 状态指示器 -->
+                <div class="env-status-row">
+                  <div class="status-item">
+                    <el-icon color="#67c23a" :size="16">
+                      <CircleCheckFilled />
+                    </el-icon>
+                    <span class="status-label">部署状态</span>
+                    <span class="status-value">运行中</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#e6a23c" :size="16">
+                      <WarningFilled />
+                    </el-icon>
+                    <span class="status-label">健康状态</span>
+                    <span class="status-value">良好</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#409eff" :size="16">
+                      <InfoFilled />
+                    </el-icon>
+                    <span class="status-label">最后更新</span>
+                    <span class="status-value">2024-02-20 15:30</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#c0c4cc" :size="16">
+                      <CircleCloseFilled />
+                    </el-icon>
+                    <span class="status-label">排斥时间</span>
+                    <span class="status-value">未设置</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 2. 数据配置项 -->
+              <div v-else-if="envActiveTab === 'variables'" class="env-config-table-section">
+                <div class="table-toolbar">
+                  <span class="toolbar-title">数据配置项</span>
+                  <el-button size="small" type="primary" @click="handleAddDataConfig">
+                    + 添加配置项
+                  </el-button>
+                </div>
+                <el-table :data="currentEnvironment.dataConfigs || []" border class="config-table">
+                  <el-table-column label="配置项名称" width="200">
+                    <template #default="{ row }">
+                      <el-input v-model="row.name" placeholder="配置项名称" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="配置值" width="250">
+                    <template #default="{ row }">
+                      <el-input v-model="row.value" placeholder="配置值" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="描述" min-width="200">
+                    <template #default="{ row }">
+                      <el-input v-model="row.description" placeholder="描述" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100" align="center">
+                    <template #default="{ $index }">
+                      <el-button 
+                        size="small" 
+                        text 
+                        type="danger"
+                        @click="handleRemoveDataConfig($index)"
+                      >
+                        删除
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+
+              <!-- 3. 外部服务 -->
+              <div v-else-if="envActiveTab === 'external'" class="env-config-table-section">
+                <div class="table-toolbar">
+                  <span class="toolbar-title">外部服务配置</span>
+                  <el-button size="small" type="primary" @click="handleAddExternalService">
+                    + 添加服务
+                  </el-button>
+                </div>
+                <el-table :data="currentEnvironment.externalServices || []" border class="config-table">
+                  <el-table-column label="服务名称" width="150">
+                    <template #default="{ row }">
+                      <el-input v-model="row.name" placeholder="服务名称" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="服务类型" width="120">
+                    <template #default="{ row }">
+                      <el-select v-model="row.type" placeholder="类型" size="small">
+                        <el-option label="数据库" value="database" />
+                        <el-option label="缓存" value="cache" />
+                        <el-option label="消息队列" value="mq" />
+                        <el-option label="其他" value="other" />
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="连接地址" width="250">
+                    <template #default="{ row }">
+                      <el-input v-model="row.url" placeholder="连接地址" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="状态" width="100" align="center">
+                    <template #default="{ row }">
+                      <el-tag :type="row.status === 'connected' ? 'success' : 'info'" size="small">
+                        {{ row.status === 'connected' ? '已连接' : '未连接' }}
+                      </el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100" align="center">
+                    <template #default="{ $index }">
+                      <el-button 
+                        size="small" 
+                        text 
+                        type="danger"
+                        @click="handleRemoveExternalService($index)"
+                      >
+                        删除
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+
+              <!-- 4. 环境变量 -->
+              <div v-else-if="envActiveTab === 'settings'" class="env-config-table-section">
+                <div class="table-toolbar">
+                  <span class="toolbar-title">环境变量</span>
+                  <el-button size="small" type="primary" @click="handleAddEnvVariable">
+                    + 添加变量
+                  </el-button>
+                </div>
+                <el-table :data="currentEnvironment.envVariables || []" border class="config-table">
+                  <el-table-column label="变量名" width="200">
+                    <template #default="{ row }">
+                      <el-input v-model="row.key" placeholder="变量名" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="变量值" width="250">
+                    <template #default="{ row }">
+                      <el-input v-model="row.value" placeholder="变量值" size="small" show-password />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="描述" min-width="200">
+                    <template #default="{ row }">
+                      <el-input v-model="row.description" placeholder="描述" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="100" align="center">
+                    <template #default="{ $index }">
+                      <el-button 
+                        size="small" 
+                        text 
+                        type="danger"
+                        @click="handleRemoveEnvVariable($index)"
+                      >
+                        删除
+                      </el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </div>
+
+              <!-- 5. 认证配置 -->
+              <div v-else-if="envActiveTab === 'auth'" class="env-form-section">
+                <div class="form-group">
+                  <label class="form-label">认证类型</label>
+                  <el-select v-model="currentEnvironment.authType" placeholder="请选择认证类型">
+                    <el-option label="无认证" value="none" />
+                    <el-option label="Bearer Token" value="bearer" />
+                    <el-option label="Basic Auth" value="basic" />
+                    <el-option label="API Key" value="apikey" />
+                    <el-option label="OAuth 2.0" value="oauth2" />
+                  </el-select>
+                </div>
+
+                <div class="form-group" v-if="currentEnvironment.authType === 'bearer'">
+                  <label class="form-label">Token</label>
+                  <el-input 
+                    v-model="currentEnvironment.authToken" 
+                    type="password"
+                    placeholder="请输入Token"
+                    show-password
+                  />
+                </div>
+
+                <div class="form-group" v-if="currentEnvironment.authType === 'basic'">
+                  <label class="form-label">用户名</label>
+                  <el-input 
+                    v-model="currentEnvironment.authUsername" 
+                    placeholder="请输入用户名"
+                  />
+                </div>
+
+                <div class="form-group" v-if="currentEnvironment.authType === 'basic'">
+                  <label class="form-label">密码</label>
+                  <el-input 
+                    v-model="currentEnvironment.authPassword" 
+                    type="password"
+                    placeholder="请输入密码"
+                    show-password
+                  />
+                </div>
+
+                <div class="form-group" v-if="currentEnvironment.authType === 'apikey'">
+                  <label class="form-label">API Key</label>
+                  <el-input 
+                    v-model="currentEnvironment.apiKey" 
+                    type="password"
+                    placeholder="请输入API Key"
+                    show-password
+                  />
+                </div>
+
+                <div class="form-group" v-if="currentEnvironment.authType === 'apikey'">
+                  <label class="form-label">Header名称</label>
+                  <el-input 
+                    v-model="currentEnvironment.apiKeyHeader" 
+                    placeholder="例如：X-API-Key"
+                  />
+                </div>
+
+                <div class="form-group full-width" v-if="currentEnvironment.authType === 'oauth2'">
+                  <label class="form-label">OAuth 2.0 配置</label>
+                  <el-input 
+                    v-model="currentEnvironment.oauth2Config" 
+                    type="textarea"
+                    :rows="6"
+                    placeholder='请输入JSON格式的OAuth 2.0配置'
+                  />
+                </div>
+              </div>
+
+              <!-- 6. 功能开关 -->
+              <div v-else-if="envActiveTab === 'switch'" class="env-switches-section">
+                <div class="switch-list">
+                  <div class="switch-item">
+                    <div class="switch-info">
+                      <div class="switch-name">调试模式</div>
+                      <div class="switch-desc">开启后将显示详细的调试信息</div>
+                    </div>
+                    <el-switch v-model="currentEnvironment.debugMode" />
+                  </div>
+                  <div class="switch-item">
+                    <div class="switch-info">
+                      <div class="switch-name">SSL验证</div>
+                      <div class="switch-desc">是否验证SSL证书</div>
+                    </div>
+                    <el-switch v-model="currentEnvironment.sslVerify" />
+                  </div>
+                  <div class="switch-item">
+                    <div class="switch-info">
+                      <div class="switch-name">自动重试</div>
+                      <div class="switch-desc">请求失败时自动重试</div>
+                    </div>
+                    <el-switch v-model="currentEnvironment.autoRetry" />
+                  </div>
+                  <div class="switch-item">
+                    <div class="switch-info">
+                      <div class="switch-name">日志记录</div>
+                      <div class="switch-desc">记录所有请求和响应日志</div>
+                    </div>
+                    <el-switch v-model="currentEnvironment.logging" />
+                  </div>
+                  <div class="switch-item">
+                    <div class="switch-info">
+                      <div class="switch-name">性能监控</div>
+                      <div class="switch-desc">收集性能指标数据</div>
+                    </div>
+                    <el-switch v-model="currentEnvironment.monitoring" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- 7. 部署信息 -->
+              <div v-else-if="envActiveTab === 'monitoring'" class="env-form-section">
+                <div class="form-group">
+                  <label class="form-label">服务器IP</label>
+                  <el-input 
+                    v-model="currentEnvironment.serverIp" 
+                    placeholder="192.168.1.100"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">部署路径</label>
+                  <el-input 
+                    v-model="currentEnvironment.deployPath" 
+                    placeholder="/var/www/app"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">容器ID</label>
+                  <el-input 
+                    v-model="currentEnvironment.containerId" 
+                    placeholder="docker-container-id"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">版本号</label>
+                  <el-input 
+                    v-model="currentEnvironment.version" 
+                    placeholder="v1.0.0"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">部署时间</label>
+                  <el-input 
+                    v-model="currentEnvironment.deployTime" 
+                    placeholder="2024-02-20 15:30:00"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">部署人</label>
+                  <el-input 
+                    v-model="currentEnvironment.deployer" 
+                    placeholder="张三"
+                    disabled
+                  />
+                </div>
+
+                <div class="form-group full-width">
+                  <label class="form-label">部署说明</label>
+                  <el-input 
+                    v-model="currentEnvironment.deployNote" 
+                    type="textarea"
+                    :rows="4"
+                    placeholder="部署相关说明"
+                    disabled
+                  />
+                </div>
+
+                <!-- 状态指示器 -->
+                <div class="env-status-row">
+                  <div class="status-item">
+                    <el-icon color="#67c23a" :size="16">
+                      <CircleCheckFilled />
+                    </el-icon>
+                    <span class="status-label">运行状态</span>
+                    <span class="status-value">正常</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#409eff" :size="16">
+                      <InfoFilled />
+                    </el-icon>
+                    <span class="status-label">CPU使用率</span>
+                    <span class="status-value">35%</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#409eff" :size="16">
+                      <InfoFilled />
+                    </el-icon>
+                    <span class="status-label">内存使用</span>
+                    <span class="status-value">2.5GB / 8GB</span>
+                  </div>
+                  <div class="status-item">
+                    <el-icon color="#67c23a" :size="16">
+                      <CircleCheckFilled />
+                    </el-icon>
+                    <span class="status-label">磁盘空间</span>
+                    <span class="status-value">充足</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="env-dialog-footer">
+          <el-button @click="envDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="handleSaveEnvironments">
+            保存配置
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- 新建/编辑对话框 -->
     <el-dialog
@@ -263,6 +870,12 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { 
+  CircleCheckFilled, 
+  CircleCloseFilled, 
+  WarningFilled, 
+  InfoFilled 
+} from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
 import ApiDetail from '../components/cases/ApiDetail.vue'
@@ -328,6 +941,119 @@ const formData = reactive({
   expected_status_code: 200,
   validation_rules: '',
   parentId: null
+})
+
+// 环境配置对话框
+const envDialogVisible = ref(false)
+const envFormRef = ref(null)
+const envSearchText = ref('')
+const currentEnvIndex = ref(0)
+const envActiveTab = ref('basic')
+
+const envFormData = reactive({
+  project_id: null,
+  environments: [
+    {
+      name: '开发环境',
+      base_url: 'https://dev.example.com',
+      port: '8080',
+      domain: 'dev.example.com',
+      protocol: 'https',
+      description: '开发环境主要用于开发人员本地开发和单元测试',
+      is_default: true,
+      status: 'active',
+      // 数据配置项
+      dataConfigs: [],
+      // 外部服务
+      externalServices: [],
+      // 环境变量
+      envVariables: [],
+      // 认证配置
+      authType: 'bearer',
+      authToken: '',
+      authUsername: '',
+      authPassword: '',
+      apiKey: '',
+      apiKeyHeader: 'X-API-Key',
+      oauth2Config: '',
+      // 功能开关
+      debugMode: true,
+      sslVerify: false,
+      autoRetry: true,
+      logging: true,
+      monitoring: true,
+      // 部署信息
+      serverIp: '192.168.1.100',
+      deployPath: '/var/www/app',
+      containerId: 'docker-abc123',
+      version: 'v1.2.3',
+      deployTime: '2024-02-20 15:30:00',
+      deployer: '张三',
+      deployNote: '常规更新部署'
+    },
+    {
+      name: '测试环境',
+      base_url: 'https://test.example.com',
+      port: '8080',
+      domain: 'test.example.com',
+      protocol: 'https',
+      description: '测试环境配置',
+      is_default: false,
+      status: 'inactive',
+      dataConfigs: [],
+      externalServices: [],
+      envVariables: [],
+      authType: 'bearer',
+      debugMode: false,
+      sslVerify: true,
+      autoRetry: true,
+      logging: true,
+      monitoring: true
+    },
+    {
+      name: '预发布环境',
+      base_url: 'https://staging.example.com',
+      port: '8080',
+      domain: 'staging.example.com',
+      protocol: 'https',
+      description: '预发布环境配置',
+      is_default: false,
+      status: 'inactive',
+      dataConfigs: [],
+      externalServices: [],
+      envVariables: [],
+      authType: 'bearer',
+      debugMode: false,
+      sslVerify: true,
+      autoRetry: false,
+      logging: true,
+      monitoring: true
+    },
+    {
+      name: '生产环境',
+      base_url: 'https://prod.example.com',
+      port: '443',
+      domain: 'prod.example.com',
+      protocol: 'https',
+      description: '生产环境配置',
+      is_default: false,
+      status: 'inactive',
+      dataConfigs: [],
+      externalServices: [],
+      envVariables: [],
+      authType: 'bearer',
+      debugMode: false,
+      sslVerify: true,
+      autoRetry: false,
+      logging: true,
+      monitoring: true
+    }
+  ]
+})
+
+// 当前选中的环境
+const currentEnvironment = computed(() => {
+  return envFormData.environments[currentEnvIndex.value]
 })
 
 const formRules = {
@@ -644,6 +1370,162 @@ const handleEditChild = (child) => {
   ElMessage.info('编辑子项')
 }
 
+// 打开环境配置对话框
+const handleConfigEnvironment = (project) => {
+  envFormData.project_id = project.project_id
+  currentEnvIndex.value = 0
+  envActiveTab.value = 'basic'
+  envDialogVisible.value = true
+  
+  // TODO: 从后端加载环境配置
+  // const response = await getProjectEnvironments(project.project_id)
+  // if (response.code === 1) {
+  //   envFormData.environments = response.data.environments
+  // }
+}
+
+// 添加环境
+const handleAddEnvironment = () => {
+  envFormData.environments.push({
+    name: `新环境 ${envFormData.environments.length + 1}`,
+    base_url: '',
+    port: '8080',
+    domain: '',
+    protocol: 'https',
+    description: '',
+    is_default: false,
+    status: 'inactive'
+  })
+  currentEnvIndex.value = envFormData.environments.length - 1
+  ElMessage.success('环境已添加，请配置基本信息')
+}
+
+// 删除环境
+const handleRemoveEnvironment = (index) => {
+  if (envFormData.environments.length <= 1) {
+    ElMessage.warning('至少保留一个环境配置')
+    return
+  }
+  
+  ElMessageBox.confirm(
+    `确定要删除环境 "${envFormData.environments[index].name}" 吗？`,
+    '删除确认',
+    {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    }
+  ).then(() => {
+    envFormData.environments.splice(index, 1)
+    if (currentEnvIndex.value >= envFormData.environments.length) {
+      currentEnvIndex.value = envFormData.environments.length - 1
+    }
+    ElMessage.success('环境已删除')
+  }).catch(() => {
+    // 用户取消
+  })
+}
+
+// 编辑环境名称
+const handleEditEnvironmentName = () => {
+  ElMessageBox.prompt('请输入环境名称', '编辑环境', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    inputValue: currentEnvironment.value.name,
+    inputValidator: (value) => {
+      if (!value) {
+        return '环境名称不能为空'
+      }
+      return true
+    }
+  }).then(({ value }) => {
+    currentEnvironment.value.name = value
+    ElMessage.success('环境名称已更新')
+  }).catch(() => {
+    // 用户取消
+  })
+}
+
+// 设置默认环境
+const handleSetDefaultEnvironment = (index) => {
+  envFormData.environments.forEach((env, i) => {
+    env.is_default = i === index
+  })
+  ElMessage.success(`已将 "${envFormData.environments[index].name}" 设为默认环境`)
+}
+
+// 保存环境配置
+const handleSaveEnvironments = () => {
+  // 验证表单
+  const hasEmpty = envFormData.environments.some(env => !env.name || !env.base_url)
+  if (hasEmpty) {
+    ElMessage.error('请填写完整的环境配置信息（环境名称和Base URL为必填项）')
+    return
+  }
+  
+  // TODO: 调用后端API保存环境配置
+  // const response = await saveProjectEnvironments(envFormData.project_id, envFormData.environments)
+  // if (response.code === 1) {
+  //   ElMessage.success('环境配置已保存')
+  //   envDialogVisible.value = false
+  // }
+  
+  ElMessage.success('环境配置已保存')
+  envDialogVisible.value = false
+}
+
+// 添加数据配置项
+const handleAddDataConfig = () => {
+  if (!currentEnvironment.value.dataConfigs) {
+    currentEnvironment.value.dataConfigs = []
+  }
+  currentEnvironment.value.dataConfigs.push({
+    name: '',
+    value: '',
+    description: ''
+  })
+}
+
+// 删除数据配置项
+const handleRemoveDataConfig = (index) => {
+  currentEnvironment.value.dataConfigs.splice(index, 1)
+}
+
+// 添加外部服务
+const handleAddExternalService = () => {
+  if (!currentEnvironment.value.externalServices) {
+    currentEnvironment.value.externalServices = []
+  }
+  currentEnvironment.value.externalServices.push({
+    name: '',
+    type: 'database',
+    url: '',
+    status: 'disconnected'
+  })
+}
+
+// 删除外部服务
+const handleRemoveExternalService = (index) => {
+  currentEnvironment.value.externalServices.splice(index, 1)
+}
+
+// 添加环境变量
+const handleAddEnvVariable = () => {
+  if (!currentEnvironment.value.envVariables) {
+    currentEnvironment.value.envVariables = []
+  }
+  currentEnvironment.value.envVariables.push({
+    key: '',
+    value: '',
+    description: ''
+  })
+}
+
+// 删除环境变量
+const handleRemoveEnvVariable = (index) => {
+  currentEnvironment.value.envVariables.splice(index, 1)
+}
+
 // 删除
 const handleDelete = async (node) => {
   try {
@@ -810,6 +1692,23 @@ const handleExecuteCase = async (testCase) => {
 // 复制用例
 const handleCopyCase = (testCase) => {
   ElMessage.success('复制成功')
+}
+
+// 刷新测试用例（执行测试后）
+const handleRefreshTestCase = async () => {
+  try {
+    // 重新加载用例的执行历史
+    if (selectedNode.value && selectedLevel.value === 'case') {
+      await loadTestCaseHistory(selectedNode.value)
+    }
+    
+    // 如果需要刷新用例列表中的状态
+    // 可以重新加载整个接口的用例列表
+    
+    ElMessage.success('数据已刷新')
+  } catch (error) {
+    console.error('刷新失败:', error)
+  }
 }
 
 // 保存
@@ -1161,14 +2060,18 @@ onMounted(() => {
   height: 100%;
   background: #f5f7fa;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .cases-container {
   display: flex;
   height: 100%;
+  flex: 1;
+  overflow: hidden;
 }
 
-/* 侧边栏 */
+/* 侧边栏 - 项目结构 */
 .sidebar {
   width: 320px;
   background: white;
@@ -1176,6 +2079,9 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   transition: all 0.3s;
+  flex-shrink: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .sidebar.collapsed {
@@ -1188,6 +2094,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .sidebar-title {
@@ -1219,9 +2126,9 @@ onMounted(() => {
 
 .sidebar-content {
   flex: 1;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 
 .sidebar-toolbar {
@@ -1229,6 +2136,7 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .toolbar-create-btn {
@@ -1284,6 +2192,7 @@ onMounted(() => {
 .sidebar-search {
   padding: 12px;
   position: relative;
+  flex-shrink: 0;
 }
 
 .search-input {
@@ -1318,6 +2227,7 @@ onMounted(() => {
 .tree-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
 }
 
@@ -1432,8 +2342,27 @@ onMounted(() => {
 /* 主内容区 */
 .main-area {
   flex: 1;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   background: white;
+  height: 100%;
+}
+
+.main-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-area::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 4px;
+}
+
+.main-area::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+.main-area::-webkit-scrollbar-track {
+  background: #f5f7fa;
 }
 
 /* 空状态 */
@@ -1461,6 +2390,358 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 环境配置对话框 */
+.env-config-layout {
+  display: flex;
+  height: 600px;
+  overflow: hidden;
+}
+
+/* 左侧环境列表 */
+.env-sidebar {
+  width: 200px;
+  border-right: 1px solid #e4e7ed;
+  display: flex;
+  flex-direction: column;
+  background: #fafafa;
+}
+
+.env-sidebar-header {
+  padding: 12px;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.env-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #606266;
+}
+
+.env-search-input:focus {
+  outline: none;
+  border-color: #409eff;
+}
+
+.env-search-input::placeholder {
+  color: #c0c4cc;
+}
+
+.env-sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.env-sidebar-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.env-sidebar-list::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 2px;
+}
+
+.env-sidebar-item {
+  padding: 12px;
+  margin-bottom: 4px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+  border: 1px solid transparent;
+}
+
+.env-sidebar-item:hover {
+  background: #f5f7fa;
+  border-color: #e4e7ed;
+}
+
+.env-sidebar-item.is-active {
+  background: #409eff;
+  color: white;
+  border-color: #409eff;
+}
+
+.env-sidebar-item.is-active .env-item-name {
+  color: white;
+}
+
+.env-sidebar-item.is-active .badge-text {
+  color: #409eff;
+  background: white;
+}
+
+.env-item-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+  margin-bottom: 6px;
+}
+
+.env-item-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e6f4ff;
+  color: #409eff;
+  border-radius: 10px;
+  font-size: 11px;
+  margin-right: 6px;
+}
+
+.env-item-badge.active {
+  background: #e1f3d8;
+  color: #67c23a;
+}
+
+.badge-text {
+  font-weight: 500;
+}
+
+.env-sidebar-footer {
+  padding: 12px;
+  border-top: 1px solid #e4e7ed;
+}
+
+.env-add-btn {
+  width: 100%;
+  padding: 8px 12px;
+  background: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.env-add-btn:hover {
+  background: #66b1ff;
+}
+
+/* 右侧环境详情 */
+.env-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: white;
+  overflow: hidden;
+}
+
+.env-content-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #e4e7ed;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.env-content-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.env-content-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 环境标签页 */
+.env-tabs {
+  display: flex;
+  border-bottom: 1px solid #e4e7ed;
+  background: #fafafa;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+
+.env-tabs::-webkit-scrollbar {
+  height: 2px;
+}
+
+.env-tabs::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+}
+
+.env-tab-item {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #606266;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.env-tab-item:hover {
+  color: #409eff;
+}
+
+.env-tab-item.active {
+  color: #409eff;
+  border-bottom-color: #409eff;
+}
+
+/* 标签页内容 */
+.env-tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.env-tab-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.env-tab-content::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 3px;
+}
+
+/* 表单区域 */
+.env-form-section {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+/* 状态指示行 */
+.env-status-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e4e7ed;
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 6px;
+}
+
+.status-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.status-value {
+  font-size: 13px;
+  color: #303133;
+  font-weight: 500;
+  margin-left: auto;
+}
+
+/* 对话框底部 */
+.env-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* 表格配置区域 */
+.env-config-table-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+}
+
+.toolbar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.config-table {
+  width: 100%;
+}
+
+.config-table :deep(.el-input__inner) {
+  border: none;
+  background: transparent;
+}
+
+.config-table :deep(.el-input__inner:focus) {
+  border: 1px solid #409eff;
+  background: white;
+}
+
+.config-table :deep(.el-select) {
+  width: 100%;
+}
+
+/* 功能开关区域 */
+.env-switches-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.switch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.switch-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 6px;
+  border: 1px solid #e4e7ed;
+}
+
+.switch-info {
+  flex: 1;
+}
+
+.switch-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.switch-desc {
+  font-size: 13px;
+  color: #909399;
 }
 
 /* 滚动条 */
