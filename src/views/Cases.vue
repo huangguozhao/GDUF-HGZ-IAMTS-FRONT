@@ -1414,9 +1414,11 @@ const handleSelectNode = async (node, level) => {
   else if (level === 'api') {
     await loadApiTestCases(node)
   }
-  // 如果是用例，加载执行历史
+  // 如果是用例，不需要在这里加载执行历史
+  // 执行历史由 CaseDetail 组件自己负责加载
   else if (level === 'case') {
-    await loadTestCaseHistory(node)
+    // 清空之前的执行历史，让子组件重新加载
+    executionHistory.value = []
   }
 }
 
@@ -1555,42 +1557,13 @@ const loadApiTestCases = async (api, forceRefresh = false) => {
   }
 }
 
-// 加载测试用例执行历史
+// 注意：loadTestCaseHistory 函数已废弃
+// 执行历史现在由 CaseDetail 组件自己负责加载
+// 这样可以避免数据冲突和重复请求
 const loadTestCaseHistory = async (testCase) => {
-  if (USE_REAL_API && testCase.case_id) {
-    try {
-      const response = await getTestCaseHistory(testCase.case_id, { pageSize: 5 })
-      if (response.code === 1) {
-        executionHistory.value = (response.data.items || []).map(item => ({
-          action: item.executor_name || '系统自动',
-          note: item.result_summary || (item.status === 'passed' ? '执行通过' : '执行失败'),
-          executed_time: item.executed_at || item.created_at,
-          status: item.status
-        }))
-      } else {
-        executionHistory.value = []
-      }
-    } catch (error) {
-      console.error('加载执行历史失败:', error)
-      executionHistory.value = []
-    }
-  } else {
-    // 使用假数据
-    executionHistory.value = [
-      {
-        action: '系统自动',
-        note: testCase.status === 'failed' ? '执行失败，权限不足' : '执行通过',
-        executed_time: testCase.last_executed_time || '2024-03-10 14:40',
-        status: testCase.status
-      },
-      {
-        action: '手动测试',
-        note: '执行通过',
-        executed_time: '2024-03-05 09:15',
-        status: 'passed'
-      }
-    ]
-  }
+  // 不再加载执行历史，由子组件处理
+  console.log('loadTestCaseHistory 已废弃，执行历史由 CaseDetail 组件处理')
+  executionHistory.value = []
 }
 
 // 选择子节点
@@ -2058,10 +2031,8 @@ const handleCopyCase = (testCase) => {
 // 刷新测试用例（执行测试后）
 const handleRefreshTestCase = async () => {
   try {
-    // 重新加载用例的执行历史
-    if (selectedNode.value && selectedLevel.value === 'case') {
-      await loadTestCaseHistory(selectedNode.value)
-    }
+    // 执行历史由 CaseDetail 组件自己负责刷新
+    // 这里不需要手动刷新执行历史
     
     // 如果需要刷新用例列表中的状态
     // 可以重新加载整个接口的用例列表

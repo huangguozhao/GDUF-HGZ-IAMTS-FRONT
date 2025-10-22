@@ -239,3 +239,159 @@ export function getTestCaseByShare(shareId, password) {
     }
   })
 }
+
+// ==================== 执行历史相关接口 ====================
+
+/**
+ * 分页查询测试执行记录
+ * @param {Object} params - 查询参数
+ * @param {String} params.execution_scope - 执行范围类型 (api/module/project/test_suite/test_case)
+ * @param {Number} params.ref_id - 关联ID
+ * @param {Number} params.executed_by - 执行人ID
+ * @param {String} params.execution_type - 执行类型 (manual/scheduled/triggered)
+ * @param {String} params.environment - 执行环境
+ * @param {String} params.status - 执行状态 (running/completed/failed/cancelled)
+ * @param {String} params.start_time_begin - 开始时间范围起始
+ * @param {String} params.start_time_end - 开始时间范围结束
+ * @param {String} params.search_keyword - 搜索关键词
+ * @param {String} params.browser - 浏览器类型
+ * @param {String} params.app_version - 应用版本
+ * @param {String} params.sort_by - 排序字段
+ * @param {String} params.sort_order - 排序方向 (asc/desc)
+ * @param {Number} params.page - 页码
+ * @param {Number} params.page_size - 每页条数
+ */
+export function getExecutionRecords(params = {}) {
+  return request({
+    url: '/execution-records',
+    method: 'get',
+    params: {
+      execution_scope: params.execution_scope,
+      ref_id: params.ref_id,
+      executed_by: params.executed_by,
+      execution_type: params.execution_type,
+      environment: params.environment,
+      status: params.status,
+      start_time_begin: params.start_time_begin,
+      start_time_end: params.start_time_end,
+      search_keyword: params.search_keyword,
+      browser: params.browser,
+      app_version: params.app_version,
+      sort_by: params.sort_by || 'start_time',
+      sort_order: params.sort_order || 'desc',
+      page: params.page || 1,
+      page_size: params.page_size || 10
+    }
+  })
+}
+
+/**
+ * 根据ID查询执行记录详情
+ * @param {Number} recordId - 执行记录ID
+ */
+export function getExecutionRecordById(recordId) {
+  return request({
+    url: `/execution-records/${recordId}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 根据执行范围查询最近的执行记录
+ * @param {String} executionScope - 执行范围类型 (api/module/project/test_suite/test_case)
+ * @param {Number} refId - 关联ID
+ * @param {Number} limit - 返回记录数量
+ */
+export function getRecentExecutionRecords(executionScope, refId, limit = 10) {
+  return request({
+    url: `/execution-records/scope/${executionScope}/${refId}`,
+    method: 'get',
+    params: {
+      limit: limit
+    }
+  })
+}
+
+/**
+ * 更新执行记录
+ * @param {Number} recordId - 执行记录ID
+ * @param {Object} data - 更新数据
+ */
+export function updateExecutionRecord(recordId, data) {
+  return request({
+    url: `/execution-records/${recordId}`,
+    method: 'put',
+    data: {
+      status: data.status,
+      end_time: data.end_time,
+      duration_seconds: data.duration_seconds,
+      total_cases: data.total_cases,
+      executed_cases: data.executed_cases,
+      passed_cases: data.passed_cases,
+      failed_cases: data.failed_cases,
+      skipped_cases: data.skipped_cases,
+      success_rate: data.success_rate,
+      report_url: data.report_url,
+      log_file_path: data.log_file_path,
+      error_message: data.error_message
+    }
+  })
+}
+
+/**
+ * 删除执行记录（软删除）
+ * @param {Number} recordId - 执行记录ID
+ */
+export function deleteExecutionRecord(recordId) {
+  return request({
+    url: `/execution-records/${recordId}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 批量删除执行记录
+ * @param {Array} recordIds - 执行记录ID数组
+ */
+export function batchDeleteExecutionRecords(recordIds) {
+  return request({
+    url: '/execution-records/batch',
+    method: 'delete',
+    data: recordIds
+  })
+}
+
+/**
+ * 获取执行记录统计信息
+ * @param {Object} params - 查询参数（同getExecutionRecords）
+ */
+export function getExecutionStatistics(params = {}) {
+  return request({
+    url: '/execution-records/statistics',
+    method: 'get',
+    params: {
+      execution_scope: params.execution_scope,
+      ref_id: params.ref_id,
+      executed_by: params.executed_by,
+      environment: params.environment,
+      status: params.status,
+      start_time_begin: params.start_time_begin,
+      start_time_end: params.start_time_end
+    }
+  })
+}
+
+/**
+ * 根据执行人查询执行记录
+ * @param {Number} executedBy - 执行人ID
+ * @param {Number} limit - 返回记录数量
+ */
+export function getExecutionRecordsByExecutor(executedBy, limit = 10) {
+  return request({
+    url: `/execution-records/executor/${executedBy}`,
+    method: 'get',
+    params: {
+      limit: limit
+    }
+  })
+}

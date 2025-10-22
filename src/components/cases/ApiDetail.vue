@@ -538,6 +538,8 @@
           :data="filteredHistoryRecords" 
           class="history-table"
           stripe
+          v-loading="historyLoading"
+          element-loading-text="加载中..."
         >
           <el-table-column label="测试时间" width="180" prop="testTime">
             <template #default="{ row }">
@@ -635,7 +637,7 @@
         <!-- 分页 -->
         <div class="history-pagination">
           <div class="pagination-info">
-            显示 1-10 / {{ historyTotal }} 条记录
+            显示 {{ Math.min((historyPagination.currentPage - 1) * historyPagination.pageSize + 1, historyTotal) }}-{{ Math.min(historyPagination.currentPage * historyPagination.pageSize, historyTotal) }} / {{ historyTotal }} 条记录
           </div>
           <el-pagination
             v-model:current-page="historyPagination.currentPage"
@@ -647,6 +649,132 @@
             @current-change="handleHistoryPageChange"
           />
         </div>
+
+        <!-- 执行详情对话框 -->
+        <el-dialog
+          v-model="historyDetailDialogVisible"
+          title="执行记录详情"
+          width="800px"
+          :close-on-click-modal="false"
+        >
+          <div v-if="currentHistoryDetail" class="history-detail-content">
+            <!-- 基本信息 -->
+            <div class="detail-section">
+              <h3 class="section-title">基本信息</h3>
+              <el-descriptions :column="2" border>
+                <el-descriptions-item label="执行ID">
+                  {{ currentHistoryDetail.record_id || currentHistoryDetail.recordId }}
+                </el-descriptions-item>
+                <el-descriptions-item label="执行范围">
+                  {{ currentHistoryDetail.scope_name || currentHistoryDetail.scopeName }}
+                </el-descriptions-item>
+                <el-descriptions-item label="执行人">
+                  {{ currentHistoryDetail.executor_info?.name || currentHistoryDetail.executorInfo?.name || '未知' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="执行类型">
+                  <el-tag :type="currentHistoryDetail.execution_type === 'manual' ? 'primary' : 'info'" size="small">
+                    {{ currentHistoryDetail.execution_type === 'manual' ? '手动执行' : 
+                       currentHistoryDetail.execution_type === 'scheduled' ? '定时任务' : '触发执行' }}
+                  </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="执行环境">
+                  {{ currentHistoryDetail.environment || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="执行状态">
+                  <el-tag 
+                    :type="currentHistoryDetail.status === 'completed' ? 'success' : 
+                           currentHistoryDetail.status === 'failed' ? 'danger' : 
+                           currentHistoryDetail.status === 'running' ? 'warning' : 'info'"
+                    size="small"
+                  >
+                    {{ currentHistoryDetail.status === 'completed' ? '已完成' : 
+                       currentHistoryDetail.status === 'failed' ? '失败' : 
+                       currentHistoryDetail.status === 'running' ? '运行中' : '已取消' }}
+                  </el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="开始时间">
+                  {{ formatTime(currentHistoryDetail.start_time || currentHistoryDetail.startTime) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="结束时间">
+                  {{ formatTime(currentHistoryDetail.end_time || currentHistoryDetail.endTime) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="执行耗时">
+                  {{ formatDuration(currentHistoryDetail.duration_seconds || currentHistoryDetail.durationSeconds) }}
+                </el-descriptions-item>
+                <el-descriptions-item label="浏览器">
+                  {{ currentHistoryDetail.browser || '-' }}
+                </el-descriptions-item>
+                <el-descriptions-item label="应用版本">
+                  {{ currentHistoryDetail.app_version || currentHistoryDetail.appVersion || '-' }}
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+
+            <!-- 执行统计 -->
+            <div class="detail-section" v-if="currentHistoryDetail.total_cases || currentHistoryDetail.totalCases">
+              <h3 class="section-title">执行统计</h3>
+              <el-descriptions :column="3" border>
+                <el-descriptions-item label="总用例数">
+                  {{ currentHistoryDetail.total_cases || currentHistoryDetail.totalCases || 0 }}
+                </el-descriptions-item>
+                <el-descriptions-item label="已执行">
+                  {{ currentHistoryDetail.executed_cases || currentHistoryDetail.executedCases || 0 }}
+                </el-descriptions-item>
+                <el-descriptions-item label="通过数">
+                  <span style="color: #67c23a; font-weight: bold;">
+                    {{ currentHistoryDetail.passed_cases || currentHistoryDetail.passedCases || 0 }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="失败数">
+                  <span style="color: #f56c6c; font-weight: bold;">
+                    {{ currentHistoryDetail.failed_cases || currentHistoryDetail.failedCases || 0 }}
+                  </span>
+                </el-descriptions-item>
+                <el-descriptions-item label="跳过数">
+                  {{ currentHistoryDetail.skipped_cases || currentHistoryDetail.skippedCases || 0 }}
+                </el-descriptions-item>
+                <el-descriptions-item label="成功率">
+                  <span :style="{ 
+                    color: (currentHistoryDetail.success_rate || currentHistoryDetail.successRate) >= 90 ? '#67c23a' : 
+                           (currentHistoryDetail.success_rate || currentHistoryDetail.successRate) >= 70 ? '#e6a23c' : '#f56c6c',
+                    fontWeight: 'bold'
+                  }">
+                    {{ (currentHistoryDetail.success_rate || currentHistoryDetail.successRate || 0).toFixed(2) }}%
+                  </span>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+
+            <!-- 错误信息 -->
+            <div class="detail-section" v-if="currentHistoryDetail.error_message || currentHistoryDetail.errorMessage">
+              <h3 class="section-title">错误信息</h3>
+              <el-alert 
+                type="error" 
+                :closable="false"
+                show-icon
+              >
+                <pre class="error-message">{{ currentHistoryDetail.error_message || currentHistoryDetail.errorMessage }}</pre>
+              </el-alert>
+            </div>
+
+            <!-- 报告链接 -->
+            <div class="detail-section" v-if="currentHistoryDetail.report_url || currentHistoryDetail.reportUrl">
+              <h3 class="section-title">测试报告</h3>
+              <el-link 
+                :href="currentHistoryDetail.report_url || currentHistoryDetail.reportUrl" 
+                type="primary" 
+                target="_blank"
+                :icon="Document"
+              >
+                查看完整测试报告
+              </el-link>
+            </div>
+          </div>
+
+          <template #footer>
+            <el-button @click="historyDetailDialogVisible = false">关闭</el-button>
+          </template>
+        </el-dialog>
       </div>
 
       <!-- 相关用例 -->
@@ -1295,7 +1423,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   CircleCloseFilled, 
@@ -1312,7 +1440,14 @@ import {
   Delete,
   CaretRight
 } from '@element-plus/icons-vue'
-import { createTestCase, updateTestCase, executeTestCase } from '@/api/testCase'
+import { 
+  createTestCase, 
+  updateTestCase, 
+  executeTestCase,
+  getExecutionRecords,
+  getExecutionRecordById,
+  deleteExecutionRecord
+} from '@/api/testCase'
 
 const props = defineProps({
   api: {
@@ -1355,7 +1490,7 @@ const bodyParams = ref([
 const formDataParams = ref([])
 const rawBody = ref('')
 
-// 测试历史数据
+// ==================== 测试历史数据 ====================
 const historySearchText = ref('')
 const historyFilter = reactive({
   period: '7days',
@@ -1367,131 +1502,250 @@ const historyPagination = reactive({
   pageSize: 10
 })
 
-const historyTotal = ref(42)
+const historyTotal = ref(0)
+const historyRecords = ref([])
+const historyLoading = ref(false)
+const historyDetailDialogVisible = ref(false)
+const currentHistoryDetail = ref(null)
 
-const historyRecords = ref([
-  {
-    id: 1,
-    testTime: '2024-03-12 15:30:45',
-    executor: '张工程师',
-    executorAvatar: '',
-    statusCode: 200,
-    responseTime: '125ms',
-    status: 'passed'
-  },
-  {
-    id: 2,
-    testTime: '2024-03-10 14:40:25',
-    executor: '王测试',
-    executorAvatar: '',
-    statusCode: 400,
-    responseTime: '231ms',
-    status: 'failed'
-  },
-  {
-    id: 3,
-    testTime: '2024-03-08 11:15:32',
-    executor: '李开发',
-    executorAvatar: '',
-    statusCode: 200,
-    responseTime: '98ms',
-    status: 'passed'
-  },
-  {
-    id: 4,
-    testTime: '2024-03-05 09:22:18',
-    executor: '张工程师',
-    executorAvatar: '',
-    statusCode: 200,
-    responseTime: '115ms',
-    status: 'passed'
-  },
-  {
-    id: 5,
-    testTime: '2024-03-01 16:45:03',
-    executor: '赵测试',
-    executorAvatar: '',
-    statusCode: 500,
-    responseTime: '568ms',
-    status: 'failed'
-  },
-  {
-    id: 6,
-    testTime: '2024-02-28 13:10:56',
-    executor: '李开发',
-    executorAvatar: '',
-    statusCode: 200,
-    responseTime: '132ms',
-    status: 'passed'
-  },
-  {
-    id: 7,
-    testTime: '2024-02-25 10:05:42',
-    executor: '王测试',
-    executorAvatar: '',
-    statusCode: 200,
-    responseTime: '145ms',
-    status: 'passed'
+/**
+ * 计算时间范围
+ */
+const getTimeRange = () => {
+  if (!historyFilter.period || historyFilter.period === 'all') {
+    return { start: null, end: null }
   }
-])
+  
+  const now = new Date()
+  const end = now.toISOString()
+  let start = null
+  
+  switch (historyFilter.period) {
+    case '7days':
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      break
+    case '30days':
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()
+      break
+    case '90days':
+      start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000).toISOString()
+      break
+  }
+  
+  return { start, end }
+}
 
-// 过滤后的历史记录
+/**
+ * 加载执行历史记录
+ */
+const loadHistoryRecords = async () => {
+  try {
+    historyLoading.value = true
+    
+    const timeRange = getTimeRange()
+    const params = {
+      execution_scope: 'test_case',  // 根据页面类型调整，可能是 api 或 test_case
+      ref_id: props.api?.id || props.api?.apiId,  // 接口ID或用例ID
+      status: historyFilter.status || undefined,
+      start_time_begin: timeRange.start,
+      start_time_end: timeRange.end,
+      search_keyword: historySearchText.value || undefined,
+      page: historyPagination.currentPage,
+      page_size: historyPagination.pageSize,
+      sort_by: 'start_time',
+      sort_order: 'desc'
+    }
+    
+    const response = await getExecutionRecords(params)
+    
+    if (response.code === 1 && response.data) {
+      const { items, total } = response.data
+      
+      // 转换数据格式以适配模板
+      historyRecords.value = items.map(item => ({
+        id: item.record_id || item.recordId,
+        recordId: item.record_id || item.recordId,
+        testTime: formatTime(item.start_time || item.startTime),
+        startTime: item.start_time || item.startTime,
+        endTime: item.end_time || item.endTime,
+        executor: item.executor_info?.name || item.executorInfo?.name || '未知',
+        executorId: item.executed_by || item.executedBy,
+        executorAvatar: item.executor_info?.avatar_url || item.executorInfo?.avatarUrl || '',
+        statusCode: item.expected_http_status || 200, // 这个字段可能需要从执行配置中获取
+        responseTime: formatDuration(item.duration_seconds),
+        durationSeconds: item.duration_seconds || item.durationSeconds,
+        status: mapExecutionStatus(item.status),
+        executionStatus: item.status,
+        executionType: item.execution_type || item.executionType,
+        environment: item.environment,
+        totalCases: item.total_cases || item.totalCases,
+        passedCases: item.passed_cases || item.passedCases,
+        failedCases: item.failed_cases || item.failedCases,
+        skippedCases: item.skipped_cases || item.skippedCases,
+        successRate: item.success_rate || item.successRate,
+        errorMessage: item.error_message || item.errorMessage,
+        reportUrl: item.report_url || item.reportUrl,
+        scopeName: item.scope_name || item.scopeName
+      }))
+      
+      historyTotal.value = total
+    } else {
+      ElMessage.error(response.msg || '加载执行历史失败')
+      historyRecords.value = []
+      historyTotal.value = 0
+    }
+  } catch (error) {
+    console.error('加载执行历史失败:', error)
+    ElMessage.error('加载执行历史失败: ' + (error.message || '未知错误'))
+    historyRecords.value = []
+    historyTotal.value = 0
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+/**
+ * 格式化执行状态
+ */
+const mapExecutionStatus = (status) => {
+  const statusMap = {
+    'completed': 'passed',
+    'failed': 'failed',
+    'running': 'running',
+    'cancelled': 'cancelled'
+  }
+  return statusMap[status] || status
+}
+
+/**
+ * 格式化持续时间
+ */
+const formatDuration = (seconds) => {
+  if (!seconds) return '-'
+  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`
+  if (seconds < 60) return `${seconds.toFixed(1)}s`
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = Math.floor(seconds % 60)
+  return `${minutes}分${remainingSeconds}秒`
+}
+
+/**
+ * 过滤后的历史记录（前端额外过滤，主要筛选已在后端完成）
+ */
 const filteredHistoryRecords = computed(() => {
-  let records = historyRecords.value
-  
-  // 状态过滤
-  if (historyFilter.status) {
-    records = records.filter(r => r.status === historyFilter.status)
-  }
-  
-  // 搜索过滤
-  if (historySearchText.value) {
-    const keyword = historySearchText.value.toLowerCase()
-    records = records.filter(r => 
-      r.executor.toLowerCase().includes(keyword) ||
-      r.testTime.includes(keyword)
-    )
-  }
-  
-  return records
+  return historyRecords.value
 })
 
-// 查看历史详情
-const handleViewHistoryDetail = (record) => {
-  ElMessage.info(`查看测试记录 ${record.id} 的详情`)
+/**
+ * 查看历史详情
+ */
+const handleViewHistoryDetail = async (record) => {
+  try {
+    const response = await getExecutionRecordById(record.recordId)
+    if (response.code === 1 && response.data) {
+      currentHistoryDetail.value = response.data
+      historyDetailDialogVisible.value = true
+    } else {
+      ElMessage.error(response.msg || '获取详情失败')
+    }
+  } catch (error) {
+    console.error('获取执行记录详情失败:', error)
+    ElMessage.error('获取详情失败: ' + (error.message || '未知错误'))
+  }
 }
 
-// 从历史记录重新测试
-const handleRetestFromHistory = (record) => {
-  ElMessage.info(`使用历史记录 ${record.id} 的参数重新测试`)
+/**
+ * 从历史记录重新测试
+ */
+const handleRetestFromHistory = async (record) => {
+  try {
+    // 获取历史记录的执行配置
+    const response = await getExecutionRecordById(record.recordId)
+    if (response.code === 1 && response.data) {
+      const historyConfig = response.data.execution_config || response.data.executionConfig
+      
+      // 使用历史配置重新执行
+      ElMessageBox.confirm(
+        `确定要使用历史记录 #${record.recordId} 的配置重新执行测试吗？`,
+        '重新测试',
+        {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'info'
+        }
+      ).then(async () => {
+        const executeData = {
+          environment: historyConfig?.environment || record.environment,
+          base_url: historyConfig?.base_url,
+          timeout: historyConfig?.timeout,
+          auth_override: historyConfig?.auth_override,
+          variables: historyConfig?.variables,
+          async: false
+        }
+        
+        // 执行测试
+        const executeResponse = await executeTestCase(props.api.id, props.api.id, executeData)
+        if (executeResponse.code === 1) {
+          ElMessage.success('测试执行成功')
+          // 刷新历史记录
+          await loadHistoryRecords()
+        } else {
+          ElMessage.error(executeResponse.msg || '执行失败')
+        }
+      }).catch(() => {
+        // 取消
+      })
+    }
+  } catch (error) {
+    console.error('重新测试失败:', error)
+    ElMessage.error('重新测试失败: ' + (error.message || '未知错误'))
+  }
 }
 
-// 删除历史记录
-const handleDeleteHistory = (record) => {
+/**
+ * 删除历史记录
+ */
+const handleDeleteHistory = async (record) => {
   ElMessageBox.confirm(
-    `确定要删除这条测试记录吗？`,
+    `确定要删除这条测试记录吗？删除后将无法恢复。`,
     '删除确认',
     {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
     }
-  ).then(() => {
+  ).then(async () => {
+    try {
+      const response = await deleteExecutionRecord(record.recordId)
+      if (response.code === 1) {
     ElMessage.success('删除成功')
+        // 刷新列表
+        await loadHistoryRecords()
+      } else {
+        ElMessage.error(response.msg || '删除失败')
+      }
+    } catch (error) {
+      console.error('删除执行记录失败:', error)
+      ElMessage.error('删除失败: ' + (error.message || '未知错误'))
+    }
   }).catch(() => {
     // 取消删除
   })
 }
 
-// 历史记录分页变化
+/**
+ * 历史记录分页变化
+ */
 const handleHistorySizeChange = (pageSize) => {
   historyPagination.pageSize = pageSize
-  // 加载数据
+  historyPagination.currentPage = 1  // 重置到第一页
+  loadHistoryRecords()
 }
 
 const handleHistoryPageChange = (page) => {
   historyPagination.currentPage = page
-  // 加载数据
+  loadHistoryRecords()
 }
 
 // 测试用例数据
@@ -2260,6 +2514,41 @@ const handleTest = () => {
 const handleDelete = () => {
   ElMessage.warning('删除功能')
 }
+
+// ==================== 监听器和生命周期 ====================
+
+/**
+ * 监听历史筛选条件变化
+ */
+watch(
+  () => [historyFilter.period, historyFilter.status, historySearchText.value],
+  () => {
+    // 重置到第一页
+    historyPagination.currentPage = 1
+    // 重新加载数据
+    loadHistoryRecords()
+  }
+)
+
+/**
+ * 监听活动标签页变化
+ */
+watch(activeTab, (newTab) => {
+  if (newTab === 'history') {
+    // 切换到历史标签页时加载数据
+    loadHistoryRecords()
+  }
+})
+
+/**
+ * 组件挂载时的初始化
+ */
+onMounted(() => {
+  // 如果当前就在历史标签页，则加载数据
+  if (activeTab.value === 'history') {
+    loadHistoryRecords()
+  }
+})
 </script>
 
 <style scoped>
@@ -2818,6 +3107,41 @@ const handleDelete = () => {
 .pagination-info {
   font-size: 13px;
   color: #606266;
+}
+
+/* 历史详情对话框样式 */
+.history-detail-content {
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.history-detail-content .detail-section {
+  margin-bottom: 24px;
+}
+
+.history-detail-content .detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.history-detail-content .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
+}
+
+.history-detail-content .error-message {
+  margin: 0;
+  padding: 12px;
+  background: #fef0f0;
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #f56c6c;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 测试用例部分 */

@@ -270,36 +270,38 @@
         <!-- 执行历史 -->
         <div class="sidebar-section">
           <h4 class="sidebar-title">执行历史</h4>
-          <div v-if="displayHistory.length > 0" class="history-list">
-            <div 
-              v-for="(history, index) in displayHistory" 
-              :key="index" 
-              class="history-card"
-            >
-              <div class="history-header">
-                <el-icon 
-                  :color="history.status === 'passed' ? '#67c23a' : '#f56c6c'"
-                  :size="16"
-                >
-                  <CircleCheckFilled v-if="history.status === 'passed'" />
-                  <CircleCloseFilled v-else />
-                </el-icon>
-                <span class="history-executor">{{ history.action }}</span>
+          <div v-loading="executionHistoryLoading" element-loading-text="加载中..." style="min-height: 100px;">
+            <div v-if="displayHistory.length > 0" class="history-list">
+              <div 
+                v-for="(history, index) in displayHistory" 
+                :key="index" 
+                class="history-card"
+              >
+                <div class="history-header">
+                  <el-icon 
+                    :color="history.status === 'passed' ? '#67c23a' : '#f56c6c'"
+                    :size="16"
+                  >
+                    <CircleCheckFilled v-if="history.status === 'passed'" />
+                    <CircleCloseFilled v-else />
+                  </el-icon>
+                  <span class="history-executor">{{ history.action }}</span>
+                </div>
+                <div class="history-body">{{ history.note }}</div>
+                <div class="history-footer">{{ history.executed_time }}</div>
               </div>
-              <div class="history-body">{{ history.note }}</div>
-              <div class="history-footer">{{ history.executed_time }}</div>
             </div>
-          </div>
-          <div v-else class="empty-history">
-            <el-empty 
-              :image-size="50"
-              description="暂无执行记录"
-            >
-              <template #description>
-                <p>该测试用例尚未执行</p>
-                <p class="empty-tip">执行测试后将显示历史记录</p>
-              </template>
-            </el-empty>
+            <div v-else-if="!executionHistoryLoading" class="empty-history">
+              <el-empty 
+                :image-size="50"
+                description="暂无执行记录"
+              >
+                <template #description>
+                  <p>该测试用例尚未执行</p>
+                  <p class="empty-tip">执行测试后将显示历史记录</p>
+                </template>
+              </el-empty>
+            </div>
           </div>
         </div>
 
@@ -767,7 +769,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Edit, 
@@ -788,7 +790,16 @@ import {
   Document,
   Refresh
 } from '@element-plus/icons-vue'
-import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase, updateTestCase, createTestCaseShare, revokeTestCaseShare } from '../../api/testCase'
+import { 
+  executeTestCase, 
+  copyTestCase, 
+  getTestCaseForCopy, 
+  createTestCase, 
+  updateTestCase, 
+  createTestCaseShare, 
+  revokeTestCaseShare,
+  getExecutionRecords
+} from '../../api/testCase'
 
 const props = defineProps({
   testCase: {
@@ -891,14 +902,123 @@ const displayTestData = computed(() => {
   return []
 })
 
-// 显示执行历史
-const displayHistory = computed(() => {
-  if (props.executionHistory && props.executionHistory.length > 0) {
-    return props.executionHistory
+// ==================== 执行历史相关 ====================
+const executionHistoryData = ref([])
+const executionHistoryLoading = ref(false)
+
+/**
+ * 加载执行历史
+ */
+const loadExecutionHistory = async () => {
+  try {
+    executionHistoryLoading.value = true
+    
+    // 获取用例ID
+    const caseId = props.testCase?.caseId || props.testCase?.case_id || props.testCase?.id
+    console.log('开始加载执行历史，用例ID:', caseId, '用例信息:', props.testCase)
+    
+    if (!caseId) {
+      console.warn('用例ID为空，无法加载执行历史')
+      executionHistoryData.value = []
+      return
+    }
+    
+    const params = {
+      execution_scope: 'test_case',
+      ref_id: caseId,
+      page: 1,
+      page_size: 5,  // 侧边栏只显示最近5条
+      sort_by: 'start_time',
+      sort_order: 'desc'
+    }
+    
+    console.log('请求执行历史参数:', params)
+    const response = await getExecutionRecords(params)
+    console.log('执行历史API响应:', response)
+    
+    if (response.code === 1 && response.data && response.data.items) {
+      console.log('成功获取执行历史数据，条数:', response.data.items.length)
+      // 转换数据格式
+      executionHistoryData.value = response.data.items.map(item => ({
+        id: item.record_id || item.recordId,
+        status: mapExecutionStatus(item.status),
+        action: getExecutionTypeText(item.execution_type || item.executionType),
+        note: generateHistoryNote(item),
+        executed_time: formatTime(item.start_time || item.startTime),
+        executor: item.executor_info?.name || item.executorInfo?.name || '未知',
+        environment: item.environment,
+        duration: item.duration_seconds || item.durationSeconds,
+        totalCases: item.total_cases || item.totalCases,
+        passedCases: item.passed_cases || item.passedCases,
+        failedCases: item.failed_cases || item.failedCases,
+        successRate: item.success_rate || item.successRate
+      }))
+      console.log('转换后的执行历史数据:', executionHistoryData.value)
+    } else {
+      console.log('API返回空数据或失败:', response)
+      executionHistoryData.value = []
+    }
+  } catch (error) {
+    console.error('加载执行历史失败:', error)
+    executionHistoryData.value = []
+  } finally {
+    executionHistoryLoading.value = false
   }
+}
+
+/**
+ * 映射执行状态
+ */
+const mapExecutionStatus = (status) => {
+  const statusMap = {
+    'completed': 'passed',
+    'failed': 'failed',
+    'running': 'running',
+    'cancelled': 'cancelled'
+  }
+  return statusMap[status] || status
+}
+
+/**
+ * 获取执行类型文本
+ */
+const getExecutionTypeText = (type) => {
+  const typeMap = {
+    'manual': '手动执行',
+    'scheduled': '定时任务',
+    'triggered': '触发执行'
+  }
+  return typeMap[type] || '手动执行'
+}
+
+/**
+ * 生成历史记录的描述
+ */
+const generateHistoryNote = (item) => {
+  const total = item.total_cases || item.totalCases || 0
+  const passed = item.passed_cases || item.passedCases || 0
+  const failed = item.failed_cases || item.failedCases || 0
+  const successRate = item.success_rate || item.successRate || 0
   
-  // 如果没有执行历史，返回空数组
-  return []
+  if (total > 0) {
+    return `执行 ${total} 个用例，通过 ${passed} 个，失败 ${failed} 个，成功率 ${successRate.toFixed(2)}%`
+  } else {
+    const status = item.status
+    if (status === 'completed') {
+      return '执行成功'
+    } else if (status === 'failed') {
+      return item.error_message || item.errorMessage || '执行失败'
+    } else {
+      return '执行中...'
+    }
+  }
+}
+
+// 显示执行历史（只使用子组件自己获取的数据）
+const displayHistory = computed(() => {
+  // 只使用子组件自己通过API获取的数据，忽略父组件传递的数据
+  // 这样可以确保数据的一致性和实时性
+  return executionHistoryData.value || []
 })
 
 // 显示验证规则
@@ -1193,6 +1313,9 @@ const handleConfirmExecute = async () => {
         executeDialogVisible.value = false
         resultDialogVisible.value = true
       }
+      
+      // 刷新执行历史
+      loadExecutionHistory()
       
       emit('refresh')
     } else {
@@ -1513,6 +1636,35 @@ const handleDelete = async () => {
     // 用户取消删除
   }
 }
+
+// ==================== 生命周期钩子 ====================
+
+/**
+ * 监听 testCase 变化，重新加载执行历史
+ */
+watch(
+  () => props.testCase?.id || props.testCase?.caseId || props.testCase?.case_id,
+  (newId, oldId) => {
+    // 只有当用例ID真正发生变化时才重新加载
+    if (newId && newId !== oldId) {
+      console.log('测试用例ID变化，重新加载执行历史:', { oldId, newId })
+      loadExecutionHistory()
+    }
+  },
+  { immediate: true }  // 立即执行一次
+)
+
+/**
+ * 组件挂载时加载执行历史
+ */
+onMounted(() => {
+  // 如果 watch 没有触发（比如用例ID为空），则手动加载
+  const caseId = props.testCase?.id || props.testCase?.caseId || props.testCase?.case_id
+  if (caseId) {
+    console.log('组件挂载，加载执行历史，用例ID:', caseId)
+    loadExecutionHistory()
+  }
+})
 </script>
 
 <style scoped>
