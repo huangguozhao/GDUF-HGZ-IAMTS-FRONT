@@ -64,7 +64,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add-module', 'add-api', 'add-case', 'edit', 'delete', 'node-click'])
+const emit = defineEmits(['add-module', 'add-api', 'add-case', 'edit', 'delete', 'node-click', 'toggle-expand'])
 
 const isExpanded = ref(props.defaultExpanded)
 
@@ -81,6 +81,8 @@ const hasChildren = computed(() => {
 const toggleExpand = () => {
   if (hasChildren.value) {
     isExpanded.value = !isExpanded.value
+    // 触发展开/折叠事件
+    emit('toggle-expand', props.node.id)
   }
 }
 

@@ -285,10 +285,21 @@
                     <CircleCheckFilled v-if="history.status === 'passed'" />
                     <CircleCloseFilled v-else />
                   </el-icon>
-                  <span class="history-executor">{{ history.action }}</span>
+                  <div class="executor-info">
+                    <div class="executor-name">{{ history.executor }}</div>
+                    <div class="executor-meta">
+                      <span class="execution-type">{{ history.action }}</span>
+                      <span class="environment" v-if="history.environment">{{ history.environment }}</span>
+                    </div>
+                  </div>
                 </div>
                 <div class="history-body">{{ history.note }}</div>
-                <div class="history-footer">{{ history.executed_time }}</div>
+                <div class="history-footer">
+                  <span class="execution-time">{{ history.executed_time }}</span>
+                  <span class="duration" v-if="history.durationSeconds > 0">
+                    ({{ formatDuration(history.durationSeconds) }})
+                  </span>
+                </div>
               </div>
             </div>
             <div v-else-if="!executionHistoryLoading" class="empty-history">
@@ -301,6 +312,20 @@
                   <p class="empty-tip">执行测试后将显示历史记录</p>
                 </template>
               </el-empty>
+            </div>
+            
+            <!-- 查看更多按钮 -->
+            <div v-if="showViewMore && !executionHistoryLoading" class="view-more-section">
+              <el-button 
+                type="primary" 
+                size="small" 
+                text
+                :icon="View"
+                @click="handleViewMoreHistory"
+                class="view-more-btn"
+              >
+                查看更多执行历史 (共{{ executionHistoryTotal }}条)
+              </el-button>
             </div>
           </div>
         </div>
@@ -765,6 +790,13 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 执行历史弹窗 -->
+    <ExecutionHistoryModal
+      v-model:visible="executionHistoryModalVisible"
+      :test-case="testCase"
+      @close="executionHistoryModalVisible = false"
+    />
   </div>
 </template>
 
@@ -800,6 +832,7 @@ import {
   revokeTestCaseShare,
   getExecutionRecords
 } from '../../api/testCase'
+import ExecutionHistoryModal from './ExecutionHistoryModal.vue'
 
 const props = defineProps({
   testCase: {
@@ -905,6 +938,10 @@ const displayTestData = computed(() => {
 // ==================== 执行历史相关 ====================
 const executionHistoryData = ref([])
 const executionHistoryLoading = ref(false)
+const executionHistoryTotal = ref(0)  // 总记录数
+
+// 执行历史弹窗
+const executionHistoryModalVisible = ref(false)
 
 /**
  * 加载执行历史
@@ -927,7 +964,7 @@ const loadExecutionHistory = async () => {
       execution_scope: 'test_case',
       ref_id: caseId,
       page: 1,
-      page_size: 5,  // 侧边栏只显示最近5条
+      page_size: 3,  // 侧边栏只显示最近3条
       sort_by: 'start_time',
       sort_order: 'desc'
     }
@@ -941,22 +978,37 @@ const loadExecutionHistory = async () => {
       // 转换数据格式
       executionHistoryData.value = response.data.items.map(item => ({
         id: item.record_id || item.recordId,
+        recordId: item.record_id || item.recordId,
         status: mapExecutionStatus(item.status),
         action: getExecutionTypeText(item.execution_type || item.executionType),
         note: generateHistoryNote(item),
         executed_time: formatTime(item.start_time || item.startTime),
+        startTime: item.start_time || item.startTime,
+        endTime: item.end_time || item.endTime,
         executor: item.executor_info?.name || item.executorInfo?.name || '未知',
+        executorInfo: item.executor_info || item.executorInfo,
         environment: item.environment,
         duration: item.duration_seconds || item.durationSeconds,
+        durationSeconds: item.duration_seconds || item.durationSeconds,
         totalCases: item.total_cases || item.totalCases,
         passedCases: item.passed_cases || item.passedCases,
         failedCases: item.failed_cases || item.failedCases,
-        successRate: item.success_rate || item.successRate
+        skippedCases: item.skipped_cases || item.skippedCases,
+        successRate: item.success_rate || item.successRate,
+        executionType: item.execution_type || item.executionType,
+        reportUrl: item.report_url || item.reportUrl,
+        errorMessage: item.error_message || item.errorMessage
       }))
+      
+      // 保存总记录数
+      executionHistoryTotal.value = response.data.total || 0
+      
       console.log('转换后的执行历史数据:', executionHistoryData.value)
+      console.log('总记录数:', executionHistoryTotal.value)
     } else {
       console.log('API返回空数据或失败:', response)
       executionHistoryData.value = []
+      executionHistoryTotal.value = 0
     }
   } catch (error) {
     console.error('加载执行历史失败:', error)
@@ -1020,6 +1072,22 @@ const displayHistory = computed(() => {
   // 这样可以确保数据的一致性和实时性
   return executionHistoryData.value || []
 })
+
+// 是否显示"查看更多"按钮
+const showViewMore = computed(() => {
+  return executionHistoryTotal.value > 3
+})
+
+// 查看更多执行历史
+const handleViewMoreHistory = () => {
+  const caseId = props.testCase?.caseId || props.testCase?.case_id || props.testCase?.id
+  if (caseId) {
+    // 打开执行历史弹窗
+    executionHistoryModalVisible.value = true
+  } else {
+    ElMessage.error('无法获取用例ID')
+  }
+}
 
 // 显示验证规则
 const displayValidationRules = computed(() => {
@@ -2011,10 +2079,38 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.history-executor {
-  font-size: 14px;
-  color: #303133;
+.executor-info {
+  flex: 1;
+  margin-left: 8px;
+}
+
+.executor-name {
+  font-size: 13px;
   font-weight: 500;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.executor-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.execution-type {
+  font-size: 11px;
+  color: #409eff;
+  background: #f0f9ff;
+  padding: 1px 4px;
+  border-radius: 2px;
+}
+
+.environment {
+  font-size: 11px;
+  color: #909399;
+  background: #f5f7fa;
+  padding: 1px 4px;
+  border-radius: 2px;
 }
 
 .history-body {
@@ -2026,6 +2122,19 @@ onMounted(() => {
 .history-footer {
   font-size: 12px;
   color: #909399;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.execution-time {
+  flex: 1;
+}
+
+.duration {
+  font-size: 11px;
+  color: #c0c4cc;
+  margin-left: 8px;
 }
 
 /* 关联信息 */
@@ -2434,5 +2543,24 @@ onMounted(() => {
 .disabled-tag {
   font-size: 12px;
   font-weight: 500;
+}
+
+/* 查看更多按钮样式 */
+.view-more-section {
+  padding: 12px 0;
+  text-align: center;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 8px;
+}
+
+.view-more-btn {
+  width: 100%;
+  font-size: 13px;
+  color: #409eff;
+}
+
+.view-more-btn:hover {
+  color: #66b1ff;
+  background-color: #f0f9ff;
 }
 </style>
