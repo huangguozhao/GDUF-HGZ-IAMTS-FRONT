@@ -9,12 +9,18 @@
 
     <!-- 用例标题 -->
     <div class="case-header">
-      <h2 class="case-title">{{ testCase.name }}</h2>
+      <div class="case-title-row">
+        <h2 class="case-title">{{ testCase.name }}</h2>
+        <el-tag v-if="!testCase.isEnabled" type="danger" size="small" class="disabled-tag">
+          已禁用
+        </el-tag>
+      </div>
       <div class="case-actions">
         <el-button 
           type="primary" 
           size="default"
           :icon="CaretRight"
+          :disabled="!testCase.isEnabled"
           @click="handleExecute"
         >
           执行测试
@@ -48,8 +54,21 @@
               <el-dropdown-item command="share" :icon="Share">
                 分享用例
               </el-dropdown-item>
-              <el-dropdown-item divided command="disable" :icon="CircleClose">
+              <el-dropdown-item 
+                v-if="props.testCase.isEnabled" 
+                divided 
+                command="disable" 
+                :icon="CircleClose"
+              >
                 禁用用例
+              </el-dropdown-item>
+              <el-dropdown-item 
+                v-else 
+                divided 
+                command="enable" 
+                :icon="CircleCheck"
+              >
+                启用用例
               </el-dropdown-item>
               <el-dropdown-item command="delete" :icon="Delete">
                 <span style="color: #f56c6c;">删除用例</span>
@@ -755,6 +774,7 @@ import {
   Delete, 
   CircleCheckFilled, 
   CircleCloseFilled,
+  CircleCheck,
   Link,
   WarningFilled,
   User,
@@ -768,7 +788,7 @@ import {
   Document,
   Refresh
 } from '@element-plus/icons-vue'
-import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase, createTestCaseShare, revokeTestCaseShare } from '../../api/testCase'
+import { executeTestCase, copyTestCase, getTestCaseForCopy, createTestCase, updateTestCase, createTestCaseShare, revokeTestCaseShare } from '../../api/testCase'
 
 const props = defineProps({
   testCase: {
@@ -1422,10 +1442,48 @@ const handleMoreAction = async (command) => {
             type: 'warning'
           }
         )
+        
+        // 调用API禁用测试用例
+        await updateTestCase(props.testCase.caseId, {
+          ...props.testCase,
+          is_enabled: false
+        })
+        
         ElMessage.success('用例已禁用')
-        // TODO: 调用禁用API
+        emit('refresh')
       } catch (error) {
-        // 用户取消
+        if (error !== 'cancel') {
+          console.error('禁用测试用例失败:', error)
+          ElMessage.error('禁用测试用例失败')
+        }
+      }
+      break
+      
+    case 'enable':
+      try {
+        await ElMessageBox.confirm(
+          `确定要启用用例 "${props.testCase.name}" 吗？`,
+          '启用确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'success'
+          }
+        )
+        
+        // 调用API启用测试用例
+        await updateTestCase(props.testCase.caseId, {
+          ...props.testCase,
+          is_enabled: true
+        })
+        
+        ElMessage.success('用例已启用')
+        emit('refresh')
+      } catch (error) {
+        if (error !== 'cancel') {
+          console.error('启用测试用例失败:', error)
+          ElMessage.error('启用测试用例失败')
+        }
       }
       break
       
@@ -2211,5 +2269,18 @@ const handleDelete = async () => {
 
 .dialog-footer .el-button {
   min-width: 80px;
+}
+
+/* 禁用状态样式 */
+.case-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.disabled-tag {
+  font-size: 12px;
+  font-weight: 500;
 }
 </style>

@@ -746,7 +746,7 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="180" align="center" fixed="right">
+          <el-table-column label="操作" width="240" align="center" fixed="right">
             <template #default="{ row }">
               <el-button 
                 size="small" 
@@ -765,6 +765,15 @@
                 @click.stop="$emit('select-case', row)"
               >
                 查看
+              </el-button>
+              <el-button 
+                size="small" 
+                text 
+                :type="row.isEnabled ? 'warning' : 'success'"
+                :icon="row.isEnabled ? 'CircleClose' : 'CircleCheck'"
+                @click.stop="handleToggleTestCaseStatus(row)"
+              >
+                {{ row.isEnabled ? '禁用' : '启用' }}
               </el-button>
             </template>
           </el-table-column>
@@ -1303,7 +1312,7 @@ import {
   Delete,
   CaretRight
 } from '@element-plus/icons-vue'
-import { createTestCase, executeTestCase } from '@/api/testCase'
+import { createTestCase, updateTestCase, executeTestCase } from '@/api/testCase'
 
 const props = defineProps({
   api: {
@@ -1882,6 +1891,40 @@ const currentTestCase = ref(null)
 const handleRunTestCase = (testCase) => {
   currentTestCase.value = testCase
   executeDialogVisible.value = true
+}
+
+// 切换测试用例启用状态
+const handleToggleTestCaseStatus = async (testCase) => {
+  try {
+    const action = testCase.isEnabled ? '禁用' : '启用'
+    
+    await ElMessageBox.confirm(
+      `确定要${action}测试用例"${testCase.name}"吗？`,
+      `${action}测试用例`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 调用编辑接口更新启用状态
+    await updateTestCase(testCase.caseId, {
+      ...testCase,
+      is_enabled: !testCase.isEnabled
+    })
+    
+    ElMessage.success(`测试用例${action}成功`)
+    
+    // 刷新测试用例列表
+    emit('refresh-cases')
+    
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('切换测试用例状态失败:', error)
+      ElMessage.error(`测试用例${testCase.isEnabled ? '禁用' : '启用'}失败`)
+    }
+  }
 }
 
 // 确认执行测试
