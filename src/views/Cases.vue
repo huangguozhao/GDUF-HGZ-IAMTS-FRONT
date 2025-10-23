@@ -1252,16 +1252,45 @@ const clearPageState = () => {
   }
 }
 
-// 处理节点展开/折叠
-const handleToggleExpand = (nodeId) => {
-  if (expandedNodes.value.has(nodeId)) {
-    expandedNodes.value.delete(nodeId)
-  } else {
-    expandedNodes.value.add(nodeId)
+// 根据展开的节点ID恢复展开状态
+const restoreExpandedNodes = async (expandedNodeIds) => {
+  for (const nodeId of expandedNodeIds) {
+    // 尝试找到对应的节点并展开
+    await expandNodeById(nodeId)
+  }
+}
+
+// 根据ID展开节点
+const expandNodeById = async (nodeId) => {
+  // 查找节点
+  const findNodeById = (nodes) => {
+    for (const node of nodes) {
+      if (node.id === nodeId || node.project_id === nodeId || node.module_id === nodeId || node.api_id === nodeId) {
+        return node
+      }
+      
+      if (node.modules) {
+        const found = findNodeById(node.modules)
+        if (found) return found
+      }
+    }
+    return null
   }
   
-  // 保存状态
-  savePageState()
+  const node = findNodeById(projects.value)
+  if (node) {
+    // 如果是项目节点，加载模块
+    if (node.project_id && !node.modules?.length) {
+      await loadProjectModules(node)
+    }
+    // 如果是模块节点，加载接口
+    else if (node.module_id && !node.apis?.length) {
+      await loadModuleApis(node)
+    }
+    
+    // 添加到展开列表
+    expandedNodes.value.add(nodeId)
+  }
 }
 
 // 恢复选中的节点
@@ -1331,9 +1360,18 @@ const restoreSelectedNode = async (savedState) => {
       console.log('节点状态已恢复')
     } else {
       console.log('未找到保存的节点，可能已被删除')
+      // 清理无效的状态
+      selectedNode.value = null
+      selectedLevel.value = null
+      // 清除保存的状态
+      clearPageState()
     }
   } catch (error) {
     console.error('恢复选中节点失败:', error)
+    // 出错时清理状态
+    selectedNode.value = null
+    selectedLevel.value = null
+    clearPageState()
   }
 }
 
@@ -2077,20 +2115,80 @@ const handleEditCase = (testCase) => {
 
 const handleDeleteCase = async (testCase) => {
   try {
-    await ElMessageBox.confirm(
-      `确定要删除用例 "${testCase.name}" 吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
     if (USE_REAL_API) {
+      // 保存当前状态信息
+      const currentApiId = testCase?.api_id || testCase?.apiId
+      const currentCaseIndex = testCase?.index || 0
+      
       // 调用真实API删除
-      await deleteTestCase(testCase.api_id, testCase.case_id)
-      await loadProjectTree()
+      const response = await deleteTestCase(testCase?.case_id || testCase?.caseId || testCase?.id)
+      
+      if (response.code === 1) {
+        ElMessage.success('测试用例删除成功')
+        
+        // 不重新加载整个项目树，只更新当前接口的测试用例数据
+        if (currentApiId) {
+          // 重新加载该接口的测试用例数据
+          const casesResponse = await getTestCasesByApi(currentApiId, { pageSize: 100 })
+          
+          if (casesResponse.code === 1) {
+            const cases = casesResponse.data.items || []
+            const transformedCases = cases.map(transformTestCase)
+            
+            // 更新项目树中对应的用例数据
+            projects.value.forEach(project => {
+              project.modules?.forEach(module => {
+                module.apis?.forEach(api => {
+                  if (api.api_id === currentApiId || api.id === currentApiId) {
+                    api.cases = transformedCases
+                  }
+                })
+              })
+            })
+            
+            // 选中相邻的测试用例
+            if (transformedCases.length > 0) {
+              const nextCaseIndex = Math.min(currentCaseIndex, transformedCases.length - 1)
+              const nextCase = transformedCases[nextCaseIndex]
+              
+              if (nextCase) {
+                // 选中相邻的测试用例
+                selectedNode.value = nextCase
+                selectedLevel.value = 'case'
+              } else {
+                // 如果没有相邻的测试用例，选中父级接口
+                projects.value.forEach(project => {
+                  project.modules?.forEach(module => {
+                    module.apis?.forEach(api => {
+                      if (api.api_id === currentApiId || api.id === currentApiId) {
+                        selectedNode.value = api
+                        selectedLevel.value = 'api'
+                      }
+                    })
+                  })
+                })
+              }
+            } else {
+              // 如果没有测试用例了，选中父级接口
+              projects.value.forEach(project => {
+                project.modules?.forEach(module => {
+                  module.apis?.forEach(api => {
+                    if (api.api_id === currentApiId || api.id === currentApiId) {
+                      selectedNode.value = api
+                      selectedLevel.value = 'api'
+                    }
+                  })
+                })
+              })
+            }
+            
+            // 保存新的状态
+            savePageState()
+          }
+        }
+      } else {
+        ElMessage.error(response.msg || '删除失败')
+      }
     } else {
       // 从假数据中删除用例
       projects.value.forEach(project => {
@@ -2099,19 +2197,33 @@ const handleDeleteCase = async (testCase) => {
             const index = api.cases?.findIndex(c => c.id === testCase.id)
             if (index !== undefined && index > -1) {
               api.cases.splice(index, 1)
+              
+              // 尝试选中相邻的测试用例
+              if (api.cases.length > 0) {
+                const nextCaseIndex = Math.min(index, api.cases.length - 1)
+                const nextCase = api.cases[nextCaseIndex]
+                
+                if (nextCase) {
+                  selectedNode.value = nextCase
+                  selectedLevel.value = 'case'
+                } else {
+                  selectedNode.value = api
+                  selectedLevel.value = 'api'
+                }
+              } else {
+                selectedNode.value = api
+                selectedLevel.value = 'api'
+              }
             }
           })
         })
       })
+      
+      ElMessage.success('删除成功')
     }
-    
-    ElMessage.success('删除成功')
-    selectedNode.value = null
-    selectedLevel.value = null
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error(error.msg || '删除失败')
-    }
+    console.error('删除用例失败:', error)
+    ElMessage.error('删除失败: ' + (error.message || '未知错误'))
   }
 }
 

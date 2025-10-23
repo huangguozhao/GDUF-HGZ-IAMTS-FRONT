@@ -90,7 +90,7 @@ export function updateTestCase(caseId, data) {
 }
 
 // 删除测试用例
-export function deleteTestCase(apiId, caseId) {
+export function deleteTestCase(caseId) {
   return request({
     url: `/testcases/${caseId}`,
     method: 'delete'

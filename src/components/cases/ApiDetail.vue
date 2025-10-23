@@ -3,53 +3,53 @@
     <!-- 头部 -->
     <div class="detail-header">
       <div class="header-left">
-        <h2 class="api-title">{{ api.name }}</h2>
+        <h2 class="api-title">{{ api?.name || '未知接口' }}</h2>
         <div class="api-info-line">
-          <span class="api-path">{{ api.path || api.url }}</span>
-        <span class="method-tag" :class="'method-' + (api.method || '').toLowerCase()">
-          {{ api.method }}
+          <span class="api-path">{{ api?.path || api?.url || '-' }}</span>
+        <span class="method-tag" :class="'method-' + (api?.method || '').toLowerCase()">
+          {{ api?.method || '-' }}
         </span>
           <el-tag 
-            :type="getStatusTagType(api.status)" 
+            :type="getStatusTagType(api?.status)" 
             size="small"
             class="status-tag"
           >
-            {{ getStatusText(api.status) }}
+            {{ getStatusText(api?.status) }}
           </el-tag>
-          <span class="version-tag">v{{ api.version || '1.0' }}</span>
+          <span class="version-tag">v{{ api?.version || '1.0' }}</span>
         </div>
         <div class="api-meta">
           <span class="meta-item">
             <span class="meta-label">认证方式：</span>
-            <span class="meta-value">{{ getAuthTypeText(api.authType || api.auth_type) }}</span>
+            <span class="meta-value">{{ getAuthTypeText(api?.authType || api?.auth_type) }}</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">超时时间：</span>
-            <span class="meta-value">{{ api.timeoutSeconds || api.timeout_seconds || 30 }}秒</span>
+            <span class="meta-value">{{ api?.timeoutSeconds || api?.timeout_seconds || 30 }}秒</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">请求体类型：</span>
-            <span class="meta-value">{{ api.requestBodyType || api.request_body_type || '-' }}</span>
+            <span class="meta-value">{{ api?.requestBodyType || api?.request_body_type || '-' }}</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">响应体类型：</span>
-            <span class="meta-value">{{ api.responseBodyType || api.response_body_type || 'json' }}</span>
+            <span class="meta-value">{{ api?.responseBodyType || api?.response_body_type || 'json' }}</span>
           </span>
         </div>
       </div>
       <div class="header-right">
-        <div class="creator-info" v-if="api.creatorInfo || api.creator_info">
+        <div class="creator-info" v-if="api?.creatorInfo || api?.creator_info">
           <el-avatar :size="32" :src="getCreatorAvatar()" class="creator-avatar">
-            {{ getCreatorName().charAt(0) }}
+            {{ getCreatorName()?.charAt(0) || '?' }}
           </el-avatar>
           <div class="creator-details">
-            <div class="creator-name">{{ getCreatorName() }}</div>
+            <div class="creator-name">{{ getCreatorName() || '未知' }}</div>
             <div class="creator-label">创建人</div>
           </div>
         </div>
         <div class="time-info-group">
-          <span class="time-info">创建时间：{{ formatTime(api.createdAt || api.created_time) }}</span>
-          <span class="time-info">更新时间：{{ formatTime(api.updatedAt || api.updated_time) }}</span>
+          <span class="time-info">创建时间：{{ formatTime(api?.createdAt || api?.created_time) }}</span>
+          <span class="time-info">更新时间：{{ formatTime(api?.updatedAt || api?.updated_time) }}</span>
         </div>
       </div>
     </div>
@@ -163,7 +163,14 @@
         <div class="form-actions">
           <el-button type="primary" @click="handleSave">保存修改</el-button>
           <el-button @click="handleTest">执行测试</el-button>
-          <el-button type="danger" @click="handleDelete">删除</el-button>
+          <el-button 
+            type="danger" 
+            :icon="Delete"
+            @click="handleDelete"
+            :loading="deleteLoading"
+          >
+            删除用例
+          </el-button>
         </div>
       </div>
 
@@ -1423,7 +1430,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   CircleCloseFilled, 
@@ -1462,7 +1469,26 @@ const props = defineProps({
 
 const emit = defineEmits(['select-case', 'edit-case', 'delete-case', 'close', 'refresh-cases'])
 
+// 组件销毁时的清理
+onBeforeUnmount(() => {
+  try {
+    // 清理定时器等资源
+    // 注意：如果组件中有定时器，需要在这里清理
+    // 目前没有使用historyTimer，所以暂时注释掉
+    // if (historyTimer.value) {
+    //   clearInterval(historyTimer.value)
+    //   historyTimer.value = null
+    // }
+    
+    // 清理其他可能的资源
+    deleteLoading.value = false
+  } catch (error) {
+    console.error('组件卸载时清理资源失败:', error)
+  }
+})
+
 const activeTab = ref('basic')
+const deleteLoading = ref(false)
 
 const apiData = reactive({
   project: '电商支付系统',
@@ -2447,6 +2473,7 @@ const formatTime = (time) => {
 
 // 获取创建人名称
 const getCreatorName = () => {
+  if (!props.api) return '未知'
   if (props.api.creatorInfo && props.api.creatorInfo.name) {
     return props.api.creatorInfo.name
   }
@@ -2458,6 +2485,7 @@ const getCreatorName = () => {
 
 // 获取创建人头像
 const getCreatorAvatar = () => {
+  if (!props.api) return ''
   if (props.api.creatorInfo && props.api.creatorInfo.avatarUrl) {
     return props.api.creatorInfo.avatarUrl
   }
@@ -2511,8 +2539,75 @@ const handleTest = () => {
   ElMessage.info('执行测试中...')
 }
 
-const handleDelete = () => {
-  ElMessage.warning('删除功能')
+/**
+ * 删除测试用例
+ */
+const handleDelete = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除测试用例"${testCase?.name || '未知用例'}"吗？删除后将无法恢复。`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+        customClass: 'delete-confirm-dialog'
+      }
+    )
+    
+    // 用户确认后，触发父组件的删除事件，不在这里执行删除操作
+    emit('delete-case', testCase)
+  } catch (error) {
+    // 用户取消操作
+    if (error !== 'cancel') {
+      console.error('删除确认失败:', error)
+    }
+  }
+}
+
+/**
+ * 处理删除错误
+ */
+const handleDeleteError = (response) => {
+  const errorMessages = {
+    '-4': '测试用例不存在',
+    '0': response.msg || '测试用例删除失败'
+  }
+  
+  // 特殊错误处理
+  if (response.msg) {
+    if (response.msg.includes('已被删除')) {
+      ElMessage.warning('该测试用例已被删除')
+      emit('delete-case', testCase)
+      emit('close')
+      return
+    }
+    
+    if (response.msg.includes('权限不足')) {
+      ElMessage.error('权限不足，无法删除测试用例')
+      return
+    }
+    
+    if (response.msg.includes('正在被测试计划使用')) {
+      ElMessage.error('用例正在被测试计划使用，无法删除')
+      return
+    }
+    
+    if (response.msg.includes('不能删除系统用例')) {
+      ElMessage.error('不能删除系统用例')
+      return
+    }
+    
+    if (response.msg.includes('模板用例')) {
+      ElMessage.error('模板用例不能被删除')
+      return
+    }
+  }
+  
+  // 通用错误处理
+  const errorMessage = errorMessages[response.code] || response.msg || '删除失败'
+  ElMessage.error(errorMessage)
 }
 
 // ==================== 监听器和生命周期 ====================
@@ -3555,6 +3650,66 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   justify-content: center;
+}
+
+/* 删除确认对话框样式 */
+:deep(.delete-confirm-dialog) {
+  .el-message-box__header {
+    background: #fef0f0;
+    border-bottom: 1px solid #fde2e2;
+  }
+  
+  .el-message-box__title {
+    color: #f56c6c;
+    font-weight: 600;
+  }
+  
+  .el-message-box__content {
+    padding: 20px;
+  }
+  
+  .el-message-box__message {
+    color: #606266;
+    line-height: 1.6;
+  }
+  
+  .el-message-box__btns {
+    padding: 16px 20px;
+    background: #fafafa;
+    border-top: 1px solid #e4e7ed;
+  }
+  
+  .el-button--danger {
+    background: #f56c6c;
+    border-color: #f56c6c;
+  }
+  
+  .el-button--danger:hover {
+    background: #f78989;
+    border-color: #f78989;
+  }
+}
+
+/* 删除按钮样式优化 */
+.form-actions .el-button--danger {
+  background: #f56c6c;
+  border-color: #f56c6c;
+  color: white;
+}
+
+.form-actions .el-button--danger:hover {
+  background: #f78989;
+  border-color: #f78989;
+}
+
+.form-actions .el-button--danger:focus {
+  background: #f56c6c;
+  border-color: #f56c6c;
+}
+
+.form-actions .el-button--danger.is-loading {
+  background: #f78989;
+  border-color: #f78989;
 }
 </style>
 

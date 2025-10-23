@@ -4,14 +4,14 @@
     <div class="breadcrumb">
       <span class="breadcrumb-item">测试用例</span>
       <span class="breadcrumb-separator">›</span>
-      <span class="breadcrumb-item active">{{ testCase.caseCode || testCase.case_code || testCase.id }}</span>
+      <span class="breadcrumb-item active">{{ testCase?.caseCode || testCase?.case_code || testCase?.id || '未知用例' }}</span>
     </div>
 
     <!-- 用例标题 -->
     <div class="case-header">
       <div class="case-title-row">
-        <h2 class="case-title">{{ testCase.name }}</h2>
-        <el-tag v-if="!testCase.isEnabled" type="danger" size="small" class="disabled-tag">
+        <h2 class="case-title">{{ testCase?.name || '未知用例' }}</h2>
+        <el-tag v-if="testCase && !testCase.isEnabled" type="danger" size="small" class="disabled-tag">
           已禁用
         </el-tag>
       </div>
@@ -20,7 +20,7 @@
           type="primary" 
           size="default"
           :icon="CaretRight"
-          :disabled="!testCase.isEnabled"
+          :disabled="!testCase?.isEnabled"
           @click="handleExecute"
         >
           执行测试
@@ -55,7 +55,7 @@
                 分享用例
               </el-dropdown-item>
               <el-dropdown-item 
-                v-if="props.testCase.isEnabled" 
+                v-if="props.testCase?.isEnabled" 
                 divided 
                 command="disable" 
                 :icon="CircleClose"
@@ -89,19 +89,19 @@
             <div class="info-item">
               <span class="info-label">优先级</span>
               <el-tag 
-                :type="getPriorityType(testCase.priority)" 
+                :type="getPriorityType(testCase?.priority)" 
                 size="small"
               >
-                {{ testCase.priority || 'P0' }}
+                {{ testCase?.priority || 'P0' }}
               </el-tag>
             </div>
             <div class="info-item">
               <span class="info-label">严重程度</span>
               <el-tag 
-                :type="getSeverityType(testCase.severity)" 
+                :type="getSeverityType(testCase?.severity)" 
                 size="small"
               >
-                {{ getSeverityText(testCase.severity) }}
+                {{ getSeverityText(testCase?.severity) }}
               </el-tag>
             </div>
             <div class="info-item">
@@ -110,23 +110,23 @@
             </div>
             <div class="info-item">
               <span class="info-label">版本</span>
-              <span class="info-value">{{ testCase.version || '1.0' }}</span>
+              <span class="info-value">{{ testCase?.version || '1.0' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">创建时间</span>
-              <span class="info-value">{{ formatTime(testCase.createdAt || testCase.created_time) }}</span>
+              <span class="info-value">{{ formatTime(testCase?.createdAt || testCase?.created_time) }}</span>
             </div>
             <div class="info-item">
               <span class="info-label">最后修改</span>
-              <span class="info-value">{{ formatTime(testCase.updatedAt || testCase.updated_time) }}</span>
+              <span class="info-value">{{ formatTime(testCase?.updatedAt || testCase?.updated_time) }}</span>
             </div>
           </div>
       </div>
 
         <!-- 用例描述 -->
-        <div class="section-card" v-if="testCase.description">
+        <div class="section-card" v-if="testCase?.description">
           <h3 class="section-title">用例描述</h3>
-          <p class="description-text">{{ testCase.description }}</p>
+          <p class="description-text">{{ testCase?.description }}</p>
         </div>
 
         <!-- 标签 -->
@@ -203,15 +203,15 @@
             <div class="response-item">
               <span class="response-label">状态码</span>
               <el-tag 
-                :type="getStatusCodeType(testCase.expectedHttpStatus || testCase.expected_http_status)" 
+                :type="getStatusCodeType(testCase?.expectedHttpStatus || testCase?.expected_http_status)" 
                 size="small"
               >
-                {{ testCase.expectedHttpStatus || testCase.expected_http_status || 200 }}
+                {{ testCase?.expectedHttpStatus || testCase?.expected_http_status || 200 }}
               </el-tag>
             </div>
             <div class="response-item">
               <span class="response-label">响应时间</span>
-              <span class="response-value">&lt; {{ testCase.expectedResponseTime || testCase.expected_response_time || '2秒' }}</span>
+              <span class="response-value">&lt; {{ testCase?.expectedResponseTime || testCase?.expected_response_time || '2秒' }}</span>
             </div>
             <div class="response-item full-width" v-if="displayValidationRules.length > 0">
               <span class="response-label">验证规则</span>
@@ -271,20 +271,20 @@
         <div class="sidebar-section">
           <h4 class="sidebar-title">执行历史</h4>
           <div v-loading="executionHistoryLoading" element-loading-text="加载中..." style="min-height: 100px;">
-            <div v-if="displayHistory.length > 0" class="history-list">
-              <div 
-                v-for="(history, index) in displayHistory" 
-                :key="index" 
-                class="history-card"
-              >
-                <div class="history-header">
-                  <el-icon 
-                    :color="history.status === 'passed' ? '#67c23a' : '#f56c6c'"
-                    :size="16"
-                  >
-                    <CircleCheckFilled v-if="history.status === 'passed'" />
-                    <CircleCloseFilled v-else />
-                  </el-icon>
+          <div v-if="displayHistory.length > 0" class="history-list">
+            <div 
+              v-for="(history, index) in displayHistory" 
+              :key="index" 
+              class="history-card"
+            >
+              <div class="history-header">
+                <el-icon 
+                  :color="history.status === 'passed' ? '#67c23a' : '#f56c6c'"
+                  :size="16"
+                >
+                  <CircleCheckFilled v-if="history.status === 'passed'" />
+                  <CircleCloseFilled v-else />
+                </el-icon>
                   <div class="executor-info">
                     <div class="executor-name">{{ history.executor }}</div>
                     <div class="executor-meta">
@@ -292,26 +292,26 @@
                       <span class="environment" v-if="history.environment">{{ history.environment }}</span>
                     </div>
                   </div>
-                </div>
-                <div class="history-body">{{ history.note }}</div>
+              </div>
+              <div class="history-body">{{ history.note }}</div>
                 <div class="history-footer">
                   <span class="execution-time">{{ history.executed_time }}</span>
                   <span class="duration" v-if="history.durationSeconds > 0">
                     ({{ formatDuration(history.durationSeconds) }})
                   </span>
-                </div>
-              </div>
+            </div>
+          </div>
             </div>
             <div v-else-if="!executionHistoryLoading" class="empty-history">
-              <el-empty 
-                :image-size="50"
-                description="暂无执行记录"
-              >
-                <template #description>
-                  <p>该测试用例尚未执行</p>
-                  <p class="empty-tip">执行测试后将显示历史记录</p>
-                </template>
-              </el-empty>
+            <el-empty 
+              :image-size="50"
+              description="暂无执行记录"
+            >
+              <template #description>
+                <p>该测试用例尚未执行</p>
+                <p class="empty-tip">执行测试后将显示历史记录</p>
+              </template>
+            </el-empty>
             </div>
             
             <!-- 查看更多按钮 -->
@@ -849,7 +849,7 @@ const emit = defineEmits(['close', 'edit', 'delete', 'refresh'])
 
 // 显示标签
 const displayTags = computed(() => {
-  const tags = props.testCase.tags
+  const tags = props.testCase?.tags
   
   if (tags && Array.isArray(tags)) {
     return tags
@@ -870,7 +870,7 @@ const displayTags = computed(() => {
 
 // 显示提取器
 const displayExtractors = computed(() => {
-  const extractors = props.testCase.extractors
+  const extractors = props.testCase?.extractors
   
   if (extractors && Array.isArray(extractors)) {
     return extractors
@@ -891,13 +891,13 @@ const displayExtractors = computed(() => {
 
 // 是否有预期响应Schema
 const hasExpectedResponseSchema = computed(() => {
-  return !!(props.testCase.expectedResponseSchema || props.testCase.expected_response_schema)
+  return !!(props.testCase?.expectedResponseSchema || props.testCase?.expected_response_schema)
 })
 
 // 显示测试步骤
 const displaySteps = computed(() => {
-  if (props.testCase.test_steps && Array.isArray(props.testCase.test_steps)) {
-    return props.testCase.test_steps
+  if (props.testCase?.test_steps && Array.isArray(props.testCase?.test_steps)) {
+    return props.testCase?.test_steps
   }
   
   // 如果没有测试步骤，返回空数组
@@ -907,10 +907,10 @@ const displaySteps = computed(() => {
 // 显示测试数据
 const displayTestData = computed(() => {
   // 优先使用 preConditions（后端返回的驼峰命名）
-  const data = props.testCase.preConditions 
-    || props.testCase.pre_conditions 
-    || props.testCase.request_override 
-    || props.testCase.request_params
+  const data = props.testCase?.preConditions 
+    || props.testCase?.pre_conditions 
+    || props.testCase?.request_override 
+    || props.testCase?.request_params
   
   if (data && typeof data === 'object') {
     return Object.entries(data).map(([key, value]) => ({
@@ -972,6 +972,8 @@ const loadExecutionHistory = async () => {
     console.log('请求执行历史参数:', params)
     const response = await getExecutionRecords(params)
     console.log('执行历史API响应:', response)
+    console.log('响应类型:', typeof response)
+    console.log('响应数据结构:', Object.keys(response))
     
     if (response.code === 1 && response.data && response.data.items) {
       console.log('成功获取执行历史数据，条数:', response.data.items.length)
@@ -1014,7 +1016,9 @@ const loadExecutionHistory = async () => {
     console.error('加载执行历史失败:', error)
     executionHistoryData.value = []
   } finally {
+    console.log('执行历史加载完成，设置loading为false')
     executionHistoryLoading.value = false
+    console.log('executionHistoryLoading.value:', executionHistoryLoading.value)
   }
 }
 
@@ -1092,8 +1096,8 @@ const handleViewMoreHistory = () => {
 // 显示验证规则
 const displayValidationRules = computed(() => {
   // 从assertions解析验证规则
-  if (props.testCase.assertions && Array.isArray(props.testCase.assertions)) {
-    return props.testCase.assertions.map(assertion => {
+  if (props.testCase?.assertions && Array.isArray(props.testCase?.assertions)) {
+    return props.testCase?.assertions.map(assertion => {
       if (assertion.type === 'status_code') {
         return `状态码 = ${assertion.expected}`
       } else if (assertion.type === 'json_path') {
@@ -1104,8 +1108,8 @@ const displayValidationRules = computed(() => {
   }
   
   // 从validation_rules字符串解析
-  if (props.testCase.validation_rules) {
-    return props.testCase.validation_rules.split(',').map(r => r.trim())
+  if (props.testCase?.validation_rules) {
+    return props.testCase?.validation_rules.split(',').map(r => r.trim())
   }
   
   // 默认验证规则
@@ -1115,8 +1119,8 @@ const displayValidationRules = computed(() => {
 // 格式化预期响应
 const formatExpectedResponse = () => {
   // 优先使用驼峰命名的字段
-  const responseBody = props.testCase.expectedResponseBody 
-    || props.testCase.expected_response_body
+  const responseBody = props.testCase?.expectedResponseBody 
+    || props.testCase?.expected_response_body
   
   if (responseBody) {
     try {
@@ -1139,8 +1143,8 @@ const formatExpectedResponse = () => {
 
 // 格式化预期响应Schema
 const formatExpectedResponseSchema = () => {
-  const responseSchema = props.testCase.expectedResponseSchema 
-    || props.testCase.expected_response_schema
+  const responseSchema = props.testCase?.expectedResponseSchema 
+    || props.testCase?.expected_response_schema
   
   if (responseSchema) {
     try {
@@ -1158,13 +1162,13 @@ const formatExpectedResponseSchema = () => {
 
 // 获取创建人名称
 const getCreatorName = () => {
-  if (props.testCase.creatorInfo && props.testCase.creatorInfo.name) {
-    return props.testCase.creatorInfo.name
+  if (props.testCase?.creatorInfo && props.testCase?.creatorInfo.name) {
+    return props.testCase?.creatorInfo.name
   }
-  if (props.testCase.creator_info && props.testCase.creator_info.name) {
-    return props.testCase.creator_info.name
+  if (props.testCase?.creator_info && props.testCase?.creator_info.name) {
+    return props.testCase?.creator_info.name
   }
-  return props.testCase.creator_name || '未知'
+  return props.testCase?.creator_name || '未知'
 }
 
 // 格式化时间
@@ -1184,6 +1188,32 @@ const formatTime = (time) => {
   }
   
   return time
+}
+
+// 格式化持续时间
+const formatDuration = (seconds) => {
+  if (!seconds || seconds === 0) return '0秒'
+  
+  if (seconds < 60) {
+    return `${seconds}秒`
+  } else if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60)
+    const remainingSeconds = seconds % 60
+    return remainingSeconds > 0 ? `${minutes}分${remainingSeconds}秒` : `${minutes}分钟`
+  } else {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const remainingSeconds = seconds % 60
+    
+    let result = `${hours}小时`
+    if (minutes > 0) {
+      result += `${minutes}分钟`
+    }
+    if (remainingSeconds > 0) {
+      result += `${remainingSeconds}秒`
+    }
+    return result
+  }
 }
 
 // 获取严重程度类型
@@ -1351,7 +1381,7 @@ const handleConfirmExecute = async () => {
     }
     
     // 调用执行API
-    const caseId = props.testCase.caseId || props.testCase.case_id
+    const caseId = props.testCase?.caseId || props.testCase?.case_id
     
     const response = await executeTestCase(null, caseId, requestData)
     
@@ -1433,14 +1463,14 @@ const handleEdit = () => {
 // 复制测试用例
 const handleCopy = () => {
   // 生成默认的复制数据
-  const originalCode = props.testCase.caseCode || props.testCase.case_code || props.testCase.id
-  const originalName = props.testCase.name
+  const originalCode = props.testCase?.caseCode || props.testCase?.case_code || props.testCase?.id
+  const originalName = props.testCase?.name
   
   // 生成新的编码和名称
   const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
   copyFormData.caseCode = `${originalCode}_COPY_${timestamp}`
   copyFormData.name = `${originalName}(副本)`
-  copyFormData.description = props.testCase.description || ''
+  copyFormData.description = props.testCase?.description || ''
   
   copyDialogVisible.value = true
 }
@@ -1467,7 +1497,7 @@ const handleConfirmCopy = async () => {
     
     console.log('复制数据:', copyData)
     
-    const caseId = props.testCase.case_id || props.testCase.id
+    const caseId = props.testCase?.case_id || props.testCase?.id
     const copyResponse = await copyTestCase(caseId, copyData)
     console.log('复制响应:', copyResponse)
     
@@ -1490,7 +1520,7 @@ const handleConfirmCopy = async () => {
 // 分享测试用例
 const handleShare = () => {
   // 初始化分享表单数据
-  shareFormData.title = `分享测试用例: ${props.testCase.name}`
+  shareFormData.title = `分享测试用例: ${props.testCase?.name || '未知用例'}`
   shareFormData.expireDays = 7
   shareFormData.password = ''
   shareFormData.permissions = ['view']
@@ -1517,7 +1547,7 @@ const handleGenerateShare = async () => {
     console.log('开始生成分享链接...')
     console.log('分享表单数据:', shareFormData)
     
-    const caseId = props.testCase.case_id || props.testCase.id
+    const caseId = props.testCase?.case_id || props.testCase?.id
     const shareData = {
       title: shareFormData.title,
       expireDays: shareFormData.expireDays,
@@ -1625,7 +1655,7 @@ const handleMoreAction = async (command) => {
     case 'disable':
       try {
         await ElMessageBox.confirm(
-          `确定要禁用用例 "${props.testCase.name}" 吗？`,
+          `确定要禁用用例 "${props.testCase?.name || '未知用例'}" 吗？`,
           '禁用确认',
           {
             confirmButtonText: '确定',
@@ -1635,7 +1665,7 @@ const handleMoreAction = async (command) => {
         )
         
         // 调用API禁用测试用例
-        await updateTestCase(props.testCase.caseId, {
+        await updateTestCase(props.testCase?.caseId, {
           ...props.testCase,
           is_enabled: false
         })
@@ -1653,7 +1683,7 @@ const handleMoreAction = async (command) => {
     case 'enable':
       try {
         await ElMessageBox.confirm(
-          `确定要启用用例 "${props.testCase.name}" 吗？`,
+          `确定要启用用例 "${props.testCase?.name || '未知用例'}" 吗？`,
           '启用确认',
           {
             confirmButtonText: '确定',
@@ -1663,7 +1693,7 @@ const handleMoreAction = async (command) => {
         )
         
         // 调用API启用测试用例
-        await updateTestCase(props.testCase.caseId, {
+        await updateTestCase(props.testCase?.caseId, {
           ...props.testCase,
           is_enabled: true
         })
@@ -1688,7 +1718,7 @@ const handleMoreAction = async (command) => {
 const handleDelete = async () => {
   try {
     await ElMessageBox.confirm(
-      `确定要删除用例 "${props.testCase.name}" 吗？此操作不可恢复！`,
+      `确定要删除用例 "${props.testCase?.name || '未知用例'}" 吗？此操作不可恢复！`,
       '删除确认',
       {
         confirmButtonText: '确定',
