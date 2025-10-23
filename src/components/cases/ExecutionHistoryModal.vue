@@ -123,7 +123,7 @@
             <el-icon size="24" color="#67c23a"><CircleCheckFilled /></el-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ statistics?.successCount || 0 }}</div>
+            <div class="stat-number">{{ statistics?.completedExecutions || 0 }}</div>
             <div class="stat-label">成功次数</div>
           </div>
         </div>
@@ -132,7 +132,7 @@
             <el-icon size="24" color="#f56c6c"><CircleCloseFilled /></el-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ statistics?.failedCount || 0 }}</div>
+            <div class="stat-number">{{ statistics?.failedExecutions || 0 }}</div>
             <div class="stat-label">失败次数</div>
           </div>
         </div>
@@ -141,8 +141,48 @@
             <el-icon size="24" color="#409eff"><TrendCharts /></el-icon>
           </div>
           <div class="stat-content">
-            <div class="stat-number">{{ (statistics?.successRate || 0).toFixed(1) }}%</div>
+            <div class="stat-number">{{ (statistics?.avgSuccessRate || 0).toFixed(1) }}%</div>
             <div class="stat-label">成功率</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 详细统计信息 -->
+      <div class="detailed-stats" v-if="statistics">
+        <div class="stats-row">
+          <div class="stats-item">
+            <span class="stats-label">运行中:</span>
+            <span class="stats-value running">{{ statistics.runningExecutions || 0 }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">已取消:</span>
+            <span class="stats-value cancelled">{{ statistics.cancelledExecutions || 0 }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">平均耗时:</span>
+            <span class="stats-value">{{ formatDuration(statistics.avgDurationSeconds) }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">最长耗时:</span>
+            <span class="stats-value">{{ formatDuration(statistics.maxDurationSeconds) }}</span>
+          </div>
+        </div>
+        <div class="stats-row">
+          <div class="stats-item">
+            <span class="stats-label">总用例数:</span>
+            <span class="stats-value">{{ statistics.totalCases || 0 }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">通过用例:</span>
+            <span class="stats-value success">{{ statistics.totalPassedCases || 0 }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">失败用例:</span>
+            <span class="stats-value failed">{{ statistics.totalFailedCases || 0 }}</span>
+          </div>
+          <div class="stats-item">
+            <span class="stats-label">跳过用例:</span>
+            <span class="stats-value warning">{{ statistics.totalSkippedCases || 0 }}</span>
           </div>
         </div>
       </div>
@@ -864,6 +904,67 @@ watch(() => props.visible, (newVisible) => {
   font-weight: 500;
 }
 
+/* 详细统计信息 */
+.detailed-stats {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+.detailed-stats .stats-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.detailed-stats .stats-row:last-child {
+  margin-bottom: 0;
+}
+
+.detailed-stats .stats-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 120px;
+}
+
+.detailed-stats .stats-label {
+  font-size: 14px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.detailed-stats .stats-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.detailed-stats .stats-value.success {
+  color: #67c23a;
+}
+
+.detailed-stats .stats-value.failed {
+  color: #f56c6c;
+}
+
+.detailed-stats .stats-value.warning {
+  color: #e6a23c;
+}
+
+.detailed-stats .stats-value.running {
+  color: #409eff;
+}
+
+.detailed-stats .stats-value.cancelled {
+  color: #909399;
+}
+
 /* 表格容器 */
 .table-container {
   background: white;
@@ -1116,6 +1217,16 @@ watch(() => props.visible, (newVisible) => {
   
   .stat-number {
     font-size: 24px;
+  }
+  
+  .detailed-stats .stats-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .detailed-stats .stats-item {
+    justify-content: space-between;
+    min-width: auto;
   }
 }
 </style>
