@@ -1644,8 +1644,7 @@ const handleMoreAction = async (command) => {
       break
       
     case 'history':
-      ElMessage.info('查看历史')
-      // TODO: 打开历史记录对话框
+      handleViewMoreHistory()
       break
       
     case 'share':

@@ -829,13 +829,15 @@
                 <el-input v-model="formData.name" placeholder="请输入用例名称" />
               </el-form-item>
               
-              <el-form-item label="用例编码" prop="case_code">
-                <el-input 
-                  v-model="formData.case_code" 
-                  placeholder="留空则自动生成" 
-                />
-                <span class="form-tip">用例编码在接口内唯一，留空则自动生成</span>
-              </el-form-item>
+            <el-form-item label="用例编码" prop="case_code">
+              <el-input 
+                v-model="formData.case_code" 
+                placeholder="留空则自动生成"
+                :disabled="isEdit"
+              />
+              <span class="form-tip" v-if="!isEdit">用例编码在接口内唯一，留空则自动生成</span>
+              <span class="form-tip" v-else>用例编码创建后不可修改</span>
+            </el-form-item>
 
               <el-form-item label="用例描述" prop="description">
                 <el-input
@@ -2111,19 +2113,93 @@ const handleDeleteChild = async (child) => {
 const handleEditCase = (testCase) => {
   dialogType.value = 'case'
   isEdit.value = true
+  
+  // 处理前置条件（JSON对象转字符串）
+  let preConditionsStr = ''
+  if (testCase.pre_conditions || testCase.preConditions) {
+    const preConditions = testCase.pre_conditions || testCase.preConditions
+    preConditionsStr = typeof preConditions === 'string' 
+      ? preConditions 
+      : JSON.stringify(preConditions, null, 2)
+  }
+  
+  // 处理请求参数覆盖（JSON对象转字符串）
+  let requestOverrideStr = ''
+  if (testCase.request_override || testCase.requestOverride) {
+    const requestOverride = testCase.request_override || testCase.requestOverride
+    requestOverrideStr = typeof requestOverride === 'string' 
+      ? requestOverride 
+      : JSON.stringify(requestOverride, null, 2)
+  }
+  
+  // 处理预期响应体（JSON对象转字符串）
+  let expectedResponseBody = ''
+  if (testCase.expected_response_body || testCase.expectedResponseBody) {
+    const responseBody = testCase.expected_response_body || testCase.expectedResponseBody
+    expectedResponseBody = typeof responseBody === 'string' 
+      ? responseBody 
+      : JSON.stringify(responseBody, null, 2)
+  }
+  
+  // 处理响应Schema（JSON对象转字符串）
+  let expectedResponseSchemaStr = ''
+  if (testCase.expected_response_schema || testCase.expectedResponseSchema) {
+    const responseSchema = testCase.expected_response_schema || testCase.expectedResponseSchema
+    expectedResponseSchemaStr = typeof responseSchema === 'string' 
+      ? responseSchema 
+      : JSON.stringify(responseSchema, null, 2)
+  }
+  
+  // 深拷贝数组字段，避免直接修改原始数据
+  const testSteps = testCase.test_steps || testCase.testSteps || []
+  const tags = testCase.tags || []
+  const assertions = testCase.assertions || []
+  const extractors = testCase.extractors || []
+  const validators = testCase.validators || []
+  
+  // 赋值表单数据
   Object.assign(formData, {
     id: testCase.id,
-    case_id: testCase.case_id,
-    api_id: testCase.api_id,
-    name: testCase.name,
+    case_id: testCase.case_id || testCase.caseId,
+    api_id: testCase.api_id || testCase.apiId,
+    name: testCase.name || '',
+    case_code: testCase.case_code || testCase.caseCode || '',
+    description: testCase.description || '',
+    priority: testCase.priority || 'P2',
+    severity: testCase.severity || 'medium',
+    tags: JSON.parse(JSON.stringify(tags)), // 深拷贝
+    version: testCase.version || '1.0',
+    is_enabled: testCase.is_enabled !== undefined ? testCase.is_enabled : 
+                (testCase.isEnabled !== undefined ? testCase.isEnabled : true),
+    is_template: testCase.is_template || testCase.isTemplate || false,
+    template_id: testCase.template_id || testCase.templateId || null,
+    
+    // 测试步骤（深拷贝）
+    test_steps: JSON.parse(JSON.stringify(testSteps)),
+    
+    // 前置条件和请求参数（转换为字符串）
+    pre_conditions_str: preConditionsStr,
+    request_override_str: requestOverrideStr,
+    
+    // 预期响应
+    expected_http_status: testCase.expected_http_status || testCase.expectedHttpStatus || 200,
+    expected_response_body: expectedResponseBody,
+    expected_response_schema_str: expectedResponseSchemaStr,
+    
+    // 断言和提取器（深拷贝）
+    assertions: JSON.parse(JSON.stringify(assertions)),
+    extractors: JSON.parse(JSON.stringify(extractors)),
+    validators: JSON.parse(JSON.stringify(validators)),
+    
+    // 兼容旧字段
     request_params: testCase.request_params || '',
     expected_status_code: testCase.expected_status_code || 200,
-    validation_rules: testCase.validation_rules || '',
-    description: testCase.description || '',
-    priority: testCase.priority,
-    severity: testCase.severity,
-    tags: testCase.tags
+    validation_rules: testCase.validation_rules || ''
   })
+  
+  // 重置到基本信息标签页
+  caseFormActiveTab.value = 'basic'
+  
   dialogVisible.value = true
 }
 
