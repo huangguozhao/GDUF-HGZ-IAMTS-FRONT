@@ -670,18 +670,18 @@
               <h3 class="section-title">基本信息</h3>
               <el-descriptions :column="2" border>
                 <el-descriptions-item label="执行ID">
-                  {{ currentHistoryDetail.record_id || currentHistoryDetail.recordId }}
+                  {{ currentHistoryDetail.recordId }}
                 </el-descriptions-item>
                 <el-descriptions-item label="执行范围">
-                  {{ currentHistoryDetail.scope_name || currentHistoryDetail.scopeName }}
+                  {{ currentHistoryDetail.scopeName }}
                 </el-descriptions-item>
                 <el-descriptions-item label="执行人">
-                  {{ currentHistoryDetail.executor_info?.name || currentHistoryDetail.executorInfo?.name || '未知' }}
+                  {{ currentHistoryDetail.executorInfo?.name || '未知' }}
                 </el-descriptions-item>
                 <el-descriptions-item label="执行类型">
-                  <el-tag :type="currentHistoryDetail.execution_type === 'manual' ? 'primary' : 'info'" size="small">
-                    {{ currentHistoryDetail.execution_type === 'manual' ? '手动执行' : 
-                       currentHistoryDetail.execution_type === 'scheduled' ? '定时任务' : '触发执行' }}
+                  <el-tag :type="currentHistoryDetail.executionType === 'manual' ? 'primary' : 'info'" size="small">
+                    {{ currentHistoryDetail.executionType === 'manual' ? '手动执行' : 
+                       currentHistoryDetail.executionType === 'scheduled' ? '定时任务' : '触发执行' }}
                   </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="执行环境">
@@ -700,75 +700,75 @@
                   </el-tag>
                 </el-descriptions-item>
                 <el-descriptions-item label="开始时间">
-                  {{ formatTime(currentHistoryDetail.start_time || currentHistoryDetail.startTime) }}
+                  {{ formatTime(currentHistoryDetail.startTime) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="结束时间">
-                  {{ formatTime(currentHistoryDetail.end_time || currentHistoryDetail.endTime) }}
+                  {{ formatTime(currentHistoryDetail.endTime) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="执行耗时">
-                  {{ formatDuration(currentHistoryDetail.duration_seconds || currentHistoryDetail.durationSeconds) }}
+                  {{ formatDuration(currentHistoryDetail.durationSeconds) }}
                 </el-descriptions-item>
                 <el-descriptions-item label="浏览器">
                   {{ currentHistoryDetail.browser || '-' }}
                 </el-descriptions-item>
                 <el-descriptions-item label="应用版本">
-                  {{ currentHistoryDetail.app_version || currentHistoryDetail.appVersion || '-' }}
+                  {{ currentHistoryDetail.appVersion || '-' }}
                 </el-descriptions-item>
               </el-descriptions>
             </div>
 
             <!-- 执行统计 -->
-            <div class="detail-section" v-if="currentHistoryDetail.total_cases || currentHistoryDetail.totalCases">
+            <div class="detail-section" v-if="currentHistoryDetail.totalCases">
               <h3 class="section-title">执行统计</h3>
               <el-descriptions :column="3" border>
                 <el-descriptions-item label="总用例数">
-                  {{ currentHistoryDetail.total_cases || currentHistoryDetail.totalCases || 0 }}
+                  {{ currentHistoryDetail.totalCases || 0 }}
                 </el-descriptions-item>
                 <el-descriptions-item label="已执行">
-                  {{ currentHistoryDetail.executed_cases || currentHistoryDetail.executedCases || 0 }}
+                  {{ currentHistoryDetail.executedCases || 0 }}
                 </el-descriptions-item>
                 <el-descriptions-item label="通过数">
                   <span style="color: #67c23a; font-weight: bold;">
-                    {{ currentHistoryDetail.passed_cases || currentHistoryDetail.passedCases || 0 }}
+                    {{ currentHistoryDetail.passedCases || 0 }}
                   </span>
                 </el-descriptions-item>
                 <el-descriptions-item label="失败数">
                   <span style="color: #f56c6c; font-weight: bold;">
-                    {{ currentHistoryDetail.failed_cases || currentHistoryDetail.failedCases || 0 }}
+                    {{ currentHistoryDetail.failedCases || 0 }}
                   </span>
                 </el-descriptions-item>
                 <el-descriptions-item label="跳过数">
-                  {{ currentHistoryDetail.skipped_cases || currentHistoryDetail.skippedCases || 0 }}
+                  {{ currentHistoryDetail.skippedCases || 0 }}
                 </el-descriptions-item>
                 <el-descriptions-item label="成功率">
                   <span :style="{ 
-                    color: (currentHistoryDetail.success_rate || currentHistoryDetail.successRate) >= 90 ? '#67c23a' : 
-                           (currentHistoryDetail.success_rate || currentHistoryDetail.successRate) >= 70 ? '#e6a23c' : '#f56c6c',
+                    color: (currentHistoryDetail.successRate || 0) >= 90 ? '#67c23a' : 
+                           (currentHistoryDetail.successRate || 0) >= 70 ? '#e6a23c' : '#f56c6c',
                     fontWeight: 'bold'
                   }">
-                    {{ (currentHistoryDetail.success_rate || currentHistoryDetail.successRate || 0).toFixed(2) }}%
+                    {{ (currentHistoryDetail.successRate || 0).toFixed(2) }}%
                   </span>
                 </el-descriptions-item>
               </el-descriptions>
             </div>
 
             <!-- 错误信息 -->
-            <div class="detail-section" v-if="currentHistoryDetail.error_message || currentHistoryDetail.errorMessage">
+            <div class="detail-section" v-if="currentHistoryDetail.errorMessage">
               <h3 class="section-title">错误信息</h3>
               <el-alert 
                 type="error" 
                 :closable="false"
                 show-icon
               >
-                <pre class="error-message">{{ currentHistoryDetail.error_message || currentHistoryDetail.errorMessage }}</pre>
+                <pre class="error-message">{{ currentHistoryDetail.errorMessage }}</pre>
               </el-alert>
             </div>
 
             <!-- 报告链接 -->
-            <div class="detail-section" v-if="currentHistoryDetail.report_url || currentHistoryDetail.reportUrl">
+            <div class="detail-section" v-if="currentHistoryDetail.reportUrl">
               <h3 class="section-title">测试报告</h3>
               <el-link 
-                :href="currentHistoryDetail.report_url || currentHistoryDetail.reportUrl" 
+                :href="currentHistoryDetail.reportUrl" 
                 type="primary" 
                 target="_blank"
                 :icon="Document"
@@ -1253,13 +1253,13 @@
     <!-- 执行测试配置对话框 -->
     <el-dialog
       v-model="executeDialogVisible"
-      title="执行测试配置"
-      width="600px"
+      :title="isExecutingApi ? '执行接口测试配置' : '执行测试用例配置'"
+      width="700px"
       :close-on-click-modal="false"
     >
-      <el-form :model="executeFormData" label-width="100px">
+      <el-form :model="executeFormData" label-width="120px">
         <el-form-item label="执行环境">
-          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
+          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境" style="width: 100%">
             <el-option label="开发环境 (dev)" value="dev" />
             <el-option label="测试环境 (test)" value="test" />
             <el-option label="预发布环境 (staging)" value="staging" />
@@ -1280,15 +1280,76 @@
             :min="1" 
             :max="300"
             placeholder="秒"
+            style="width: 150px"
           />
           <span style="margin-left: 8px; color: #909399;">秒</span>
         </el-form-item>
+
+        <!-- 接口测试独有配置 -->
+        <template v-if="isExecutingApi">
+          <el-form-item label="并发执行数">
+            <el-input-number 
+              v-model="executeFormData.concurrency" 
+              :min="1" 
+              :max="10"
+              placeholder="并发数"
+              style="width: 150px"
+            />
+            <span style="margin-left: 8px; color: #909399;">最大10个</span>
+          </el-form-item>
+
+          <el-form-item label="优先级过滤">
+            <el-select 
+              v-model="executeFormData.caseFilter.priority" 
+              multiple 
+              placeholder="选择要执行的优先级"
+              style="width: 100%"
+            >
+              <el-option label="P0（最高优先级）" value="P0" />
+              <el-option label="P1（高优先级）" value="P1" />
+              <el-option label="P2（中等优先级）" value="P2" />
+              <el-option label="P3（低优先级）" value="P3" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="标签过滤">
+            <el-select 
+              v-model="executeFormData.caseFilter.tags" 
+              multiple 
+              filterable
+              allow-create
+              placeholder="选择或输入标签"
+              style="width: 100%"
+            >
+              <el-option label="冒烟测试" value="冒烟测试" />
+              <el-option label="回归测试" value="回归测试" />
+              <el-option label="功能测试" value="功能测试" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="执行顺序">
+            <el-select v-model="executeFormData.executionOrder" placeholder="选择执行顺序" style="width: 100%">
+              <el-option label="优先级降序（推荐）" value="priority_desc" />
+              <el-option label="优先级升序" value="priority_asc" />
+              <el-option label="名称升序" value="name_asc" />
+              <el-option label="名称降序" value="name_desc" />
+            </el-select>
+          </el-form-item>
+
+          <el-form-item label="仅启用用例">
+            <el-switch v-model="executeFormData.caseFilter.enabledOnly" />
+            <span style="margin-left: 8px; color: #909399;">只执行已启用的测试用例</span>
+          </el-form-item>
+        </template>
 
         <el-form-item label="执行模式">
           <el-radio-group v-model="executeFormData.async">
             <el-radio :label="false">同步执行</el-radio>
             <el-radio :label="true">异步执行</el-radio>
           </el-radio-group>
+          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
+            同步执行会等待结果返回，异步执行会立即返回任务ID
+          </div>
         </el-form-item>
 
         <el-form-item label="执行变量">
@@ -1343,12 +1404,12 @@
 
         <!-- 执行信息 -->
         <div class="result-info-section">
-          <div class="info-grid">
+          <div class="info-grid" :class="{ 'info-grid-api': executionResult.totalCases }">
             <div class="info-card">
               <div class="info-label">执行ID</div>
               <div class="info-value">{{ executionResult.executionId }}</div>
             </div>
-            <div class="info-card">
+            <div class="info-card" v-if="!executionResult.totalCases">
               <div class="info-label">响应状态码</div>
               <div class="info-value">
                 <el-tag 
@@ -1361,16 +1422,45 @@
             </div>
             <div class="info-card">
               <div class="info-label">执行耗时</div>
-              <div class="info-value highlight">{{ executionResult.duration }}ms</div>
-            </div>
-            <div class="info-card">
-              <div class="info-label">断言结果</div>
-              <div class="info-value">
-                <span class="success-count">{{ executionResult.assertionsPassed }} 通过</span>
-                <span class="divider">/</span>
-                <span class="failed-count">{{ executionResult.assertionsFailed }} 失败</span>
+              <div class="info-value highlight">
+                {{ executionResult.duration < 1000 ? executionResult.duration + 'ms' : (executionResult.duration / 1000).toFixed(2) + 's' }}
               </div>
             </div>
+            <div class="info-card">
+              <div class="info-label">{{ executionResult.totalCases ? '用例数' : '断言结果' }}</div>
+              <div class="info-value">
+                <template v-if="executionResult.totalCases">
+                  <span class="total-count">{{ executionResult.totalCases }} 个</span>
+                </template>
+                <template v-else>
+                  <span class="success-count">{{ executionResult.assertionsPassed }} 通过</span>
+                  <span class="divider">/</span>
+                  <span class="failed-count">{{ executionResult.assertionsFailed }} 失败</span>
+                </template>
+              </div>
+            </div>
+            <!-- 接口测试专用信息 -->
+            <template v-if="executionResult.totalCases">
+              <div class="info-card">
+                <div class="info-label">通过率</div>
+                <div class="info-value highlight">
+                  <span :style="{ 
+                    color: executionResult.successRate >= 90 ? '#67c23a' : 
+                           executionResult.successRate >= 70 ? '#e6a23c' : '#f56c6c'
+                  }">
+                    {{ executionResult.successRate.toFixed(1) }}%
+                  </span>
+                </div>
+              </div>
+              <div class="info-card">
+                <div class="info-label">通过/失败</div>
+                <div class="info-value">
+                  <span class="success-count">{{ executionResult.assertionsPassed }}</span>
+                  <span class="divider">/</span>
+                  <span class="failed-count">{{ executionResult.assertionsFailed }}</span>
+                </div>
+              </div>
+            </template>
           </div>
         </div>
 
@@ -1390,6 +1480,66 @@
         <div class="result-failure-section" v-if="executionResult.status === 'failed' && executionResult.failureMessage">
           <div class="failure-title">失败原因</div>
           <div class="failure-message">{{ executionResult.failureMessage }}</div>
+        </div>
+
+        <!-- 用例执行明细（接口测试） -->
+        <div class="case-results-section" v-if="executionResult.caseResults && executionResult.caseResults.length > 0">
+          <div class="case-results-title">用例执行明细</div>
+          <el-table 
+            :data="executionResult.caseResults" 
+            class="case-results-table"
+            border
+            stripe
+          >
+            <el-table-column label="用例编码" width="150" prop="case_code">
+              <template #default="{ row }">
+                <span class="case-code">{{ row.case_code || row.caseCode || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="用例名称" min-width="200">
+              <template #default="{ row }">
+                <span class="case-name">{{ row.case_name || row.caseName }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="执行状态" width="100" align="center">
+              <template #default="{ row }">
+                <el-tag 
+                  :type="row.status === 'passed' ? 'success' : row.status === 'failed' ? 'danger' : 'info'" 
+                  size="small"
+                >
+                  {{ row.status === 'passed' ? '通过' : row.status === 'failed' ? '失败' : '跳过' }}
+                </el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column label="响应状态码" width="120" align="center">
+              <template #default="{ row }">
+                <el-tag 
+                  v-if="row.response_status || row.responseStatus"
+                  :type="(row.response_status || row.responseStatus) >= 200 && (row.response_status || row.responseStatus) < 300 ? 'success' : 'danger'" 
+                  size="small"
+                >
+                  {{ row.response_status || row.responseStatus }}
+                </el-tag>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="执行耗时" width="120" align="center">
+              <template #default="{ row }">
+                <span class="duration-text">{{ row.duration }}ms</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="失败原因" min-width="200">
+              <template #default="{ row }">
+                <span 
+                  v-if="row.failure_message || row.failureMessage" 
+                  class="failure-text"
+                >
+                  {{ row.failure_message || row.failureMessage }}
+                </span>
+                <span v-else class="success-text">✓ 执行成功</span>
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
 
         <!-- 操作链接 -->
@@ -1451,6 +1601,8 @@ import {
   createTestCase, 
   updateTestCase, 
   executeTestCase,
+  executeApiTest,
+  executeApiTestAsync,
   getExecutionRecords,
   getExecutionRecordById,
   deleteExecutionRecord
@@ -1490,31 +1642,78 @@ onBeforeUnmount(() => {
 const activeTab = ref('basic')
 const deleteLoading = ref(false)
 
-const apiData = reactive({
-  project: '电商支付系统',
-  module: '用户模块',
-  name: props.api.name,
-  path: props.api.url,
-  method: props.api.method,
-  description: props.api.description || '用于更新已存在用户的基本信息',
-  precondition: '用户已登录且具有权限'
+// 计算属性：从props.api中获取真实数据
+const apiData = computed(() => {
+  return {
+    project: props.api.project_name || props.api.projectName || '-',
+    module: props.api.module_name || props.api.moduleName || '-',
+    name: props.api.name || '-',
+    path: props.api.path || props.api.url || '-',
+    method: props.api.method || '-',
+    description: props.api.description || '-',
+    precondition: props.api.precondition || props.api.pre_condition || '-'
+  }
 })
 
 // 请求参数数据
 const bodyType = ref('json')
-const headerParams = ref([
-  { name: 'Authorization', value: 'Bearer {token}', description: '认证令牌' },
-  { name: 'Content-Type', value: 'application/json', description: '请求内容类型' }
-])
+const headerParams = ref([])
 const queryParams = ref([])
-const bodyParams = ref([
-  { name: 'userId', value: 'user_12345', description: '用户ID参数' },
-  { name: 'userName', value: '测试用户', description: '用户名称' },
-  { name: 'userEmail', value: 'test@example.com', description: '用户邮箱' },
-  { name: 'userRole', value: 'admin', description: '用户角色' }
-])
+const bodyParams = ref([])
 const formDataParams = ref([])
 const rawBody = ref('')
+
+// 从API数据初始化请求参数
+const initRequestParams = () => {
+  // 初始化Body类型
+  bodyType.value = props.api.request_body_type || 'json'
+  
+  // 初始化Headers
+  if (props.api.request_headers) {
+    if (Array.isArray(props.api.request_headers)) {
+      headerParams.value = props.api.request_headers
+    } else if (typeof props.api.request_headers === 'object') {
+      headerParams.value = Object.entries(props.api.request_headers).map(([name, value]) => ({
+        name,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        description: ''
+      }))
+    }
+  }
+  
+  // 初始化Query参数
+  if (props.api.request_parameters) {
+    if (Array.isArray(props.api.request_parameters)) {
+      queryParams.value = props.api.request_parameters
+    } else if (typeof props.api.request_parameters === 'object') {
+      queryParams.value = Object.entries(props.api.request_parameters).map(([name, value]) => ({
+        name,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        description: ''
+      }))
+    }
+  }
+  
+  // 初始化Body参数
+  if (props.api.request_body) {
+    if (Array.isArray(props.api.request_body)) {
+      bodyParams.value = props.api.request_body
+    } else if (typeof props.api.request_body === 'object') {
+      bodyParams.value = Object.entries(props.api.request_body).map(([name, value]) => ({
+        name,
+        value: typeof value === 'string' ? value : JSON.stringify(value),
+        description: ''
+      }))
+    }
+    
+    // 初始化rawBody
+    if (typeof props.api.request_body === 'string') {
+      rawBody.value = props.api.request_body
+    } else if (typeof props.api.request_body === 'object') {
+      rawBody.value = JSON.stringify(props.api.request_body, null, 2)
+    }
+  }
+}
 
 // ==================== 测试历史数据 ====================
 const historySearchText = ref('')
@@ -1570,8 +1769,8 @@ const loadHistoryRecords = async () => {
     
     const timeRange = getTimeRange()
     const params = {
-      execution_scope: 'test_case',  // 根据页面类型调整，可能是 api 或 test_case
-      ref_id: props.api?.id || props.api?.apiId,  // 接口ID或用例ID
+      execution_scope: 'api',  // 接口执行历史
+      ref_id: props.api?.api_id || props.api?.id,  // 接口ID
       status: historyFilter.status || undefined,
       start_time_begin: timeRange.start,
       start_time_end: timeRange.end,
@@ -1587,31 +1786,38 @@ const loadHistoryRecords = async () => {
     if (response.code === 1 && response.data) {
       const { items, total } = response.data
       
-      // 转换数据格式以适配模板
+      // 转换数据格式以适配模板 - 后端返回的是驼峰命名
       historyRecords.value = items.map(item => ({
-        id: item.record_id || item.recordId,
-        recordId: item.record_id || item.recordId,
-        testTime: formatTime(item.start_time || item.startTime),
-        startTime: item.start_time || item.startTime,
-        endTime: item.end_time || item.endTime,
-        executor: item.executor_info?.name || item.executorInfo?.name || '未知',
-        executorId: item.executed_by || item.executedBy,
-        executorAvatar: item.executor_info?.avatar_url || item.executorInfo?.avatarUrl || '',
-        statusCode: item.expected_http_status || 200, // 这个字段可能需要从执行配置中获取
-        responseTime: formatDuration(item.duration_seconds),
-        durationSeconds: item.duration_seconds || item.durationSeconds,
+        id: item.recordId,
+        recordId: item.recordId,
+        testTime: formatTime(item.startTime),
+        startTime: item.startTime,
+        endTime: item.endTime,
+        executor: item.executorInfo?.name || '未知',
+        executorId: item.executedBy,
+        executorAvatar: item.executorInfo?.avatarUrl || '',
+        responseTime: formatDuration(item.durationSeconds),
+        durationSeconds: item.durationSeconds,
         status: mapExecutionStatus(item.status),
         executionStatus: item.status,
-        executionType: item.execution_type || item.executionType,
+        executionType: item.executionType,
         environment: item.environment,
-        totalCases: item.total_cases || item.totalCases,
-        passedCases: item.passed_cases || item.passedCases,
-        failedCases: item.failed_cases || item.failedCases,
-        skippedCases: item.skipped_cases || item.skippedCases,
-        successRate: item.success_rate || item.successRate,
-        errorMessage: item.error_message || item.errorMessage,
-        reportUrl: item.report_url || item.reportUrl,
-        scopeName: item.scope_name || item.scopeName
+        totalCases: item.totalCases,
+        executedCases: item.executedCases,
+        passedCases: item.passedCases,
+        failedCases: item.failedCases,
+        skippedCases: item.skippedCases,
+        successRate: item.successRate,
+        errorMessage: item.errorMessage,
+        reportUrl: item.reportUrl,
+        scopeName: item.scopeName,
+        browser: item.browser,
+        appVersion: item.appVersion,
+        executionConfig: item.executionConfig,
+        logFilePath: item.logFilePath,
+        triggeredTaskId: item.triggeredTaskId,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
       }))
       
       historyTotal.value = total
@@ -1688,7 +1894,16 @@ const handleRetestFromHistory = async (record) => {
     // 获取历史记录的执行配置
     const response = await getExecutionRecordById(record.recordId)
     if (response.code === 1 && response.data) {
-      const historyConfig = response.data.execution_config || response.data.executionConfig
+      let historyConfig = response.data.executionConfig
+      
+      // 解析执行配置JSON
+      if (historyConfig && typeof historyConfig === 'string') {
+        try {
+          historyConfig = JSON.parse(historyConfig)
+        } catch (e) {
+          console.error('解析执行配置失败:', e)
+        }
+      }
       
       // 使用历史配置重新执行
       ElMessageBox.confirm(
@@ -1702,9 +1917,9 @@ const handleRetestFromHistory = async (record) => {
       ).then(async () => {
         const executeData = {
           environment: historyConfig?.environment || record.environment,
-          base_url: historyConfig?.base_url,
+          baseUrl: historyConfig?.baseUrl,
           timeout: historyConfig?.timeout,
-          auth_override: historyConfig?.auth_override,
+          authOverride: historyConfig?.authOverride,
           variables: historyConfig?.variables,
           async: false
         }
@@ -2154,12 +2369,20 @@ const handleSaveTestCase = async () => {
 const executeDialogVisible = ref(false)
 const executing = ref(false)
 const executeVariables = ref('')
+const isExecutingApi = ref(false)  // 标记是否为执行接口测试（非单个用例）
 const executeFormData = reactive({
   environment: 'dev',
   baseUrl: '',
   timeout: 30,
   variables: {},
-  async: false
+  async: false,
+  concurrency: 3,
+  caseFilter: {
+    priority: [],
+    tags: [],
+    enabledOnly: true
+  },
+  executionOrder: 'priority_desc'
 })
 
 // 执行结果对话框
@@ -2170,6 +2393,18 @@ const currentTestCase = ref(null)
 // 运行测试用例
 const handleRunTestCase = (testCase) => {
   currentTestCase.value = testCase
+  isExecutingApi.value = false  // 标记为执行单个用例
+  
+  // 重置执行配置为默认值
+  Object.assign(executeFormData, {
+    environment: 'dev',
+    baseUrl: '',
+    timeout: 30,
+    variables: {},
+    async: false
+  })
+  executeVariables.value = ''
+  
   executeDialogVisible.value = true
 }
 
@@ -2188,11 +2423,32 @@ const handleToggleTestCaseStatus = async (testCase) => {
       }
     )
     
-    // 调用编辑接口更新启用状态
-    await updateTestCase(testCase.caseId, {
-      ...testCase,
-      is_enabled: !testCase.isEnabled
-    })
+    // 调用编辑接口更新启用状态 - 只发送必要的字段
+    // 注意：不包含 api_id，修改测试用例时 API 关联不能改变
+    const updateData = {
+      // case_code: testCase.case_code || testCase.caseCode,
+      name: testCase.name,
+      description: testCase.description,
+      priority: testCase.priority,
+      severity: testCase.severity,
+      tags: testCase.tags || [],
+      // pre_conditions: testCase.pre_conditions || testCase.preConditions,
+      // test_steps: testCase.test_steps || testCase.testSteps,
+      // request_override: testCase.request_override || testCase.requestOverride,
+      expected_http_status: testCase.expected_http_status || testCase.expectedHttpStatus,
+      // expected_response_schema: testCase.expected_response_schema || testCase.expectedResponseSchema,
+      // expected_response_body: testCase.expected_response_body || testCase.expectedResponseBody,
+      assertions: testCase.assertions,
+      extractors: testCase.extractors,
+      validators: testCase.validators,
+      is_enabled: !testCase.isEnabled,  // 切换状态
+      is_template: testCase.is_template || testCase.isTemplate,
+      // template_id: testCase.template_id || testCase.templateId,
+      version: testCase.version
+    }
+    
+    const caseId = testCase.case_id || testCase.caseId || testCase.id
+    await updateTestCase(caseId, updateData)
     
     ElMessage.success(`测试用例${action}成功`)
     
@@ -2209,8 +2465,6 @@ const handleToggleTestCaseStatus = async (testCase) => {
 
 // 确认执行测试
 const handleConfirmExecute = async () => {
-  if (!currentTestCase.value) return
-  
   try {
     executing.value = true
     
@@ -2244,42 +2498,129 @@ const handleConfirmExecute = async () => {
       requestData.variables = parsedVariables
     }
     
-    // 调用执行API
-    const caseId = currentTestCase.value.caseId || currentTestCase.value.case_id || currentTestCase.value.id
-    
-    const response = await executeTestCase(null, caseId, requestData)
-    
-    if (response.code === 1) {
-      if (requestData.async) {
-        // 异步执行
-        ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
-        executeDialogVisible.value = false
-      } else {
-        // 同步执行 - 显示执行结果对话框
-        executionResult.value = {
-          executionId: response.data.executionId || response.data.execution_id,
-          caseId: response.data.caseId || response.data.case_id,
-          caseName: response.data.caseName || response.data.case_name,
-          status: response.data.status,
-          duration: response.data.duration,
-          startTime: response.data.startTime || response.data.start_time,
-          endTime: response.data.endTime || response.data.end_time,
-          responseStatus: response.data.responseStatus || response.data.response_status,
-          assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
-          assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
-          failureMessage: response.data.failureMessage || response.data.failure_message,
-          logsLink: response.data.logsLink || response.data.logs_link,
-          reportId: response.data.reportId || response.data.report_id
-        }
-        
-        executeDialogVisible.value = false
-        resultDialogVisible.value = true
+    // 如果是执行接口测试
+    if (isExecutingApi.value) {
+      // 添加接口测试特有的配置
+      if (executeFormData.concurrency) {
+        requestData.concurrency = executeFormData.concurrency
       }
       
-      // 刷新用例列表
-      emit('refresh-cases')
+      // 添加用例过滤条件
+      const caseFilter = {}
+      if (executeFormData.caseFilter.priority && executeFormData.caseFilter.priority.length > 0) {
+        caseFilter.priority = executeFormData.caseFilter.priority
+      }
+      if (executeFormData.caseFilter.tags && executeFormData.caseFilter.tags.length > 0) {
+        caseFilter.tags = executeFormData.caseFilter.tags
+      }
+      caseFilter.enabled_only = executeFormData.caseFilter.enabledOnly
+      
+      if (Object.keys(caseFilter).length > 0) {
+        requestData.case_filter = caseFilter
+      }
+      
+      // 添加执行顺序
+      if (executeFormData.executionOrder) {
+        requestData.execution_order = executeFormData.executionOrder
+      }
+      
+      // 获取API ID
+      const apiId = props.api.api_id || props.api.id || props.api.apiId
+      if (!apiId) {
+        ElMessage.error('无法获取接口ID')
+        executing.value = false
+        return
+      }
+      
+      // 调用接口测试执行API
+      const response = await executeApiTest(apiId, requestData)
+      
+      if (response.code === 1) {
+        if (requestData.async) {
+          // 异步执行
+          ElMessage.success(`接口测试任务已提交，任务ID: ${response.data.task_id || response.data.taskId}`)
+          executeDialogVisible.value = false
+        } else {
+          // 同步执行 - 显示接口测试结果
+          const totalCases = response.data.totalCases || response.data.total_cases || 0
+          const passed = response.data.passed || 0
+          const failed = response.data.failed || 0
+          
+          executionResult.value = {
+            executionId: response.data.executionId || response.data.execution_id,
+            apiId: response.data.apiId || response.data.api_id,
+            apiName: response.data.apiName || response.data.api_name,
+            caseName: `接口测试: ${response.data.apiName || response.data.api_name || props.api.name}`,
+            status: failed === 0 && passed > 0 ? 'passed' : (failed > 0 ? 'failed' : 'not_executed'),
+            duration: response.data.totalDuration || response.data.total_duration,
+            startTime: response.data.startTime || response.data.start_time,
+            endTime: response.data.endTime || response.data.end_time,
+            responseStatus: 200,  // 接口级别的执行成功
+            assertionsPassed: passed,
+            assertionsFailed: failed,
+            totalCases: totalCases,
+            successRate: response.data.successRate || response.data.success_rate || 0,
+            failureMessage: failed > 0 ? `${failed}个用例执行失败` : null,
+            reportId: response.data.reportId || response.data.report_id,
+            detailUrl: response.data.detailUrl || response.data.detail_url,
+            caseResults: response.data.caseResults || response.data.case_results || []
+          }
+          
+          executeDialogVisible.value = false
+          resultDialogVisible.value = true
+        }
+        
+        // 刷新历史记录和相关数据
+        if (activeTab.value === 'history') {
+          await loadHistoryRecords()
+        }
+        emit('refresh-cases')
+      } else {
+        ElMessage.error(response.msg || '执行失败')
+      }
     } else {
-      ElMessage.error(response.msg || '执行失败')
+      // 执行单个测试用例
+      if (!currentTestCase.value) {
+        ElMessage.error('未选择测试用例')
+        executing.value = false
+        return
+      }
+      
+      const caseId = currentTestCase.value.caseId || currentTestCase.value.case_id || currentTestCase.value.id
+      const response = await executeTestCase(null, caseId, requestData)
+      
+      if (response.code === 1) {
+        if (requestData.async) {
+          // 异步执行
+          ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
+          executeDialogVisible.value = false
+        } else {
+          // 同步执行 - 显示执行结果对话框
+          executionResult.value = {
+            executionId: response.data.executionId || response.data.execution_id,
+            caseId: response.data.caseId || response.data.case_id,
+            caseName: response.data.caseName || response.data.case_name,
+            status: response.data.status,
+            duration: response.data.duration,
+            startTime: response.data.startTime || response.data.start_time,
+            endTime: response.data.endTime || response.data.end_time,
+            responseStatus: response.data.responseStatus || response.data.response_status,
+            assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
+            assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
+            failureMessage: response.data.failureMessage || response.data.failure_message,
+            logsLink: response.data.logsLink || response.data.logs_link,
+            reportId: response.data.reportId || response.data.report_id
+          }
+          
+          executeDialogVisible.value = false
+          resultDialogVisible.value = true
+        }
+        
+        // 刷新用例列表
+        emit('refresh-cases')
+      } else {
+        ElMessage.error(response.msg || '执行失败')
+      }
     }
     
   } catch (error) {
@@ -2353,60 +2694,103 @@ const handleFormatParams = () => {
 }
 
 // 响应结果数据
-const testStatus = ref('failed') // 'passed' | 'failed' | 'not_executed'
+const testStatus = ref('not_executed') // 'passed' | 'failed' | 'not_executed'
 const resultTab = ref('response')
 const searchText = ref('')
-const responseTime = ref('231ms')
-const testTime = ref('2024-03-10 14:40:25')
+const responseTime = ref('-')
+const testTime = ref('-')
 
 const actualResponse = reactive({
-  statusCode: '400 Bad Request',
-  responseCode: 'error',
-  body: {
-    "status": "error",
-    "code": 400,
-    "message": "验证失败",
-    "errors": [
-      {
-        "field": "email",
-        "message": "邮箱格式不正确"
-      },
-      {
-        "field": "phone",
-        "message": "手机号格式不正确"
-      }
-    ],
-    "timestamp": "2024-03-10T14:40:25.231Z"
-  }
+  statusCode: '-',
+  responseCode: '-',
+  body: {}
 })
 
-const formattedResponse = ref(JSON.stringify(actualResponse.body, null, 2))
+const formattedResponse = ref('暂无执行结果')
+
+// 加载最新的执行结果
+const loadLatestExecutionResult = async () => {
+  try {
+    const params = {
+      execution_scope: 'api',
+      ref_id: props.api?.api_id || props.api?.id,
+      page: 1,
+      page_size: 1,
+      sort_by: 'start_time',
+      sort_order: 'desc'
+    }
+    
+    const response = await getExecutionRecords(params)
+    
+    if (response.code === 1 && response.data && response.data.items.length > 0) {
+      const latestRecord = response.data.items[0]
+      
+      // 更新测试状态
+      testStatus.value = mapExecutionStatus(latestRecord.status)
+      
+      // 更新时间信息 - 使用驼峰命名
+      testTime.value = formatTime(latestRecord.startTime)
+      responseTime.value = formatDuration(latestRecord.durationSeconds)
+      
+      // 解析执行配置JSON
+      let executionConfig = null
+      if (latestRecord.executionConfig) {
+        try {
+          executionConfig = typeof latestRecord.executionConfig === 'string' 
+            ? JSON.parse(latestRecord.executionConfig)
+            : latestRecord.executionConfig
+        } catch (e) {
+          console.error('解析执行配置失败:', e)
+        }
+      }
+      
+      // 更新响应数据 - 从executionConfig中获取
+      if (executionConfig && executionConfig.responseData) {
+        const responseData = executionConfig.responseData
+        actualResponse.statusCode = responseData.httpStatus || responseData.statusCode || '-'
+        actualResponse.responseCode = responseData.responseCode || '-'
+        actualResponse.body = responseData.body || {}
+        
+        // 格式化响应体
+        if (typeof actualResponse.body === 'string') {
+          formattedResponse.value = actualResponse.body
+        } else if (typeof actualResponse.body === 'object') {
+          formattedResponse.value = JSON.stringify(actualResponse.body, null, 2)
+        }
+        
+        // 更新断言结果
+        if (responseData.assertionResults && Array.isArray(responseData.assertionResults)) {
+          assertionResults.value = responseData.assertionResults
+        }
+        
+        // 更新响应头
+        if (responseData.headers) {
+          responseHeaders.value = Object.entries(responseData.headers).map(([name, value]) => ({
+            name,
+            value: typeof value === 'string' ? value : JSON.stringify(value)
+          }))
+        }
+      } else {
+        // 如果没有响应数据，显示基本信息
+        formattedResponse.value = latestRecord.errorMessage || '暂无响应数据'
+      }
+    } else {
+      // 没有执行记录
+      testStatus.value = 'not_executed'
+      formattedResponse.value = '暂无执行结果'
+    }
+  } catch (error) {
+    console.error('加载最新执行结果失败:', error)
+    testStatus.value = 'not_executed'
+    formattedResponse.value = '加载失败'
+  }
+}
 
 // 断言结果
-const assertionResults = ref([
-  {
-    field: 'status',
-    expected: 'success',
-    actual: 'error',
-    passed: false,
-    message: '状态码不匹配'
-  },
-  {
-    field: 'code',
-    expected: '200',
-    actual: '400',
-    passed: false,
-    message: '响应码不正确'
-  }
-])
+const assertionResults = ref([])
 
 // 响应头
-const responseHeaders = ref([
-  { name: 'Content-Type', value: 'application/json; charset=utf-8' },
-  { name: 'Content-Length', value: '256' },
-  { name: 'Date', value: 'Sun, 10 Mar 2024 14:40:25 GMT' },
-  { name: 'Server', value: 'nginx/1.18.0' }
-])
+const responseHeaders = ref([])
 
 // 复制响应
 const copyResponse = () => {
@@ -2535,8 +2919,30 @@ const handleSave = () => {
   ElMessage.success('保存成功')
 }
 
+/**
+ * 执行接口测试
+ */
 const handleTest = () => {
-  ElMessage.info('执行测试中...')
+  // 重置执行配置为默认值
+  Object.assign(executeFormData, {
+    environment: 'dev',
+    baseUrl: '',
+    timeout: 30,
+    variables: {},
+    async: false,
+    concurrency: 3,
+    caseFilter: {
+      priority: [],
+      tags: [],
+      enabledOnly: true
+    },
+    executionOrder: 'priority_desc'
+  })
+  executeVariables.value = ''
+  
+  // 打开执行配置对话框
+  executeDialogVisible.value = true
+  isExecutingApi.value = true  // 标记为执行接口测试
 }
 
 /**
@@ -2632,16 +3038,32 @@ watch(activeTab, (newTab) => {
   if (newTab === 'history') {
     // 切换到历史标签页时加载数据
     loadHistoryRecords()
+  } else if (newTab === 'result') {
+    // 切换到响应结果标签页时加载最新执行结果
+    loadLatestExecutionResult()
   }
 })
+
+/**
+ * 监听API数据变化，重新初始化请求参数
+ */
+watch(() => props.api, () => {
+  initRequestParams()
+}, { deep: true, immediate: true })
 
 /**
  * 组件挂载时的初始化
  */
 onMounted(() => {
+  // 初始化请求参数
+  initRequestParams()
+  
   // 如果当前就在历史标签页，则加载数据
   if (activeTab.value === 'history') {
     loadHistoryRecords()
+  } else if (activeTab.value === 'result') {
+    // 如果当前就在响应结果标签页，则加载最新执行结果
+    loadLatestExecutionResult()
   }
 })
 </script>
@@ -3560,6 +3982,10 @@ onMounted(() => {
   gap: 16px;
 }
 
+.info-grid-api {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .info-card {
   background: #fafafa;
   border: 1px solid #e4e7ed;
@@ -3650,6 +4076,57 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   justify-content: center;
+}
+
+/* 用例执行明细 */
+.case-results-section {
+  margin-bottom: 24px;
+}
+
+.case-results-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
+}
+
+.case-results-table {
+  width: 100%;
+}
+
+.case-results-table .case-code {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #606266;
+}
+
+.case-results-table .case-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.case-results-table .duration-text {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.case-results-table .failure-text {
+  color: #f56c6c;
+  font-size: 13px;
+}
+
+.case-results-table .success-text {
+  color: #67c23a;
+  font-size: 13px;
+}
+
+.total-count {
+  color: #409eff;
+  font-weight: 600;
 }
 
 /* 删除确认对话框样式 */

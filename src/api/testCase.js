@@ -61,11 +61,11 @@ export function createTestCase(data) {
 
 // 更新测试用例
 export function updateTestCase(caseId, data) {
+  // 注意：不包含 apiId，修改测试用例时 API 关联不能改变
   return request({
     url: `/testcases/${caseId}`,
     method: 'put',
     data: {
-      apiId: data.api_id,  // 后端期望的是apiId字段
       caseCode: data.case_code,
       name: data.name,
       description: data.description,
@@ -392,6 +392,69 @@ export function getExecutionRecordsByExecutor(executedBy, limit = 10) {
     method: 'get',
     params: {
       limit: limit
+    }
+  })
+}
+
+// ==================== 接口测试执行相关接口 ====================
+
+/**
+ * 执行接口测试（同步或异步）
+ * @param {Number} apiId - 接口ID
+ * @param {Object} executeData - 执行配置
+ * @param {String} executeData.environment - 执行环境标识（如: dev, test, prod）
+ * @param {String} executeData.base_url - 覆盖接口的基础URL
+ * @param {Number} executeData.timeout - 全局超时时间（秒）
+ * @param {Object} executeData.auth_override - 认证信息覆盖配置
+ * @param {Object} executeData.variables - 执行变量，用于参数化测试
+ * @param {Boolean} executeData.async - 是否异步执行，默认: false
+ * @param {String} executeData.callback_url - 异步执行完成后的回调URL
+ * @param {Number} executeData.concurrency - 并发执行数，默认: 3
+ * @param {Object} executeData.case_filter - 用例过滤条件
+ * @param {String[]} executeData.case_filter.priority - 优先级过滤
+ * @param {String[]} executeData.case_filter.tags - 标签过滤
+ * @param {Boolean} executeData.case_filter.enabled_only - 是否只执行启用的用例，默认: true
+ * @param {String} executeData.execution_order - 执行顺序（priority_desc/priority_asc/name_asc/name_desc）
+ */
+export function executeApiTest(apiId, executeData = {}) {
+  return request({
+    url: `/apis/${apiId}/execute`,
+    method: 'post',
+    data: {
+      environment: executeData.environment,
+      base_url: executeData.base_url,
+      timeout: executeData.timeout,
+      auth_override: executeData.auth_override,
+      variables: executeData.variables,
+      async: executeData.async || false,
+      callback_url: executeData.callback_url,
+      concurrency: executeData.concurrency || 3,
+      case_filter: executeData.case_filter,
+      execution_order: executeData.execution_order || 'priority_desc'
+    }
+  })
+}
+
+/**
+ * 异步执行接口测试
+ * @param {Number} apiId - 接口ID
+ * @param {Object} executeData - 执行配置（同executeApiTest）
+ */
+export function executeApiTestAsync(apiId, executeData = {}) {
+  return request({
+    url: `/apis/${apiId}/execute-async`,
+    method: 'post',
+    data: {
+      environment: executeData.environment,
+      base_url: executeData.base_url,
+      timeout: executeData.timeout,
+      auth_override: executeData.auth_override,
+      variables: executeData.variables,
+      async: true,  // 强制异步
+      callback_url: executeData.callback_url,
+      concurrency: executeData.concurrency || 3,
+      case_filter: executeData.case_filter,
+      execution_order: executeData.execution_order || 'priority_desc'
     }
   })
 }

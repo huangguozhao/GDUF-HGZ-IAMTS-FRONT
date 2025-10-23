@@ -1664,11 +1664,33 @@ const handleMoreAction = async (command) => {
           }
         )
         
-        // 调用API禁用测试用例
-        await updateTestCase(props.testCase?.caseId, {
-          ...props.testCase,
-          is_enabled: false
-        })
+        // 调用API禁用测试用例 - 只发送必要的字段
+        // 注意：不包含 api_id，修改测试用例时 API 关联不能改变
+        const testCase = props.testCase
+        const updateData = {
+          case_code: testCase.case_code || testCase.caseCode,
+          name: testCase.name,
+          description: testCase.description,
+          priority: testCase.priority,
+          severity: testCase.severity,
+          tags: testCase.tags || [],
+          pre_conditions: testCase.pre_conditions || testCase.preConditions,
+          test_steps: testCase.test_steps || testCase.testSteps,
+          request_override: testCase.request_override || testCase.requestOverride,
+          expected_http_status: testCase.expected_http_status || testCase.expectedHttpStatus,
+          expected_response_schema: testCase.expected_response_schema || testCase.expectedResponseSchema,
+          expected_response_body: testCase.expected_response_body || testCase.expectedResponseBody,
+          assertions: testCase.assertions,
+          extractors: testCase.extractors,
+          validators: testCase.validators,
+          is_enabled: false,
+          is_template: testCase.is_template || testCase.isTemplate,
+          template_id: testCase.template_id || testCase.templateId,
+          version: testCase.version
+        }
+        
+        const caseId = testCase.case_id || testCase.caseId || testCase.id
+        await updateTestCase(caseId, updateData)
         
         ElMessage.success('用例已禁用')
         emit('refresh')
@@ -1692,11 +1714,33 @@ const handleMoreAction = async (command) => {
           }
         )
         
-        // 调用API启用测试用例
-        await updateTestCase(props.testCase?.caseId, {
-          ...props.testCase,
-          is_enabled: true
-        })
+        // 调用API启用测试用例 - 只发送必要的字段
+        // 注意：不包含 api_id，修改测试用例时 API 关联不能改变
+        const testCase = props.testCase
+        const updateData = {
+          case_code: testCase.case_code || testCase.caseCode,
+          name: testCase.name,
+          description: testCase.description,
+          priority: testCase.priority,
+          severity: testCase.severity,
+          tags: testCase.tags || [],
+          pre_conditions: testCase.pre_conditions || testCase.preConditions,
+          test_steps: testCase.test_steps || testCase.testSteps,
+          request_override: testCase.request_override || testCase.requestOverride,
+          expected_http_status: testCase.expected_http_status || testCase.expectedHttpStatus,
+          expected_response_schema: testCase.expected_response_schema || testCase.expectedResponseSchema,
+          expected_response_body: testCase.expected_response_body || testCase.expectedResponseBody,
+          assertions: testCase.assertions,
+          extractors: testCase.extractors,
+          validators: testCase.validators,
+          is_enabled: true,
+          is_template: testCase.is_template || testCase.isTemplate,
+          template_id: testCase.template_id || testCase.templateId,
+          version: testCase.version
+        }
+        
+        const caseId = testCase.case_id || testCase.caseId || testCase.id
+        await updateTestCase(caseId, updateData)
         
         ElMessage.success('用例已启用')
         emit('refresh')

@@ -1634,7 +1634,13 @@ const loadProjectModules = async (project) => {
     if (response.code === 1) {
       const modules = response.data.modules || []
       // 转换模块数据并添加到项目中
-      project.modules = modules.map(transformModule)
+      project.modules = modules.map(module => {
+        const transformedModule = transformModule(module)
+        // 添加项目名称到模块中
+        transformedModule.project_name = project.name
+        transformedModule.projectName = project.name
+        return transformedModule
+      })
       
       if (modules.length > 0) {
         ElMessage.success(`加载了 ${modules.length} 个模块`)
@@ -1674,7 +1680,15 @@ const loadModuleApis = async (module) => {
     if (response.code === 1) {
       const apis = response.data.items || []
       // 转换接口数据并添加到模块中
-      module.apis = apis.map(transformApi)
+      module.apis = apis.map(api => {
+        const transformedApi = transformApi(api)
+        // 添加上下文信息：项目名称和模块名称
+        transformedApi.project_name = module.project_name || '-'
+        transformedApi.projectName = module.project_name || '-'
+        transformedApi.module_name = module.name
+        transformedApi.moduleName = module.name
+        return transformedApi
+      })
       
       if (apis.length > 0) {
         ElMessage.success(`加载了 ${apis.length} 个接口`)

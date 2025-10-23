@@ -21,7 +21,7 @@ export function transformProject(project) {
 /**
  * 转换模块数据（递归处理子模块）
  */
-export function transformModule(module) {
+export function transformModule(module, projectName = null) {
   const transformed = {
     id: module.moduleId || module.module_id, // 兼容两种命名方式
     module_id: module.moduleId || module.module_id,
@@ -29,6 +29,8 @@ export function transformModule(module) {
     description: module.description,
     module_code: module.moduleCode || module.module_code,
     project_id: module.projectId || module.project_id,
+    project_name: module.projectName || module.project_name || projectName,
+    projectName: module.projectName || module.project_name || projectName,
     parent_module_id: module.parentModuleId || module.parent_module_id,
     sort_order: module.sortOrder || module.sort_order,
     status: module.status,
@@ -47,7 +49,7 @@ export function transformModule(module) {
   
   // 递归处理子模块
   if (module.children && Array.isArray(module.children) && module.children.length > 0) {
-    transformed.children = module.children.map(transformModule)
+    transformed.children = module.children.map(child => transformModule(child, transformed.project_name))
   }
   
   return transformed
@@ -61,6 +63,7 @@ export function transformApi(api) {
     id: api.apiId || api.api_id, // 兼容两种命名方式
     api_id: api.apiId || api.api_id, // 保留原始ID用于API调用
     module_id: api.moduleId || api.module_id,
+    project_id: api.projectId || api.project_id,
     name: api.name,
     url: api.path,
     path: api.path,
@@ -83,6 +86,13 @@ export function transformApi(api) {
     creator_info: api.creatorInfo || api.creator_info,
     created_time: api.createdAt || api.created_at,
     updated_time: api.updatedAt || api.updated_at,
+    // 添加项目名称和模块名称（如果后端返回）
+    project_name: api.projectName || api.project_name,
+    projectName: api.projectName || api.project_name,
+    module_name: api.moduleName || api.module_name,
+    moduleName: api.moduleName || api.module_name,
+    precondition: api.precondition || api.pre_condition,
+    pre_condition: api.precondition || api.pre_condition,
     cases: [] // 默认为空，后续填充
   }
 }
@@ -333,11 +343,19 @@ function parseValidationRules(rules) {
 export function buildProjectTree(projects, modules, apis, testCases) {
   // 先将模块按项目分组
   const modulesByProject = {}
+  const projectNameMap = {}
+  
+  // 先建立项目名称映射
+  projects.forEach(project => {
+    projectNameMap[project.project_id] = project.name
+  })
+  
   modules.forEach(module => {
     if (!modulesByProject[module.project_id]) {
       modulesByProject[module.project_id] = []
     }
-    modulesByProject[module.project_id].push(transformModule(module))
+    const projectName = projectNameMap[module.project_id]
+    modulesByProject[module.project_id].push(transformModule(module, projectName))
   })
   
   // 将接口按模块分组
