@@ -113,22 +113,6 @@ export function importTestCases(apiId, formData, params = {}) {
   })
 }
 
-// 导出测试用例
-export function exportTestCases(apiId, params = {}) {
-  return request({
-    url: `/apis/${apiId}/test-cases/export`,
-    method: 'get',
-    params: {
-      format: params.format || 'excel',
-      include_disabled: params.include_disabled || false,
-      include_templates: params.include_templates || false,
-      fields: params.fields,
-      filename: params.filename
-    },
-    responseType: 'blob'
-  })
-}
-
 // 执行测试用例
 export function executeTestCase(apiId, caseId, executeData = {}) {
   // 根据执行模式设置不同的超时时间
@@ -466,6 +450,62 @@ export function executeApiTestAsync(apiId, executeData = {}) {
       concurrency: executeData.concurrency || 3,
       case_filter: executeData.case_filter,
       execution_order: executeData.execution_order || 'priority_desc'
+    }
+  })
+}
+
+// ==================== 测试用例导出相关接口 ====================
+
+/**
+ * 导出测试用例
+ * @param {Object} exportData - 导出配置
+ * @param {String} exportData.format - 导出格式（excel, json, yaml, csv）
+ * @param {Number[]} exportData.case_ids - 要导出的用例ID列表（可选，不传则导出所有）
+ * @param {Object} exportData.filter - 过滤条件（可选）
+ * @param {Number} exportData.filter.project_id - 项目ID
+ * @param {Number} exportData.filter.module_id - 模块ID
+ * @param {Number} exportData.filter.api_id - 接口ID
+ * @param {String} exportData.filter.priority - 优先级
+ * @param {String} exportData.filter.severity - 严重程度
+ * @param {String[]} exportData.filter.tags - 标签
+ * @param {Boolean} exportData.filter.is_enabled - 是否启用
+ * @param {Number} exportData.filter.creator_id - 创建人ID
+ * @param {String} exportData.filter.start_date - 开始日期
+ * @param {String} exportData.filter.end_date - 结束日期
+ * @param {Object} exportData.options - 导出选项
+ * @param {Boolean} exportData.options.include_steps - 是否包含测试步骤
+ * @param {Boolean} exportData.options.include_assertions - 是否包含断言规则
+ * @param {Boolean} exportData.options.include_extractors - 是否包含提取规则
+ * @param {Boolean} exportData.options.include_history - 是否包含执行历史
+ */
+export function exportTestCases(exportData) {
+  return request({
+    url: '/test-cases/export',
+    method: 'post',
+    responseType: 'blob',  // 重要：接收文件流
+    timeout: 60000,  // 导出可能需要较长时间
+    data: exportData
+  })
+}
+
+/**
+ * 导出单个测试用例
+ * @param {Number} caseId - 用例ID
+ * @param {String} format - 导出格式（excel, json, yaml, csv）
+ * @param {Object} options - 导出选项
+ */
+export function exportTestCase(caseId, format = 'json', options = {}) {
+  return request({
+    url: `/test-cases/${caseId}/export`,
+    method: 'get',
+    responseType: 'blob',
+    timeout: 30000,
+    params: {
+      format: format,
+      include_steps: options.includeSteps !== false,
+      include_assertions: options.includeAssertions !== false,
+      include_extractors: options.includeExtractors !== false,
+      include_history: options.includeHistory || false
     }
   })
 }

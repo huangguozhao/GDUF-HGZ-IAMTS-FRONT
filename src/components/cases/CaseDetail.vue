@@ -797,6 +797,184 @@
       :test-case="testCase"
       @close="executionHistoryModalVisible = false"
     />
+
+    <!-- 导出测试用例对话框 -->
+    <el-dialog
+      v-model="exportDialogVisible"
+      title="导出测试用例"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div class="export-content">
+        <div class="export-info">
+          <el-alert
+            title="导出说明"
+            type="info"
+            :closable="false"
+            show-icon
+          >
+            <template #default>
+              <p>选择导出格式和选项，系统将生成包含测试用例详细信息的文件。</p>
+              <ul>
+                <li>• Excel：适合查看和编辑，支持公式和格式化</li>
+                <li>• JSON：适合程序处理和数据交换</li>
+                <li>• YAML：适合配置管理和版本控制</li>
+                <li>• CSV：适合简单的表格数据处理</li>
+              </ul>
+            </template>
+          </el-alert>
+        </div>
+
+        <el-form
+          ref="exportFormRef"
+          :model="exportFormData"
+          :rules="exportFormRules"
+          label-width="120px"
+          style="margin-top: 24px;"
+        >
+          <el-form-item label="导出格式" prop="format">
+            <el-select 
+              v-model="exportFormData.format" 
+              placeholder="选择导出格式"
+              style="width: 100%;"
+            >
+              <el-option 
+                label="Excel (.xlsx)" 
+                value="excel"
+              >
+                <span class="format-option">
+                  <span class="format-icon">📊</span>
+                  <span class="format-name">Excel (.xlsx)</span>
+                  <span class="format-desc">推荐，适合查看和编辑</span>
+                </span>
+              </el-option>
+              <el-option 
+                label="JSON (.json)" 
+                value="json"
+              >
+                <span class="format-option">
+                  <span class="format-icon">{ }</span>
+                  <span class="format-name">JSON (.json)</span>
+                  <span class="format-desc">适合程序处理</span>
+                </span>
+              </el-option>
+              <el-option 
+                label="YAML (.yaml)" 
+                value="yaml"
+              >
+                <span class="format-option">
+                  <span class="format-icon">📄</span>
+                  <span class="format-name">YAML (.yaml)</span>
+                  <span class="format-desc">适合配置管理</span>
+                </span>
+              </el-option>
+              <el-option 
+                label="CSV (.csv)" 
+                value="csv"
+              >
+                <span class="format-option">
+                  <span class="format-icon">📋</span>
+                  <span class="format-name">CSV (.csv)</span>
+                  <span class="format-desc">适合表格处理</span>
+                </span>
+              </el-option>
+            </el-select>
+          </el-form-item>
+
+          <el-divider content-position="left">导出内容</el-divider>
+
+          <el-form-item label="包含内容">
+            <el-checkbox-group v-model="exportFormData.includeOptions">
+              <div class="checkbox-list">
+                <el-checkbox label="steps" checked disabled>
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">📝</span>
+                    基本信息
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="steps">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">🔢</span>
+                    测试步骤
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="assertions">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">✓</span>
+                    断言规则
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="extractors">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">🔍</span>
+                    提取规则
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="history">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">📊</span>
+                    执行历史
+                  </span>
+                </el-checkbox>
+              </div>
+            </el-checkbox-group>
+            <div class="form-tip">基本信息始终包含（用例名称、编码、描述等）</div>
+          </el-form-item>
+
+          <el-divider content-position="left">高级选项</el-divider>
+
+          <el-form-item label="文件命名">
+            <el-input 
+              v-model="exportFormData.fileName" 
+              placeholder="自动生成（可选）"
+              maxlength="100"
+            >
+              <template #suffix>
+                <span class="file-ext">.{{ getFileExtension(exportFormData.format) }}</span>
+              </template>
+            </el-input>
+            <div class="form-tip">留空将使用默认命名：用例编码_日期时间</div>
+          </el-form-item>
+
+          <el-form-item label="编码格式" v-if="exportFormData.format === 'csv'">
+            <el-select v-model="exportFormData.encoding" style="width: 100%;">
+              <el-option label="UTF-8" value="utf-8" />
+              <el-option label="GBK（中文Excel兼容）" value="gbk" />
+            </el-select>
+          </el-form-item>
+        </el-form>
+
+        <!-- 导出统计信息 -->
+        <div class="export-stats" v-if="exportFormData.format">
+          <div class="stat-item">
+            <span class="stat-label">导出格式:</span>
+            <span class="stat-value">{{ getFormatName(exportFormData.format) }}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">用例数量:</span>
+            <span class="stat-value">1 个</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">预计大小:</span>
+            <span class="stat-value">{{ getEstimatedSize() }}</span>
+          </div>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="exportDialogVisible = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            @click="handleConfirmExport" 
+            :loading="exporting"
+            :icon="Download"
+          >
+            {{ exporting ? '导出中...' : '开始导出' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -830,8 +1008,10 @@ import {
   updateTestCase, 
   createTestCaseShare, 
   revokeTestCaseShare,
-  getExecutionRecords
+  getExecutionRecords,
+  exportTestCase
 } from '../../api/testCase'
+import { exportTestCaseLocal } from '../../utils/exportTestCase'
 import ExecutionHistoryModal from './ExecutionHistoryModal.vue'
 
 const props = defineProps({
@@ -1340,6 +1520,24 @@ const shareStats = ref({
   expireTime: ''
 })
 
+// 导出相关数据
+const exportDialogVisible = ref(false)
+const exporting = ref(false)
+const exportFormRef = ref(null)
+const exportFormData = reactive({
+  format: 'excel',
+  includeOptions: ['steps', 'assertions', 'extractors'],
+  fileName: '',
+  encoding: 'utf-8'
+})
+
+// 导出表单验证规则
+const exportFormRules = {
+  format: [
+    { required: true, message: '请选择导出格式', trigger: 'change' }
+  ]
+}
+
 // 执行测试
 const handleExecute = () => {
   executeDialogVisible.value = true
@@ -1635,12 +1833,124 @@ const handleRevokeShare = async () => {
   }
 }
 
+// ==================== 导出相关函数 ====================
+
+/**
+ * 获取文件扩展名
+ */
+const getFileExtension = (format) => {
+  const extMap = {
+    excel: 'xlsx',
+    json: 'json',
+    yaml: 'yaml',
+    csv: 'csv'
+  }
+  return extMap[format] || 'txt'
+}
+
+/**
+ * 获取格式名称
+ */
+const getFormatName = (format) => {
+  const nameMap = {
+    excel: 'Excel (.xlsx)',
+    json: 'JSON (.json)',
+    yaml: 'YAML (.yaml)',
+    csv: 'CSV (.csv)'
+  }
+  return nameMap[format] || format
+}
+
+/**
+ * 估算文件大小
+ */
+const getEstimatedSize = () => {
+  const includeOptions = exportFormData.includeOptions
+  const baseSize = 5 // KB
+  let size = baseSize
+  
+  if (includeOptions.includes('steps')) size += 2
+  if (includeOptions.includes('assertions')) size += 1
+  if (includeOptions.includes('extractors')) size += 1
+  if (includeOptions.includes('history')) size += 5
+  
+  // 根据格式调整大小
+  if (exportFormData.format === 'excel') size *= 1.5
+  if (exportFormData.format === 'json') size *= 0.8
+  
+  return size < 10 ? `~${size.toFixed(1)} KB` : `~${(size / 1024).toFixed(2)} MB`
+}
+
+/**
+ * 打开导出对话框
+ */
+const handleExport = () => {
+  // 重置表单数据
+  exportFormData.format = 'excel'
+  exportFormData.includeOptions = ['steps', 'assertions', 'extractors']
+  exportFormData.fileName = ''
+  exportFormData.encoding = 'utf-8'
+  
+  // 打开对话框
+  exportDialogVisible.value = true
+}
+
+/**
+ * 确认导出
+ */
+const handleConfirmExport = async () => {
+  if (!exportFormRef.value) return
+  
+  try {
+    await exportFormRef.value.validate()
+    
+    exporting.value = true
+    
+    console.log('开始导出测试用例...')
+    console.log('导出表单数据:', exportFormData)
+    console.log('测试用例数据:', props.testCase)
+    
+    // 构建导出选项
+    const options = {
+      includeSteps: exportFormData.includeOptions.includes('steps'),
+      includeAssertions: exportFormData.includeOptions.includes('assertions'),
+      includeExtractors: exportFormData.includeOptions.includes('extractors'),
+      includeHistory: exportFormData.includeOptions.includes('history'),
+      encoding: exportFormData.encoding,
+      fileName: exportFormData.fileName || null
+    }
+    
+    console.log('导出选项:', options)
+    
+    // 使用本地导出功能
+    const result = exportTestCaseLocal(
+      props.testCase, 
+      exportFormData.format, 
+      options
+    )
+    
+    if (result.success) {
+      ElMessage.success(`导出成功：${result.fileName}`)
+      exportDialogVisible.value = false
+    } else {
+      ElMessage.error(result.message || '导出失败')
+    }
+    
+  } catch (error) {
+    console.error('导出测试用例失败:', error)
+    console.error('错误详情:', error.stack)
+    
+    ElMessage.error(error.message || '导出失败，请重试')
+  } finally {
+    exporting.value = false
+  }
+}
+
 // 更多操作
 const handleMoreAction = async (command) => {
   switch (command) {
     case 'export':
-      ElMessage.info('导出用例')
-      // TODO: 实现导出功能
+      handleExport()
       break
       
     case 'history':
@@ -2635,5 +2945,149 @@ onMounted(() => {
 .view-more-btn:hover {
   color: #66b1ff;
   background-color: #f0f9ff;
+}
+
+/* ==================== 导出对话框样式 ==================== */
+
+/* 导出内容容器 */
+.export-content {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.export-info {
+  margin-bottom: 20px;
+}
+
+.export-info .el-alert {
+  margin-bottom: 0;
+}
+
+.export-info ul {
+  margin: 8px 0 0 0;
+  padding-left: 20px;
+}
+
+.export-info li {
+  margin: 4px 0;
+  font-size: 13px;
+  color: #606266;
+}
+
+/* 格式选项样式 */
+.format-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 4px 0;
+}
+
+.format-icon {
+  font-size: 18px;
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.format-name {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+  flex-shrink: 0;
+  min-width: 120px;
+}
+
+.format-desc {
+  font-size: 12px;
+  color: #909399;
+  margin-left: auto;
+}
+
+/* 复选框列表 */
+.checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.checkbox-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+/* 文件扩展名后缀 */
+.file-ext {
+  color: #909399;
+  font-size: 13px;
+  font-weight: 500;
+  padding-right: 8px;
+}
+
+/* 导出统计信息 */
+.export-stats {
+  margin-top: 24px;
+  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e8eef5 100%);
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: white;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+}
+
+.stat-value {
+  font-size: 16px;
+  color: #303133;
+  font-weight: 600;
+}
+
+/* 导出对话框分隔线样式 */
+.export-content :deep(.el-divider__text) {
+  font-size: 13px;
+  font-weight: 600;
+  color: #606266;
+  background-color: white;
+}
+
+/* 导出复选框样式优化 */
+.export-content :deep(.el-checkbox) {
+  margin-right: 0;
+  width: 100%;
+}
+
+.export-content :deep(.el-checkbox__label) {
+  width: 100%;
+}
+
+/* 导出表单项间距优化 */
+.export-content :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.export-content :deep(.el-form-item:last-child) {
+  margin-bottom: 0;
 }
 </style>
