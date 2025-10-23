@@ -36,6 +36,12 @@ request.interceptors.response.use(
   error => {
     console.error('响应错误:', error)
     
+    // 处理超时错误
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      ElMessage.error('请求超时，请稍后重试或选择异步执行模式')
+      return Promise.reject({ code: -1, msg: '请求超时' })
+    }
+    
     // 处理不同的错误状态
     if (error.response) {
       const { status, data } = error.response

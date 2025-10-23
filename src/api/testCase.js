@@ -131,9 +131,13 @@ export function exportTestCases(apiId, params = {}) {
 
 // 执行测试用例
 export function executeTestCase(apiId, caseId, executeData = {}) {
+  // 根据执行模式设置不同的超时时间
+  const requestTimeout = executeData.async ? 10000 : 60000  // 异步10秒，同步1分钟
+  
   return request({
     url: `/test-cases/${caseId}/execute`,
     method: 'post',
+    timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
       environment: executeData.environment,
       base_url: executeData.base_url,
@@ -417,9 +421,15 @@ export function getExecutionRecordsByExecutor(executedBy, limit = 10) {
  * @param {String} executeData.execution_order - 执行顺序（priority_desc/priority_asc/name_asc/name_desc）
  */
 export function executeApiTest(apiId, executeData = {}) {
+  // 根据执行模式设置不同的超时时间
+  // 同步执行：需要等待所有用例执行完成，设置为5分钟
+  // 异步执行：只是提交任务，使用默认超时即可
+  const requestTimeout = executeData.async ? 10000 : 300000  // 异步10秒，同步5分钟
+  
   return request({
     url: `/apis/${apiId}/execute`,
     method: 'post',
+    timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
       environment: executeData.environment,
       base_url: executeData.base_url,
@@ -444,6 +454,7 @@ export function executeApiTestAsync(apiId, executeData = {}) {
   return request({
     url: `/apis/${apiId}/execute-async`,
     method: 'post',
+    timeout: 10000,  // 异步执行只是提交任务，使用默认超时即可
     data: {
       environment: executeData.environment,
       base_url: executeData.base_url,

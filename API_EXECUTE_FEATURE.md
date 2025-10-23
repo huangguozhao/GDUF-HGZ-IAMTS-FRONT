@@ -263,7 +263,7 @@ const isExecutingApi = ref(false)  // 标记是否为执行接口测试（非单
 
 ## Bug修复记录
 
-### 问题：执行成功但显示失败
+### 问题1：执行成功但显示失败
 
 **问题描述：** 
 当所有测试用例都通过时（passed: 5, failed: 0），前端仍显示"✗ 测试失败"。
@@ -290,6 +290,116 @@ status: failed === 0 && passed > 0 ? 'passed' : (failed > 0 ? 'failed' : 'not_ex
 ```
 
 这样即使字段名不一致，也能正确判断测试状态。
+
+---
+
+### 问题2：接口测试执行超时
+
+**问题描述：** 
+执行接口测试时报错：`AxiosError: timeout of 10000ms exceeded`
+
+**错误堆栈：**
+```
+AxiosError: timeout of 10000ms exceeded
+  code: "ECONNABORTED"
+  message: "timeout of 10000ms exceeded"
+```
+
+**原因分析：**
+1. `request.js` 中设置的全局 axios 超时时间为 **10秒**
+2. 接口测试执行需要运行多个测试用例，可能需要更长时间
+3. 同步执行时需要等待所有用例执行完成才返回响应
+4. 10秒的超时时间不足以完成整个测试流程
+
+**解决方案：**
+
+#### 1. 为不同的执行操作设置合理的超时时间
+
+修改 `src/api/testCase.js`，根据执行模式动态设置超时：
+
+```javascript
+// 接口测试执行
+export function executeApiTest(apiId, executeData = {}) {
+  // 同步执行：5分钟（需要等待所有用例执行完成）
+  // 异步执行：10秒（只是提交任务）
+  const requestTimeout = executeData.async ? 10000 : 300000
+  
+  return request({
+    url: `/apis/${apiId}/execute`,
+    method: 'post',
+    timeout: requestTimeout,  // 覆盖全局超时设置
+    data: { /* ... */ }
+  })
+}
+
+// 单个用例执行
+export function executeTestCase(apiId, caseId, executeData = {}) {
+  // 同步执行：1分钟
+  // 异步执行：10秒
+  const requestTimeout = executeData.async ? 10000 : 60000
+  
+  return request({
+    url: `/test-cases/${caseId}/execute`,
+    method: 'post',
+    timeout: requestTimeout,
+    data: { /* ... */ }
+  })
+}
+```
+
+**超时时间设置说明：**
+- **接口测试同步执行**: 300秒（5分钟）
+  - 可能包含多个测试用例
+  - 每个用例都需要实际发送HTTP请求
+  - 需要预留足够的时间
+  
+- **单个用例同步执行**: 60秒（1分钟）
+  - 只执行一个测试用例
+  - 通常能在1分钟内完成
+  
+- **异步执行**: 10秒
+  - 只是提交任务到后台
+  - 不需要等待执行完成
+  - 使用默认超时即可
+
+#### 2. 优化超时错误提示
+
+修改 `src/api/request.js`，添加超时错误的专门处理：
+
+```javascript
+// 响应拦截器
+request.interceptors.response.use(
+  response => response.data,
+  error => {
+    // 处理超时错误
+    if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {
+      ElMessage.error('请求超时，请稍后重试或选择异步执行模式')
+      return Promise.reject({ code: -1, msg: '请求超时' })
+    }
+    
+    // 其他错误处理...
+  }
+)
+```
+
+**优势：**
+- 提供更友好的错误提示
+- 建议用户使用异步执行模式
+- 统一超时错误的处理逻辑
+
+#### 3. 建议用户使用异步执行
+
+对于以下场景，建议使用异步执行：
+- 测试用例数量较多（> 10个）
+- 单个用例执行时间较长
+- 网络环境不稳定
+- 后端处理较慢
+
+**异步执行的优点：**
+- 不受前端超时限制
+- 可以在后台慢慢执行
+- 用户体验更好（不用长时间等待）
+- 支持更大规模的测试
 
 ## 相关文件
 
