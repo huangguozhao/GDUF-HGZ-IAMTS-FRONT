@@ -285,7 +285,8 @@
             <div 
               v-for="(history, index) in displayHistory" 
               :key="index" 
-              class="history-card"
+              class="history-card clickable"
+              @click="handleViewHistoryDetail(history)"
             >
               <div class="history-header">
                 <el-icon 
@@ -309,6 +310,7 @@
                   <span class="duration" v-if="history.durationSeconds > 0">
                     ({{ formatDuration(history.durationSeconds) }})
                   </span>
+                  <el-icon class="view-detail-icon"><View /></el-icon>
             </div>
           </div>
             </div>
@@ -808,6 +810,149 @@
       @close="executionHistoryModalVisible = false"
     />
 
+    <!-- 执行历史详情对话框 -->
+    <el-dialog
+      v-model="historyDetailDialogVisible"
+      title="执行历史详情"
+      width="900px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="currentHistoryDetail" class="history-detail-content" v-loading="loadingHistoryDetail">
+        <!-- 基本信息 -->
+        <div class="detail-section">
+          <h4 class="detail-section-title">📋 基本信息</h4>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="执行ID">
+              {{ currentHistoryDetail.recordId || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="执行状态">
+              <el-tag :type="getHistoryStatusType(currentHistoryDetail.status)">
+                {{ getHistoryStatusText(currentHistoryDetail.status) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="执行人">
+              {{ currentHistoryDetail.executor || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="执行环境">
+              <el-tag size="small">{{ currentHistoryDetail.environment || '-' }}</el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="执行类型">
+              {{ currentHistoryDetail.action || currentHistoryDetail.executionType || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="开始时间">
+              {{ currentHistoryDetail.start_time || currentHistoryDetail.executed_time || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="结束时间">
+              {{ currentHistoryDetail.end_time || '-' }}
+            </el-descriptions-item>
+            <el-descriptions-item label="执行耗时">
+              <el-tag type="info" size="small">
+                {{ formatDuration(currentHistoryDetail.durationSeconds) }}
+              </el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <!-- 执行结果统计 -->
+        <div class="detail-section" v-if="currentHistoryDetail.totalCases">
+          <h4 class="detail-section-title">📊 执行统计</h4>
+          <el-descriptions :column="3" border>
+            <el-descriptions-item label="总用例数">
+              {{ currentHistoryDetail.totalCases || 0 }}
+            </el-descriptions-item>
+            <el-descriptions-item label="已执行">
+              {{ currentHistoryDetail.executedCases || 0 }}
+            </el-descriptions-item>
+            <el-descriptions-item label="通过数">
+              <span style="color: #67c23a; font-weight: bold;">
+                {{ currentHistoryDetail.passedCases || 0 }}
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="失败数">
+              <span style="color: #f56c6c; font-weight: bold;">
+                {{ currentHistoryDetail.failedCases || 0 }}
+              </span>
+            </el-descriptions-item>
+            <el-descriptions-item label="跳过数">
+              {{ currentHistoryDetail.skippedCases || 0 }}
+            </el-descriptions-item>
+            <el-descriptions-item label="成功率">
+              <el-progress 
+                :percentage="(currentHistoryDetail.successRate || 0) * 100"
+                :status="(currentHistoryDetail.successRate || 0) >= 0.8 ? 'success' : 'exception'"
+                :stroke-width="10"
+              />
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+
+        <!-- 执行配置 -->
+        <div class="detail-section" v-if="currentHistoryDetail.executionConfig">
+          <h4 class="detail-section-title">⚙️ 执行配置</h4>
+          <el-input
+            type="textarea"
+            :value="formatExecutionConfig(currentHistoryDetail.executionConfig)"
+            :rows="6"
+            readonly
+          />
+        </div>
+
+        <!-- 错误信息 -->
+        <div class="detail-section" v-if="currentHistoryDetail.errorMessage">
+          <h4 class="detail-section-title">❌ 错误信息</h4>
+          <el-alert
+            :title="currentHistoryDetail.errorMessage"
+            type="error"
+            :closable="false"
+            show-icon
+          />
+        </div>
+
+        <!-- 执行说明 -->
+        <div class="detail-section" v-if="currentHistoryDetail.note">
+          <h4 class="detail-section-title">📝 执行说明</h4>
+          <div class="note-content">
+            {{ currentHistoryDetail.note }}
+          </div>
+        </div>
+
+        <!-- 其他信息 -->
+        <div class="detail-section">
+          <h4 class="detail-section-title">ℹ️ 其他信息</h4>
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="浏览器" v-if="currentHistoryDetail.browser">
+              {{ currentHistoryDetail.browser }}
+            </el-descriptions-item>
+            <el-descriptions-item label="应用版本" v-if="currentHistoryDetail.appVersion">
+              {{ currentHistoryDetail.appVersion }}
+            </el-descriptions-item>
+            <el-descriptions-item label="报告地址" v-if="currentHistoryDetail.reportUrl">
+              <el-link :href="currentHistoryDetail.reportUrl" target="_blank" type="primary">
+                查看报告
+              </el-link>
+            </el-descriptions-item>
+            <el-descriptions-item label="日志文件" v-if="currentHistoryDetail.logFilePath">
+              {{ currentHistoryDetail.logFilePath }}
+            </el-descriptions-item>
+          </el-descriptions>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="historyDetailDialogVisible = false">关闭</el-button>
+          <el-button 
+            v-if="currentHistoryDetail?.reportUrl" 
+            type="primary" 
+            :icon="View"
+            @click="openReport(currentHistoryDetail.reportUrl)"
+          >
+            查看完整报告
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     <!-- 导出测试用例对话框 -->
     <el-dialog
       v-model="exportDialogVisible"
@@ -1156,6 +1301,11 @@ const executionHistoryTotal = ref(0)  // 总记录数
 // 执行历史弹窗
 const executionHistoryModalVisible = ref(false)
 
+// 执行历史详情对话框
+const historyDetailDialogVisible = ref(false)
+const currentHistoryDetail = ref(null)
+const loadingHistoryDetail = ref(false)
+
 /**
  * 加载执行历史
  */
@@ -1303,6 +1453,87 @@ const handleViewMoreHistory = () => {
     executionHistoryModalVisible.value = true
   } else {
     ElMessage.error('无法获取用例ID')
+  }
+}
+
+/**
+ * 查看执行历史详情
+ */
+const handleViewHistoryDetail = async (history) => {
+  try {
+    loadingHistoryDetail.value = true
+    currentHistoryDetail.value = history
+    historyDetailDialogVisible.value = true
+    
+    // 如果有recordId，可以调用API获取更详细的信息
+    // 这里先使用已有数据
+    if (history.recordId) {
+      // 可选：调用API获取更详细信息
+      // const response = await getExecutionRecordById(history.recordId)
+      // if (response.code === 1 && response.data) {
+      //   currentHistoryDetail.value = { ...history, ...response.data }
+      // }
+    }
+  } catch (error) {
+    console.error('查看执行历史详情失败:', error)
+    ElMessage.error('加载详情失败')
+  } finally {
+    loadingHistoryDetail.value = false
+  }
+}
+
+/**
+ * 获取执行状态类型
+ */
+const getHistoryStatusType = (status) => {
+  const typeMap = {
+    'passed': 'success',
+    'failed': 'danger',
+    'running': 'warning',
+    'cancelled': 'info',
+    'completed': 'success',
+    'pending': 'info'
+  }
+  return typeMap[status] || 'info'
+}
+
+/**
+ * 获取执行状态文本
+ */
+const getHistoryStatusText = (status) => {
+  const textMap = {
+    'passed': '✅ 通过',
+    'failed': '❌ 失败',
+    'running': '🔄 执行中',
+    'cancelled': '⛔ 已取消',
+    'completed': '✅ 完成',
+    'pending': '⏳ 待执行'
+  }
+  return textMap[status] || status || '未知'
+}
+
+/**
+ * 格式化执行配置
+ */
+const formatExecutionConfig = (config) => {
+  if (!config) return ''
+  if (typeof config === 'string') {
+    try {
+      const parsed = JSON.parse(config)
+      return JSON.stringify(parsed, null, 2)
+    } catch (e) {
+      return config
+    }
+  }
+  return JSON.stringify(config, null, 2)
+}
+
+/**
+ * 打开报告
+ */
+const openReport = (url) => {
+  if (url) {
+    window.open(url, '_blank')
   }
 }
 
@@ -2577,6 +2808,19 @@ onMounted(() => {
   background: #fafafa;
   border-radius: 6px;
   padding: 12px;
+  border: 1px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.history-card.clickable {
+  cursor: pointer;
+}
+
+.history-card.clickable:hover {
+  background: #ecf5ff;
+  border-color: #409eff;
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
+  transform: translateY(-2px);
 }
 
 .history-header {
@@ -2636,6 +2880,17 @@ onMounted(() => {
 
 .execution-time {
   flex: 1;
+}
+
+.view-detail-icon {
+  color: #409eff;
+  font-size: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.history-card.clickable:hover .view-detail-icon {
+  opacity: 1;
 }
 
 .duration {
@@ -3220,5 +3475,62 @@ onMounted(() => {
 
 .export-content :deep(.el-form-item:last-child) {
   margin-bottom: 0;
+}
+/* 执行历史详情对话框 */
+.history-detail-content {
+  padding: 20px 0;
+}
+
+.detail-section {
+  margin-bottom: 24px;
+}
+
+.detail-section:last-child {
+  margin-bottom: 0;
+}
+
+.detail-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-content {
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 描述项样式优化 */
+.detail-section :deep(.el-descriptions__label) {
+  font-weight: 600;
+  background: #f5f7fa;
+}
+
+.detail-section :deep(.el-descriptions__content) {
+  font-size: 14px;
+}
+
+/* 进度条样式 */
+.detail-section :deep(.el-progress__text) {
+  font-weight: 600;
+}
+
+/* 对话框footer */
+.history-detail-content + .dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
 }
 </style>
