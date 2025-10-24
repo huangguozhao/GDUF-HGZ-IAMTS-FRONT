@@ -184,6 +184,7 @@
           @select-case="handleSelectCase"
           @edit-case="handleEditCase"
           @refresh="handleRefreshApi"
+          @delete-api="handleDeleteApi"
           @delete-case="handleDeleteCase"
           @refresh-cases="handleRefreshCases"
         />
@@ -1918,6 +1919,51 @@ const handleRefreshApi = async () => {
   await updateCurrentApiData()
 }
 
+/**
+ * 删除接口
+ */
+const handleDeleteApi = async (apiId) => {
+  try {
+    console.log('=== 删除接口 ===')
+    console.log('接口ID:', apiId)
+    
+    // 清空右侧详情页
+    selectedNode.value = null
+    selectedLevel.value = null
+    
+    // 在树结构中找到并移除对应的接口节点（不重新加载，保持展开状态）
+    let found = false
+    projects.value.forEach(project => {
+      if (project.modules) {
+        project.modules.forEach(module => {
+          if (module.apis && Array.isArray(module.apis)) {
+            const apiIndex = module.apis.findIndex(api => 
+              (api.api_id || api.id) === apiId
+            )
+            if (apiIndex !== -1) {
+              console.log(`从模块 "${module.name}" 中移除接口，索引: ${apiIndex}`)
+              // 从数组中移除该接口
+              module.apis.splice(apiIndex, 1)
+              found = true
+            }
+          }
+        })
+      }
+    })
+    
+    if (found) {
+      console.log('接口已从树中移除')
+      ElMessage.success('接口已删除')
+    } else {
+      console.warn('在项目树中未找到对应的接口节点')
+      ElMessage.warning('接口已删除，请刷新页面')
+    }
+  } catch (error) {
+    console.error('删除接口处理失败:', error)
+    ElMessage.error('删除接口处理失败')
+  }
+}
+
 // 更新当前选中的用例数据
 const updateCurrentTestCaseData = async () => {
   if (selectedLevel.value === 'case' && selectedNode.value) {
@@ -2235,10 +2281,6 @@ const handleDeleteProject = async (project) => {
 
 const handleDeleteModule = async (module) => {
   handleDelete(module)
-}
-
-const handleDeleteApi = async (api) => {
-  handleDelete(api)
 }
 
 const handleDeleteChild = async (child) => {

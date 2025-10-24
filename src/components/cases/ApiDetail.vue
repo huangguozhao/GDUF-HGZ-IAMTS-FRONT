@@ -99,9 +99,23 @@
       <div v-if="activeTab === 'basic'" class="tab-content">
         <div class="form-section">
           <div class="section-title">所属项目</div>
-          <el-select v-model="apiData.project" placeholder="请选择项目" class="form-select">
-            <el-option label="电商支付系统" value="电商支付系统" />
+          <el-select 
+            v-model="apiData.projectId" 
+            placeholder="请选择项目" 
+            class="form-select"
+            v-loading="projectsLoading"
+            @change="handleProjectChange"
+          >
+            <el-option 
+              v-for="project in availableProjects" 
+              :key="project.id"
+              :label="project.name" 
+              :value="project.id"
+            />
           </el-select>
+          <div class="form-tip" v-if="availableProjects.length === 0 && !projectsLoading">
+            暂无可用项目
+          </div>
         </div>
 
         <div class="form-section">
@@ -186,7 +200,7 @@
             @click="handleDelete"
             :loading="deleteLoading"
           >
-            删除用例
+            删除接口
           </el-button>
         </div>
       </div>
@@ -899,7 +913,7 @@
                   </template>
                   <span class="test-data-text">{{ truncateText(formatTestData(row.preConditions), 50) }}</span>
                 </el-tooltip>
-              </div>
+        </div>
             </template>
           </el-table-column>
 
@@ -915,7 +929,7 @@
                   </template>
                   <span class="result-summary">{{ truncateText(formatExpectedResult(row.expectedResponseBody), 40) }}</span>
                 </el-tooltip>
-              </div>
+      </div>
             </template>
           </el-table-column>
 
@@ -1471,9 +1485,9 @@
                   <span class="total-count">{{ executionResult.totalCases }} 个</span>
                 </template>
                 <template v-else>
-                  <span class="success-count">{{ executionResult.assertionsPassed }} 通过</span>
-                  <span class="divider">/</span>
-                  <span class="failed-count">{{ executionResult.assertionsFailed }} 失败</span>
+                <span class="success-count">{{ executionResult.assertionsPassed }} 通过</span>
+                <span class="divider">/</span>
+                <span class="failed-count">{{ executionResult.assertionsFailed }} 失败</span>
                 </template>
               </div>
             </div>
@@ -1722,7 +1736,7 @@ import {
   getExecutionRecordById,
   deleteExecutionRecord
 } from '@/api/testCase'
-import { getModulesByProject, updateApi } from '@/api/project'
+import { getModulesByProject, updateApi, getProjects, deleteApi } from '@/api/project'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
@@ -1737,7 +1751,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select-case', 'edit-case', 'delete-case', 'close', 'refresh-cases', 'refresh'])
+const emit = defineEmits(['select-case', 'edit-case', 'delete-case', 'delete-api', 'close', 'refresh-cases', 'refresh'])
 
 // 组件销毁时的清理
 onBeforeUnmount(() => {
@@ -1760,7 +1774,9 @@ onBeforeUnmount(() => {
 const activeTab = ref('basic')
 const deleteLoading = ref(false)
 
-// 模块相关状态
+// 项目和模块相关状态
+const availableProjects = ref([])
+const projectsLoading = ref(false)
 const availableModules = ref([])
 const modulesLoading = ref(false)
 
@@ -1768,6 +1784,7 @@ const modulesLoading = ref(false)
 // 可编辑的接口数据
 const apiData = reactive({
   project: '',
+  projectId: null,
   module: '',
   moduleId: null,
   name: '',
@@ -1788,6 +1805,7 @@ watch(
   (newApi) => {
     if (newApi) {
       apiData.project = newApi.project_name || newApi.projectName || '-'
+      apiData.projectId = newApi.project_id || newApi.projectId
       apiData.module = newApi.module_name || newApi.moduleName || '-'
       apiData.moduleId = newApi.module_id || newApi.moduleId
       apiData.name = newApi.name || ''
@@ -1806,21 +1824,54 @@ watch(
 )
 
 /**
+ * 加载项目列表
+ */
+const loadProjects = async () => {
+  try {
+    projectsLoading.value = true
+    console.log('开始加载项目列表')
+    
+    const response = await getProjects()
+    console.log('项目列表API响应:', response)
+    
+    if (response.code === 1 && response.data) {
+      const projects = response.data.items || response.data || []
+      availableProjects.value = projects.map(project => ({
+        id: project.project_id || project.projectId || project.id,
+        name: project.name || project.projectName || '未命名项目'
+      }))
+      console.log('加载的项目列表:', availableProjects.value)
+    } else {
+      console.warn('获取项目列表失败:', response.msg)
+      availableProjects.value = []
+    }
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
+    ElMessage.error('加载项目列表失败')
+    availableProjects.value = []
+  } finally {
+    projectsLoading.value = false
+  }
+}
+
+/**
  * 加载项目下的模块列表
  */
-const loadModules = async () => {
-  const projectId = props.api?.project_id || props.api?.projectId
+const loadModules = async (projectId = null) => {
+  // 如果没有传入projectId，则从 apiData 或 props.api 获取
+  const targetProjectId = projectId || apiData.projectId || props.api?.project_id || props.api?.projectId
   
-  if (!projectId) {
+  if (!targetProjectId) {
     console.warn('无法获取项目ID，无法加载模块列表')
+    availableModules.value = []
     return
   }
   
   try {
     modulesLoading.value = true
-    console.log('开始加载项目模块列表，项目ID:', projectId)
+    console.log('开始加载项目模块列表，项目ID:', targetProjectId)
     
-    const response = await getModulesByProject(projectId, {
+    const response = await getModulesByProject(targetProjectId, {
       structure: 'tree',
       status: 'active',
       includeStatistics: false
@@ -1884,6 +1935,26 @@ const loadModules = async () => {
     modulesLoading.value = false
   }
 }
+
+// 组件挂载时加载项目列表
+onMounted(() => {
+  loadProjects()
+})
+
+// 监听 apiData.projectId 变化，重新加载模块列表
+watch(
+  () => apiData.projectId,
+  (newProjectId, oldProjectId) => {
+    console.log('=== ApiDetail 监听到项目ID变化 ===')
+    console.log('newProjectId:', newProjectId)
+    console.log('oldProjectId:', oldProjectId)
+    
+    if (newProjectId && newProjectId !== oldProjectId) {
+      console.log('✅ 项目ID变化，开始加载模块列表')
+      loadModules(newProjectId)
+    }
+  }
+)
 
 // 监听API变化，重新加载模块列表
 watch(
@@ -3188,39 +3259,39 @@ const handleConfirmExecute = async () => {
       }
       
       const caseId = currentTestCase.value.caseId || currentTestCase.value.case_id || currentTestCase.value.id
-      const response = await executeTestCase(null, caseId, requestData)
-      
-      if (response.code === 1) {
-        if (requestData.async) {
-          // 异步执行
-          ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
-          executeDialogVisible.value = false
-        } else {
-          // 同步执行 - 显示执行结果对话框
-          executionResult.value = {
-            executionId: response.data.executionId || response.data.execution_id,
-            caseId: response.data.caseId || response.data.case_id,
-            caseName: response.data.caseName || response.data.case_name,
-            status: response.data.status,
-            duration: response.data.duration,
-            startTime: response.data.startTime || response.data.start_time,
-            endTime: response.data.endTime || response.data.end_time,
-            responseStatus: response.data.responseStatus || response.data.response_status,
-            assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
-            assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
-            failureMessage: response.data.failureMessage || response.data.failure_message,
-            logsLink: response.data.logsLink || response.data.logs_link,
-            reportId: response.data.reportId || response.data.report_id
-          }
-          
-          executeDialogVisible.value = false
-          resultDialogVisible.value = true
+    const response = await executeTestCase(null, caseId, requestData)
+    
+    if (response.code === 1) {
+      if (requestData.async) {
+        // 异步执行
+        ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
+        executeDialogVisible.value = false
+      } else {
+        // 同步执行 - 显示执行结果对话框
+        executionResult.value = {
+          executionId: response.data.executionId || response.data.execution_id,
+          caseId: response.data.caseId || response.data.case_id,
+          caseName: response.data.caseName || response.data.case_name,
+          status: response.data.status,
+          duration: response.data.duration,
+          startTime: response.data.startTime || response.data.start_time,
+          endTime: response.data.endTime || response.data.end_time,
+          responseStatus: response.data.responseStatus || response.data.response_status,
+          assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
+          assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
+          failureMessage: response.data.failureMessage || response.data.failure_message,
+          logsLink: response.data.logsLink || response.data.logs_link,
+          reportId: response.data.reportId || response.data.report_id
         }
         
-        // 刷新用例列表
-        emit('refresh-cases')
-      } else {
-        ElMessage.error(response.msg || '执行失败')
+        executeDialogVisible.value = false
+        resultDialogVisible.value = true
+      }
+      
+      // 刷新用例列表
+      emit('refresh-cases')
+    } else {
+      ElMessage.error(response.msg || '执行失败')
       }
     }
     
@@ -3517,6 +3588,24 @@ const getAuthTypeText = (authType) => {
 }
 
 /**
+ * 处理项目改变
+ */
+const handleProjectChange = (projectId) => {
+  console.log('=== 项目改变 ===')
+  console.log('新项目ID:', projectId)
+  
+  // 清空模块选择
+  apiData.module = ''
+  apiData.moduleId = null
+  availableModules.value = []
+  
+  // 如果选择了项目，加载该项目下的模块
+  if (projectId) {
+    loadModules(projectId)
+  }
+}
+
+/**
  * 保存接口修改
  */
 const handleSave = async () => {
@@ -3573,7 +3662,7 @@ const handleSave = async () => {
     const response = await updateApi(apiId, updateData)
     
     if (response.code === 1) {
-      ElMessage.success('保存成功')
+  ElMessage.success('保存成功')
       // 触发父组件刷新数据
       emit('refresh')
     } else {
@@ -3616,12 +3705,22 @@ const handleTest = () => {
 }
 
 /**
- * 删除测试用例
+ * 删除接口
  */
 const handleDelete = async () => {
   try {
+    // 获取接口ID和名称
+    const apiId = props.api?.api_id || props.api?.id
+    const apiName = props.api?.name || '未知接口'
+    
+    if (!apiId) {
+      ElMessage.error('无法获取接口ID')
+      return
+    }
+    
+    // 确认对话框
     await ElMessageBox.confirm(
-      `确定要删除测试用例"${testCase?.name || '未知用例'}"吗？删除后将无法恢复。`,
+      `确定要删除接口"${apiName}"吗？删除后将无法恢复，且该接口下的所有测试用例也将被删除。`,
       '删除确认',
       {
         confirmButtonText: '确定删除',
@@ -3632,13 +3731,38 @@ const handleDelete = async () => {
       }
     )
     
-    // 用户确认后，触发父组件的删除事件，不在这里执行删除操作
-    emit('delete-case', testCase)
+    // 开始删除
+    deleteLoading.value = true
+    console.log('开始删除接口，ID:', apiId)
+    
+    const response = await deleteApi(apiId)
+    console.log('删除接口响应:', response)
+    
+    if (response.code === 1) {
+      ElMessage.success('接口删除成功')
+      
+      // 触发父组件刷新并关闭详情页
+      emit('delete-api', apiId)
+      emit('refresh')
+    } else {
+      ElMessage.error(response.msg || '删除接口失败')
+    }
   } catch (error) {
     // 用户取消操作
-    if (error !== 'cancel') {
-      console.error('删除确认失败:', error)
+    if (error === 'cancel') {
+      console.log('用户取消删除')
+      return
     }
+    
+    console.error('删除接口失败:', error)
+    
+    if (error.response?.data?.msg) {
+      ElMessage.error(error.response.data.msg)
+    } else {
+      ElMessage.error('删除接口失败，请稍后重试')
+    }
+  } finally {
+    deleteLoading.value = false
   }
 }
 
