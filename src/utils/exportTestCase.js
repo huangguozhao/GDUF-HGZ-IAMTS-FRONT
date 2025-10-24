@@ -16,7 +16,10 @@ export function exportToExcel(testCase, options = {}) {
     includeSteps = true,
     includeAssertions = true,
     includeExtractors = true,
+    includeValidators = true,
     includeHistory = false,
+    includeRequestData = true,
+    includeExpectedResponse = true,
     fileName = null
   } = options
 
@@ -24,31 +27,68 @@ export function exportToExcel(testCase, options = {}) {
   const worksheets = {}
 
   // 1. 基本信息工作表
-  const basicInfo = prepareBasicInfo(testCase)
-  worksheets['基本信息'] = XLSX.utils.json_to_sheet(basicInfo)
+  const basicInfo = prepareBasicInfoEnhanced(testCase)
+  const basicSheet = XLSX.utils.json_to_sheet(basicInfo)
+  applyColumnWidth(basicSheet, [{ wch: 20 }, { wch: 60 }])
+  worksheets['📋 基本信息'] = basicSheet
 
-  // 2. 测试步骤工作表
+  // 2. 请求数据工作表
+  if (includeRequestData && testCase.preConditions) {
+    const requestData = prepareRequestData(testCase)
+    const requestSheet = XLSX.utils.json_to_sheet(requestData)
+    applyColumnWidth(requestSheet, [{ wch: 25 }, { wch: 50 }])
+    worksheets['📤 请求数据'] = requestSheet
+  }
+
+  // 3. 预期响应工作表
+  if (includeExpectedResponse) {
+    const expectedResponse = prepareExpectedResponse(testCase)
+    const responseSheet = XLSX.utils.json_to_sheet(expectedResponse)
+    applyColumnWidth(responseSheet, [{ wch: 25 }, { wch: 50 }])
+    worksheets['📥 预期响应'] = responseSheet
+  }
+
+  // 4. 测试步骤工作表
   if (includeSteps && testCase.testSteps?.length > 0) {
     const steps = prepareTestSteps(testCase.testSteps)
-    worksheets['测试步骤'] = XLSX.utils.json_to_sheet(steps)
+    const stepsSheet = XLSX.utils.json_to_sheet(steps)
+    applyColumnWidth(stepsSheet, [{ wch: 10 }, { wch: 40 }, { wch: 40 }, { wch: 40 }])
+    worksheets['📝 测试步骤'] = stepsSheet
   }
 
-  // 3. 断言规则工作表
+  // 5. 断言规则工作表
   if (includeAssertions && testCase.assertions?.length > 0) {
-    const assertions = prepareAssertions(testCase.assertions)
-    worksheets['断言规则'] = XLSX.utils.json_to_sheet(assertions)
+    const assertions = prepareAssertionsEnhanced(testCase.assertions)
+    const assertionsSheet = XLSX.utils.json_to_sheet(assertions)
+    applyColumnWidth(assertionsSheet, [{ wch: 8 }, { wch: 15 }, { wch: 30 }, { wch: 35 }, { wch: 20 }])
+    worksheets['✅ 断言规则'] = assertionsSheet
   }
 
-  // 4. 提取规则工作表
+  // 6. 提取规则工作表
   if (includeExtractors && testCase.extractors?.length > 0) {
-    const extractors = prepareExtractors(testCase.extractors)
-    worksheets['提取规则'] = XLSX.utils.json_to_sheet(extractors)
+    const extractors = prepareExtractorsEnhanced(testCase.extractors)
+    const extractorsSheet = XLSX.utils.json_to_sheet(extractors)
+    applyColumnWidth(extractorsSheet, [{ wch: 8 }, { wch: 20 }, { wch: 35 }, { wch: 30 }])
+    worksheets['🔍 提取规则'] = extractorsSheet
   }
 
-  // 5. 执行历史工作表（如果需要）
+  // 7. 验证器工作表
+  if (includeValidators && testCase.validators?.length > 0) {
+    const validators = prepareValidators(testCase.validators)
+    const validatorsSheet = XLSX.utils.json_to_sheet(validators)
+    applyColumnWidth(validatorsSheet, [{ wch: 8 }, { wch: 20 }, { wch: 35 }, { wch: 30 }])
+    worksheets['🔒 验证器'] = validatorsSheet
+  }
+
+  // 8. 执行历史工作表（如果需要）
   if (includeHistory && testCase.executionHistory?.length > 0) {
-    const history = prepareExecutionHistory(testCase.executionHistory)
-    worksheets['执行历史'] = XLSX.utils.json_to_sheet(history)
+    const history = prepareExecutionHistoryEnhanced(testCase.executionHistory)
+    const historySheet = XLSX.utils.json_to_sheet(history)
+    applyColumnWidth(historySheet, [
+      { wch: 8 }, { wch: 20 }, { wch: 12 }, { wch: 20 }, 
+      { wch: 20 }, { wch: 12 }, { wch: 15 }, { wch: 15 }
+    ])
+    worksheets['📊 执行历史'] = historySheet
   }
 
   // 创建工作簿
@@ -58,7 +98,7 @@ export function exportToExcel(testCase, options = {}) {
   })
 
   // 生成文件名
-  const defaultFileName = `${testCase.caseCode || 'testcase'}_${getCurrentTimestamp()}.xlsx`
+  const defaultFileName = `测试用例_${testCase.caseCode || testCase.name || 'export'}_${getCurrentTimestamp()}.xlsx`
   const finalFileName = fileName || defaultFileName
 
   // 导出文件
@@ -353,27 +393,37 @@ export function exportToCSV(testCase, options = {}) {
 // ==================== 辅助函数 ====================
 
 /**
- * 准备基本信息数据
+ * 准备增强的基本信息数据
+ */
+function prepareBasicInfoEnhanced(testCase) {
+  return [
+    { 字段: '📌 用例编码', 值: testCase.caseCode || testCase.case_code || '' },
+    { 字段: '📝 用例名称', 值: testCase.name || '' },
+    { 字段: '📄 用例描述', 值: testCase.description || '' },
+    { 字段: '⭐ 优先级', 值: testCase.priority || '' },
+    { 字段: '🔴 严重程度', 值: getSeverityText(testCase.severity) },
+    { 字段: '🏷️ 测试类型', 值: getTestTypeText(testCase.testType || testCase.test_type) },
+    { 字段: '🏷️ 标签', 值: (testCase.tags || []).join(', ') || '无' },
+    { 字段: '📊 版本', 值: testCase.version || '1.0' },
+    { 字段: '✅ 启用状态', 值: testCase.isEnabled || testCase.is_enabled ? '✓ 已启用' : '✗ 已禁用' },
+    { 字段: '🔗 接口ID', 值: testCase.apiId || testCase.api_id || '' },
+    { 字段: '🔗 接口名称', 值: testCase.apiName || testCase.api_name || '' },
+    { 字段: '🔗 接口路径', 值: testCase.apiPath || testCase.api_path || '' },
+    { 字段: '🔗 接口方法', 值: testCase.apiMethod || testCase.api_method || '' },
+    { 字段: '📦 模块名称', 值: testCase.moduleName || testCase.module_name || '' },
+    { 字段: '📦 项目名称', 值: testCase.projectName || testCase.project_name || '' },
+    { 字段: '🎯 预期状态码', 值: testCase.expectedHttpStatus || testCase.expected_http_status || '200' },
+    { 字段: '👤 创建人', 值: testCase.creatorInfo?.name || testCase.creator_name || '' },
+    { 字段: '🕒 创建时间', 值: formatDateTime(testCase.createdAt || testCase.created_time) },
+    { 字段: '🕒 更新时间', 值: formatDateTime(testCase.updatedAt || testCase.updated_time) }
+  ]
+}
+
+/**
+ * 准备基本信息数据（向后兼容）
  */
 function prepareBasicInfo(testCase) {
-  return [
-    { 字段: '用例编码', 值: testCase.caseCode || testCase.case_code || '' },
-    { 字段: '用例名称', 值: testCase.name || '' },
-    { 字段: '用例描述', 值: testCase.description || '' },
-    { 字段: '优先级', 值: testCase.priority || '' },
-    { 字段: '严重程度', 值: testCase.severity || '' },
-    { 字段: '标签', 值: (testCase.tags || []).join(', ') },
-    { 字段: '版本', 值: testCase.version || '' },
-    { 字段: '启用状态', 值: testCase.isEnabled || testCase.is_enabled ? '是' : '否' },
-    { 字段: '接口ID', 值: testCase.apiId || testCase.api_id || '' },
-    { 字段: '接口名称', 值: testCase.apiName || testCase.api_name || '' },
-    { 字段: '接口路径', 值: testCase.apiPath || testCase.api_path || '' },
-    { 字段: '接口方法', 值: testCase.apiMethod || testCase.api_method || '' },
-    { 字段: '预期状态码', 值: testCase.expectedHttpStatus || testCase.expected_http_status || '' },
-    { 字段: '创建人', 值: testCase.creatorInfo?.name || testCase.creator_name || '' },
-    { 字段: '创建时间', 值: testCase.createdAt || testCase.created_time || '' },
-    { 字段: '更新时间', 值: testCase.updatedAt || testCase.updated_time || '' }
-  ]
+  return prepareBasicInfoEnhanced(testCase)
 }
 
 /**
@@ -389,44 +439,68 @@ function prepareTestSteps(testSteps) {
 }
 
 /**
- * 准备断言规则数据
+ * 准备增强的断言规则数据
+ */
+function prepareAssertionsEnhanced(assertions) {
+  return assertions.map((assertion, index) => ({
+    '序号': index + 1,
+    '断言类型': getAssertionTypeText(assertion.type),
+    'JSON路径': assertion.path || assertion.jsonPath || '-',
+    '表达式': assertion.expression || '-',
+    '预期值': formatValue(assertion.expected),
+    '描述': assertion.description || '-'
+  }))
+}
+
+/**
+ * 准备断言规则数据（向后兼容）
  */
 function prepareAssertions(assertions) {
-  return assertions.map((assertion, index) => ({
-    序号: index + 1,
-    断言类型: assertion.type || '',
-    JSON路径: assertion.path || '',
-    表达式: assertion.expression || '',
-    预期值: assertion.expected || ''
+  return prepareAssertionsEnhanced(assertions)
+}
+
+/**
+ * 准备增强的提取规则数据
+ */
+function prepareExtractorsEnhanced(extractors) {
+  return extractors.map((extractor, index) => ({
+    '序号': index + 1,
+    '变量名': extractor.name || '',
+    '提取表达式': extractor.expression || '',
+    '提取类型': extractor.type || 'jsonpath',
+    '描述': extractor.description || '-'
   }))
 }
 
 /**
- * 准备提取规则数据
+ * 准备提取规则数据（向后兼容）
  */
 function prepareExtractors(extractors) {
-  return extractors.map((extractor, index) => ({
-    序号: index + 1,
-    变量名: extractor.name || '',
-    表达式: extractor.expression || '',
-    描述: extractor.description || ''
+  return prepareExtractorsEnhanced(extractors)
+}
+
+/**
+ * 准备增强的执行历史数据
+ */
+function prepareExecutionHistoryEnhanced(history) {
+  return history.map((record, index) => ({
+    '序号': index + 1,
+    '执行ID': record.executionId || record.execution_id || record.recordId || '',
+    '执行状态': getExecutionStatusText(record.status),
+    '开始时间': formatDateTime(record.startTime || record.start_time),
+    '结束时间': formatDateTime(record.endTime || record.end_time),
+    '执行耗时': formatDuration(record.duration || record.durationSeconds),
+    '执行人': record.executor || record.executorInfo?.name || '',
+    '执行环境': record.environment || '-',
+    '成功率': record.successRate ? `${(record.successRate * 100).toFixed(2)}%` : '-'
   }))
 }
 
 /**
- * 准备执行历史数据
+ * 准备执行历史数据（向后兼容）
  */
 function prepareExecutionHistory(history) {
-  return history.map((record, index) => ({
-    序号: index + 1,
-    执行ID: record.executionId || record.execution_id || '',
-    执行状态: record.status || '',
-    开始时间: record.startTime || record.start_time || '',
-    结束时间: record.endTime || record.end_time || '',
-    执行耗时: record.duration ? `${record.duration}ms` : '',
-    执行人: record.executor || '',
-    执行环境: record.environment || ''
-  }))
+  return prepareExecutionHistoryEnhanced(history)
 }
 
 /**
@@ -456,6 +530,208 @@ function formatObjectToYAML(obj, indent = 0) {
  */
 function getCurrentTimestamp() {
   return new Date().toISOString().slice(0, 19).replace(/:/g, '-').replace('T', '_')
+}
+
+/**
+ * 准备请求数据
+ */
+function prepareRequestData(testCase) {
+  const requestData = []
+  
+  // 前置条件
+  if (testCase.preConditions) {
+    const conditions = typeof testCase.preConditions === 'string' 
+      ? JSON.parse(testCase.preConditions) 
+      : testCase.preConditions
+    
+    Object.entries(conditions).forEach(([key, value]) => {
+      requestData.push({
+        '参数名': key,
+        '参数值': formatValue(value)
+      })
+    })
+  }
+  
+  // 请求覆盖
+  if (testCase.requestOverride) {
+    const override = typeof testCase.requestOverride === 'string'
+      ? JSON.parse(testCase.requestOverride)
+      : testCase.requestOverride
+    
+    Object.entries(override).forEach(([key, value]) => {
+      requestData.push({
+        '参数名': `${key} (覆盖)`,
+        '参数值': formatValue(value)
+      })
+    })
+  }
+  
+  return requestData.length > 0 ? requestData : [{ '参数名': '无', '参数值': '-' }]
+}
+
+/**
+ * 准备预期响应数据
+ */
+function prepareExpectedResponse(testCase) {
+  const responseData = []
+  
+  // 预期HTTP状态码
+  responseData.push({
+    '项目': '📊 预期HTTP状态码',
+    '值': testCase.expectedHttpStatus || testCase.expected_http_status || 200
+  })
+  
+  // 预期响应体
+  if (testCase.expectedResponseBody || testCase.expected_response_body) {
+    const body = testCase.expectedResponseBody || testCase.expected_response_body
+    responseData.push({
+      '项目': '📦 预期响应体',
+      '值': formatValue(body)
+    })
+  }
+  
+  // 预期响应Schema
+  if (testCase.expectedResponseSchema || testCase.expected_response_schema) {
+    const schema = testCase.expectedResponseSchema || testCase.expected_response_schema
+    responseData.push({
+      '项目': '📋 响应Schema',
+      '值': formatValue(schema)
+    })
+  }
+  
+  return responseData.length > 0 ? responseData : [{ '项目': '无', '值': '-' }]
+}
+
+/**
+ * 准备验证器数据
+ */
+function prepareValidators(validators) {
+  return validators.map((validator, index) => ({
+    '序号': index + 1,
+    '验证器名称': validator.name || '',
+    '验证规则': validator.rule || validator.expression || '',
+    '描述': validator.description || '-'
+  }))
+}
+
+/**
+ * 应用列宽
+ */
+function applyColumnWidth(worksheet, widths) {
+  worksheet['!cols'] = widths
+}
+
+/**
+ * 格式化日期时间
+ */
+function formatDateTime(dateTime) {
+  if (!dateTime) return '-'
+  try {
+    const date = new Date(dateTime)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    })
+  } catch (error) {
+    return String(dateTime)
+  }
+}
+
+/**
+ * 格式化持续时间
+ */
+function formatDuration(duration) {
+  if (!duration) return '-'
+  
+  // 如果是秒数
+  if (duration < 60) {
+    return `${duration.toFixed(2)}秒`
+  }
+  
+  // 如果是毫秒数
+  if (duration < 1) {
+    return `${(duration * 1000).toFixed(0)}毫秒`
+  }
+  
+  const minutes = Math.floor(duration / 60)
+  const seconds = (duration % 60).toFixed(0)
+  return `${minutes}分${seconds}秒`
+}
+
+/**
+ * 格式化值
+ */
+function formatValue(value) {
+  if (value === null || value === undefined) return '-'
+  if (typeof value === 'object') {
+    return JSON.stringify(value, null, 2)
+  }
+  return String(value)
+}
+
+/**
+ * 获取严重程度文本
+ */
+function getSeverityText(severity) {
+  const map = {
+    'critical': '🔴 严重',
+    'high': '🟠 高',
+    'medium': '🟡 中',
+    'low': '🟢 低'
+  }
+  return map[severity] || severity || '🟡 中'
+}
+
+/**
+ * 获取测试类型文本
+ */
+function getTestTypeText(testType) {
+  const map = {
+    'functional': '⚙️ 功能测试',
+    'boundary': '📏 边界测试',
+    'exception': '⚠️ 异常测试',
+    'security': '🔒 安全测试',
+    'performance': '⚡ 性能测试',
+    'integration': '🔗 集成测试',
+    'smoke': '💨 冒烟测试',
+    'regression': '🔄 回归测试'
+  }
+  return map[testType] || testType || '⚙️ 功能测试'
+}
+
+/**
+ * 获取断言类型文本
+ */
+function getAssertionTypeText(type) {
+  const map = {
+    'status_code': 'HTTP状态码',
+    'json_path': 'JSON路径',
+    'response_time': '响应时间',
+    'response_body': '响应体',
+    'header': '响应头',
+    'schema': 'Schema验证'
+  }
+  return map[type] || type || '未知'
+}
+
+/**
+ * 获取执行状态文本
+ */
+function getExecutionStatusText(status) {
+  const map = {
+    'passed': '✅ 通过',
+    'failed': '❌ 失败',
+    'running': '🔄 执行中',
+    'cancelled': '⛔ 已取消',
+    'completed': '✅ 完成',
+    'pending': '⏳ 待执行'
+  }
+  return map[status] || status || '未知'
 }
 
 /**

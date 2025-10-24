@@ -895,22 +895,34 @@
 
           <el-form-item label="包含内容">
             <el-checkbox-group v-model="exportFormData.includeOptions">
-              <div class="checkbox-list">
-                <el-checkbox label="steps" checked disabled>
+              <div class="checkbox-grid">
+                <el-checkbox label="basic" checked disabled>
                   <span class="checkbox-label">
-                    <span class="checkbox-icon">📝</span>
+                    <span class="checkbox-icon">📋</span>
                     基本信息
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="requestData">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">📤</span>
+                    请求数据
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="expectedResponse">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">📥</span>
+                    预期响应
                   </span>
                 </el-checkbox>
                 <el-checkbox label="steps">
                   <span class="checkbox-label">
-                    <span class="checkbox-icon">🔢</span>
+                    <span class="checkbox-icon">📝</span>
                     测试步骤
                   </span>
                 </el-checkbox>
                 <el-checkbox label="assertions">
                   <span class="checkbox-label">
-                    <span class="checkbox-icon">✓</span>
+                    <span class="checkbox-icon">✅</span>
                     断言规则
                   </span>
                 </el-checkbox>
@@ -918,6 +930,12 @@
                   <span class="checkbox-label">
                     <span class="checkbox-icon">🔍</span>
                     提取规则
+                  </span>
+                </el-checkbox>
+                <el-checkbox label="validators">
+                  <span class="checkbox-label">
+                    <span class="checkbox-icon">🔒</span>
+                    验证器
                   </span>
                 </el-checkbox>
                 <el-checkbox label="history">
@@ -928,6 +946,11 @@
                 </el-checkbox>
               </div>
             </el-checkbox-group>
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+              <el-button size="small" text type="primary" @click="selectAllExportOptions">全选</el-button>
+              <el-button size="small" text @click="clearAllExportOptions">清空</el-button>
+              <el-button size="small" text @click="selectRecommendedExportOptions">推荐选项</el-button>
+            </div>
             <div class="form-tip">基本信息始终包含（用例名称、编码、描述等）</div>
           </el-form-item>
 
@@ -1566,10 +1589,13 @@ const exporting = ref(false)
 const exportFormRef = ref(null)
 const exportFormData = reactive({
   format: 'excel',
-  includeOptions: ['steps', 'assertions', 'extractors'],
+  includeOptions: ['basic', 'requestData', 'expectedResponse', 'steps', 'assertions', 'extractors'],
   fileName: '',
   encoding: 'utf-8'
 })
+
+// 所有可用的导出选项
+const allExportOptions = ['basic', 'requestData', 'expectedResponse', 'steps', 'assertions', 'extractors', 'validators', 'history']
 
 // 导出表单验证规则
 const exportFormRules = {
@@ -1922,12 +1948,27 @@ const getEstimatedSize = () => {
 }
 
 /**
+ * 导出选项快捷操作
+ */
+const selectAllExportOptions = () => {
+  exportFormData.includeOptions = [...allExportOptions]
+}
+
+const clearAllExportOptions = () => {
+  exportFormData.includeOptions = ['basic'] // 基本信息始终保留
+}
+
+const selectRecommendedExportOptions = () => {
+  exportFormData.includeOptions = ['basic', 'requestData', 'expectedResponse', 'steps', 'assertions', 'extractors']
+}
+
+/**
  * 打开导出对话框
  */
 const handleExport = () => {
-  // 重置表单数据
+  // 重置为推荐选项
+  selectRecommendedExportOptions()
   exportFormData.format = 'excel'
-  exportFormData.includeOptions = ['steps', 'assertions', 'extractors']
   exportFormData.fileName = ''
   exportFormData.encoding = 'utf-8'
   
@@ -1952,9 +1993,12 @@ const handleConfirmExport = async () => {
     
     // 构建导出选项
     const options = {
+      includeRequestData: exportFormData.includeOptions.includes('requestData'),
+      includeExpectedResponse: exportFormData.includeOptions.includes('expectedResponse'),
       includeSteps: exportFormData.includeOptions.includes('steps'),
       includeAssertions: exportFormData.includeOptions.includes('assertions'),
       includeExtractors: exportFormData.includeOptions.includes('extractors'),
+      includeValidators: exportFormData.includeOptions.includes('validators'),
       includeHistory: exportFormData.includeOptions.includes('history'),
       encoding: exportFormData.encoding,
       fileName: exportFormData.fileName || null
@@ -3089,6 +3133,13 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/* 复选框网格 */
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px 16px;
 }
 
 .checkbox-label {
