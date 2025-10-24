@@ -598,6 +598,104 @@ projects.value.forEach(project => {
 
 **状态**：✅ 已修复
 
+### Issue 4: 删除后右侧仍显示旧的项目信息
+
+**问题描述**：删除接口成功后，右侧详情页仍然显示着删除前选中的项目或模块信息
+
+**原因**：
+1. 设置 `selectedNode.value = null` 和 `selectedLevel.value = null` 后，没有调用 `savePageState()` 更新 localStorage
+2. Vue 的响应式更新可能没有及时触发，导致 DOM 没有立即更新
+
+**修复**：
+```javascript
+// 修复前
+selectedNode.value = null
+selectedLevel.value = null
+// 没有保存状态，没有等待 DOM 更新
+
+// 修复后
+selectedNode.value = null
+selectedLevel.value = null
+
+// 等待 DOM 更新，确保右侧详情页被清空
+await nextTick()
+
+// 保存清空后的状态到 localStorage
+savePageState()
+```
+
+**关键改进**：
+1. ✅ 添加 `nextTick` 导入
+2. ✅ 在清空选择状态后调用 `await nextTick()` 确保 DOM 更新
+3. ✅ 调用 `savePageState()` 更新 localStorage 中的状态
+4. ✅ 确保右侧详情页被立即清空
+
+**状态**：✅ 已修复
+
+### Issue 5: 删除后出现 "Cannot read properties of null" 错误
+
+**问题描述**：删除接口后，控制台报错 `Cannot read properties of null (reading 'name')`，提示 `LevelStats` 组件收到了 null 的 node prop
+
+**错误信息**：
+```
+[Vue warn]: Invalid prop: type check failed for prop "node". Expected Object, got Null
+Uncaught (in promise) TypeError: Cannot read properties of null (reading 'name')
+```
+
+**原因**：
+在某些情况下（如状态恢复、快速操作等），`selectedLevel` 有值但 `selectedNode` 是 null，导致组件渲染时收到无效的 props
+
+**修复**：
+在所有组件的 `v-if` 条件中添加 `selectedNode` 的检查
+
+```vue
+<!-- 修复前 -->
+<LevelStats
+  v-if="selectedLevel === 'project' || selectedLevel === 'module'"
+  :node="selectedNode"
+  ...
+/>
+
+<ApiDetail
+  v-else-if="selectedLevel === 'api'"
+  :api="selectedNode"
+  ...
+/>
+
+<CaseDetail
+  v-else-if="selectedLevel === 'case'"
+  :test-case="selectedNode"
+  ...
+/>
+
+<!-- 修复后 -->
+<LevelStats
+  v-if="(selectedLevel === 'project' || selectedLevel === 'module') && selectedNode"
+  :node="selectedNode"
+  ...
+/>
+
+<ApiDetail
+  v-else-if="selectedLevel === 'api' && selectedNode"
+  :api="selectedNode"
+  ...
+/>
+
+<CaseDetail
+  v-else-if="selectedLevel === 'case' && selectedNode"
+  :test-case="selectedNode"
+  ...
+/>
+```
+
+**关键改进**：
+1. ✅ 在所有组件的 `v-if` 条件中添加 `&& selectedNode` 检查
+2. ✅ 确保只有当 `selectedNode` 不是 null 时才渲染组件
+3. ✅ 当条件都不满足时，显示默认空状态
+4. ✅ 防止组件收到 null props 导致的运行时错误
+
+**状态**：✅ 已修复
+
 ## 更新时间
 2025-01-24 (最后更新: 2025-01-24)
 

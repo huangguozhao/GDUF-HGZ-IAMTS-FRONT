@@ -134,8 +134,10 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { Setting, Edit, Delete } from '@element-plus/icons-vue'
+import { getProjectStatistics } from '@/api/project'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   node: {
@@ -153,10 +155,55 @@ const emit = defineEmits(['edit', 'delete', 'add', 'edit-child', 'delete-child',
 // 环境配置对话框
 const envDialogVisible = ref(false)
 
+// 项目统计数据
+const projectStats = ref(null)
+const loadingStats = ref(false)
+
 // 打开环境配置
 const handleConfigEnvironment = () => {
   emit('config-environment', props.node)
 }
+
+// 加载项目统计数据
+const loadProjectStatistics = async () => {
+  if (props.level !== 'project' || !props.node) return
+  
+  const projectId = props.node.project_id || props.node.projectId || props.node.id
+  if (!projectId) {
+    console.warn('无法获取项目ID')
+    return
+  }
+  
+  try {
+    loadingStats.value = true
+    console.log('开始加载项目统计数据，项目ID:', projectId)
+    
+    const response = await getProjectStatistics(projectId)
+    console.log('项目统计数据响应:', response)
+    
+    if (response.code === 1 && response.data) {
+      projectStats.value = response.data
+      console.log('项目统计数据已加载:', projectStats.value)
+    } else {
+      console.error('获取项目统计数据失败:', response.msg)
+    }
+  } catch (error) {
+    console.error('加载项目统计数据失败:', error)
+  } finally {
+    loadingStats.value = false
+  }
+}
+
+// 监听 props.node 变化，重新加载统计数据
+watch(
+  () => props.node,
+  (newNode) => {
+    if (newNode && props.level === 'project') {
+      loadProjectStatistics()
+    }
+  },
+  { immediate: true }
+)
 
 const children = computed(() => {
   if (props.level === 'project') {
@@ -171,10 +218,20 @@ const getLevelIcon = () => {
 }
 
 const getChildCount = () => {
+  // 如果是项目层级且有统计数据，使用后端数据
+  if (props.level === 'project' && projectStats.value) {
+    return projectStats.value.moduleCount || 0
+  }
   return children.value.length
 }
 
 const getTotalCases = () => {
+  // 如果是项目层级且有统计数据，使用后端数据
+  if (props.level === 'project' && projectStats.value) {
+    return projectStats.value.testCaseCount || 0
+  }
+  
+  // 否则使用本地计算
   let total = 0
   if (props.level === 'project') {
     props.node.modules?.forEach(module => {
@@ -191,6 +248,12 @@ const getTotalCases = () => {
 }
 
 const getPassedCount = () => {
+  // 如果是项目层级且有统计数据，使用后端数据
+  if (props.level === 'project' && projectStats.value) {
+    return projectStats.value.passedCount || 0
+  }
+  
+  // 否则使用本地计算
   let count = 0
   if (props.level === 'project') {
     props.node.modules?.forEach(module => {
@@ -211,6 +274,12 @@ const getPassedCount = () => {
 }
 
 const getFailedCount = () => {
+  // 如果是项目层级且有统计数据，使用后端数据
+  if (props.level === 'project' && projectStats.value) {
+    return projectStats.value.failedCount || 0
+  }
+  
+  // 否则使用本地计算
   let count = 0
   if (props.level === 'project') {
     props.node.modules?.forEach(module => {
@@ -231,6 +300,12 @@ const getFailedCount = () => {
 }
 
 const getNotExecutedCount = () => {
+  // 如果是项目层级且有统计数据，使用后端数据
+  if (props.level === 'project' && projectStats.value) {
+    return projectStats.value.notExecutedCount || 0
+  }
+  
+  // 否则使用本地计算
   let count = 0
   if (props.level === 'project') {
     props.node.modules?.forEach(module => {

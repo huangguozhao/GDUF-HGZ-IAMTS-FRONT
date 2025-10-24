@@ -24,6 +24,14 @@ export function getProjects(params = {}) {
   })
 }
 
+// 获取项目统计数据
+export function getProjectStatistics(projectId) {
+  return request({
+    url: `/projects/${projectId}/statistics`,
+    method: 'get'
+  })
+}
+
 // 创建项目
 export function createProject(data) {
   return request({

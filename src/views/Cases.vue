@@ -164,7 +164,7 @@
       <div class="main-area">
         <!-- 项目/模块层级 - 显示统计信息 -->
         <LevelStats
-          v-if="selectedLevel === 'project' || selectedLevel === 'module'"
+          v-if="(selectedLevel === 'project' || selectedLevel === 'module') && selectedNode"
           :node="selectedNode"
           :level="selectedLevel"
           @edit="handleEdit"
@@ -178,7 +178,7 @@
 
         <!-- 接口层级 - 显示接口详情 -->
         <ApiDetail
-          v-else-if="selectedLevel === 'api'"
+          v-else-if="selectedLevel === 'api' && selectedNode"
           :api="selectedNode"
           :related-cases="selectedNode.cases || []"
           @select-case="handleSelectCase"
@@ -191,7 +191,7 @@
 
         <!-- 用例层级 - 显示用例详情 -->
         <CaseDetail
-          v-else-if="selectedLevel === 'case'"
+          v-else-if="selectedLevel === 'case' && selectedNode"
           :test-case="selectedNode"
           :execution-history="executionHistory"
           @close="selectedNode = null"
@@ -1137,7 +1137,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onActivated, onDeactivated } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   CircleCheckFilled, 
@@ -1930,6 +1930,12 @@ const handleDeleteApi = async (apiId) => {
     // 清空右侧详情页
     selectedNode.value = null
     selectedLevel.value = null
+    
+    // 等待 DOM 更新，确保右侧详情页被清空
+    await nextTick()
+    
+    // 保存清空后的状态到 localStorage
+    savePageState()
     
     // 在树结构中找到并移除对应的接口节点（不重新加载，保持展开状态）
     let found = false
