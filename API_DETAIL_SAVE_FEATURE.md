@@ -209,41 +209,81 @@ const emit = defineEmits([
 />
 ```
 
-#### 3.2 实现 handleRefreshApi 方法
+#### 3.2 添加 getApiById API 导入
 ```javascript
-const handleRefreshApi = async () => {
+import {
+  getProjects,
+  getModulesByProject,
+  getApisByModule,
+  getApiById,  // 新增
+  // ... 其他导入
+} from '../api/project'
+```
+
+#### 3.3 实现智能刷新机制（参考测试用例更新）
+
+**核心思想**：只更新当前接口的数据，不重新加载整个项目树，保持展开/折叠状态。
+
+```javascript
+// 更新当前选中的接口数据（保持折叠状态）
+const updateCurrentApiData = async () => {
   if (selectedLevel.value === 'api' && selectedNode.value) {
     try {
-      // 重新加载整个项目树
-      await loadProjectTree()
-      
-      // 重新查找并选中当前接口节点
+      // 获取当前接口ID
       const apiId = selectedNode.value.api_id || selectedNode.value.id
-      const findApiNode = (nodes) => {
-        for (const node of nodes) {
-          if (node.modules) {
-            for (const module of node.modules) {
-              if (module.apis) {
-                const api = module.apis.find(a => 
-                  (a.api_id || a.id) === apiId
-                )
-                if (api) return api
-              }
-            }
-          }
-        }
-        return null
+      if (!apiId) {
+        console.error('无法获取接口ID')
+        return
       }
       
-      const updatedApi = findApiNode(projects.value)
-      if (updatedApi) {
-        selectedNode.value = updatedApi
+      // 调用API获取最新的接口详情
+      const response = await getApiById(apiId)
+      
+      if (response.code === 1 && response.data) {
+        const apiData = response.data
+        const transformedApi = transformApi(apiData)
+        
+        // 保留关联数据（测试用例列表等）
+        transformedApi.cases = selectedNode.value.cases || []
+        
+        // 在树结构中找到并更新对应的接口节点
+        let found = false
+        projects.value.forEach(project => {
+          if (project.modules) {
+            project.modules.forEach(module => {
+              if (module.apis) {
+                const apiIndex = module.apis.findIndex(api => 
+                  (api.api_id || api.id) === apiId
+                )
+                if (apiIndex !== -1) {
+                  // 更新树中的接口数据
+                  Object.assign(module.apis[apiIndex], transformedApi)
+                  // 更新当前选中的节点
+                  selectedNode.value = module.apis[apiIndex]
+                  found = true
+                }
+              }
+            })
+          }
+        })
+        
+        if (!found) {
+          console.warn('在项目树中未找到对应的接口节点')
+        }
+      } else {
+        ElMessage.error(response.msg || '获取接口详情失败')
       }
     } catch (error) {
-      console.error('刷新接口失败:', error)
-      ElMessage.error('刷新接口失败')
+      console.error('更新接口数据失败:', error)
+      ElMessage.error('更新接口数据失败')
     }
   }
+}
+
+// 刷新接口详情（当接口信息更新后）
+const handleRefreshApi = async () => {
+  // 只更新当前接口数据，不重新加载整个树，保持折叠状态
+  await updateCurrentApiData()
 }
 ```
 
@@ -270,10 +310,12 @@ const handleRefreshApi = async () => {
 - 后端错误消息展示
 - 网络错误处理
 
-### ✅ 自动刷新
-- 保存成功后自动刷新页面数据
-- 重新加载项目树获取最新信息
-- 保持当前选中状态
+### ✅ 智能刷新机制
+- 保存成功后自动刷新接口数据
+- **只更新当前接口**，不重新加载整个项目树
+- **保持树的展开/折叠状态**（参考测试用例更新机制）
+- 保留关联数据（如测试用例列表）
+- 自动更新左侧树和右侧详情页
 
 ## 用户操作流程
 
@@ -318,13 +360,59 @@ const handleRefreshApi = async () => {
 }
 ```
 
+## 智能刷新机制说明
+
+### 为什么采用局部更新而非全量刷新？
+
+**对比两种方案：**
+
+#### ❌ 方案A：重新加载整个项目树
+```javascript
+// 旧方案
+const handleRefreshApi = async () => {
+  await loadProjectTree()  // 重新加载所有项目、模块、接口
+  // 问题：会重置所有展开/折叠状态
+}
+```
+**缺点**：
+- 会重置所有节点的展开/折叠状态
+- 用户体验差：保存后树结构全部折叠
+- 性能开销大：重新加载所有数据
+
+#### ✅ 方案B：只更新当前接口（当前实现）
+```javascript
+// 新方案（参考测试用例更新机制）
+const handleRefreshApi = async () => {
+  await updateCurrentApiData()  // 只更新当前接口
+}
+
+const updateCurrentApiData = async () => {
+  // 1. 调用 getApiById 获取最新数据
+  // 2. 转换数据格式
+  // 3. 在树结构中找到并更新对应节点
+  // 4. 保留关联数据（如测试用例列表）
+}
+```
+**优点**：
+- ✅ 保持所有节点的展开/折叠状态
+- ✅ 用户体验好：保存后状态不变
+- ✅ 性能好：只请求一个接口的数据
+- ✅ 与测试用例更新机制保持一致
+
+### 实现细节
+
+1. **保留状态**：不修改 `expandedNodes` Set
+2. **局部更新**：使用 `Object.assign()` 更新树节点
+3. **保留关联**：保留 `cases` 等关联数据
+4. **双向同步**：同时更新 `projects.value` 和 `selectedNode.value`
+
 ## 注意事项
 
 1. **权限控制**: 需要 `api:update` 权限
 2. **数据验证**: 前后端双重验证确保数据完整性
 3. **并发控制**: 保存过程中禁用保存按钮（可选，未实现）
 4. **错误提示**: 所有错误都有友好的中文提示
-5. **数据刷新**: 保存成功后自动刷新，无需手动刷新页面
+5. **智能刷新**: 保存成功后自动刷新当前接口数据，保持UI状态
 
 ## 测试建议
 
@@ -346,12 +434,43 @@ const handleRefreshApi = async () => {
 - ✅ 后端返回错误时的处理
 - ✅ 无权限时的错误提示
 
+### 状态保持测试（重要）
+- ✅ **展开多个项目和模块**
+- ✅ **修改某个接口并保存**
+- ✅ **验证所有节点的展开状态保持不变**
+- ✅ **验证左侧树中的接口名称已更新**
+- ✅ **验证右侧详情页数据已更新**
+
 ## 相关文件
 
 - `src/components/cases/ApiDetail.vue` - 接口详情组件
 - `src/views/Cases.vue` - 测试用例管理页面
-- `src/api/project.js` - 项目和接口相关API
+- `src/api/project.js` - 项目和接口相关API（新增 `getApiById` 函数）
 
-## 更新日期
-2025-01-24
+## 更新历史
+
+### 2025-01-24 v2 - 优化刷新机制
+- ✅ 添加 `getApiById` API 函数
+- ✅ 实现 `updateCurrentApiData` 函数
+- ✅ 优化 `handleRefreshApi`，参考测试用例更新机制
+- ✅ **保存后保持树的展开/折叠状态**
+- ✅ 只更新当前接口数据，提升性能
+- ✅ 保留关联数据（测试用例列表等）
+
+### 2025-01-24 v1 - 初始实现
+- ✅ 实现接口详情页面保存修改功能
+- ✅ 表单验证和错误处理
+- ✅ 支持模块切换
+- ✅ 基本的数据刷新
+
+## 总结
+
+本功能实现了接口详情页面的保存修改功能，**特别优化了刷新机制**，参考测试用例的更新逻辑，实现了：
+
+1. **智能刷新**：只更新当前接口，不重新加载整个项目树
+2. **状态保持**：保存后保持所有节点的展开/折叠状态
+3. **用户体验**：无感知的数据更新，流畅的操作体验
+4. **性能优化**：减少不必要的网络请求和DOM更新
+
+这种设计模式可以推广到其他类似场景，如模块更新、项目更新等。
 

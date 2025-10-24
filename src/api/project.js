@@ -136,6 +136,14 @@ export function createApi(moduleId, data) {
   })
 }
 
+// 获取接口详情
+export function getApiById(apiId) {
+  return request({
+    url: `/apis/${apiId}`,
+    method: 'get'
+  })
+}
+
 // 更新接口
 export function updateApi(apiId, data) {
   return request({

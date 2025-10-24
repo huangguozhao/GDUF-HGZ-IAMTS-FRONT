@@ -1152,6 +1152,7 @@ import {
   getProjects,
   getModulesByProject,
   getApisByModule,
+  getApiById,
   createProject,
   updateProject,
   deleteProject,
@@ -1816,40 +1817,65 @@ const handleRefreshCases = async () => {
   }
 }
 
-// 刷新接口详情（当接口信息更新后）
-const handleRefreshApi = async () => {
+// 更新当前选中的接口数据（保持折叠状态）
+const updateCurrentApiData = async () => {
   if (selectedLevel.value === 'api' && selectedNode.value) {
     try {
-      // 重新加载整个项目树以获取最新的接口信息
-      await loadProjectTree()
-      
-      // 重新查找并选中当前接口节点
+      // 获取当前接口ID
       const apiId = selectedNode.value.api_id || selectedNode.value.id
-      const findApiNode = (nodes) => {
-        for (const node of nodes) {
-          if (node.modules) {
-            for (const module of node.modules) {
-              if (module.apis) {
-                const api = module.apis.find(a => 
-                  (a.api_id || a.id) === apiId
-                )
-                if (api) return api
-              }
-            }
-          }
-        }
-        return null
+      if (!apiId) {
+        console.error('无法获取接口ID')
+        return
       }
       
-      const updatedApi = findApiNode(projects.value)
-      if (updatedApi) {
-        selectedNode.value = updatedApi
+      // 调用API获取最新的接口详情
+      const response = await getApiById(apiId)
+      
+      if (response.code === 1 && response.data) {
+        const apiData = response.data
+        const transformedApi = transformApi(apiData)
+        
+        // 保留关联数据（测试用例列表等）
+        transformedApi.cases = selectedNode.value.cases || []
+        
+        // 在树结构中找到并更新对应的接口节点
+        let found = false
+        projects.value.forEach(project => {
+          if (project.modules) {
+            project.modules.forEach(module => {
+              if (module.apis) {
+                const apiIndex = module.apis.findIndex(api => 
+                  (api.api_id || api.id) === apiId
+                )
+                if (apiIndex !== -1) {
+                  // 更新树中的接口数据
+                  Object.assign(module.apis[apiIndex], transformedApi)
+                  // 更新当前选中的节点
+                  selectedNode.value = module.apis[apiIndex]
+                  found = true
+                }
+              }
+            })
+          }
+        })
+        
+        if (!found) {
+          console.warn('在项目树中未找到对应的接口节点')
+        }
+      } else {
+        ElMessage.error(response.msg || '获取接口详情失败')
       }
     } catch (error) {
-      console.error('刷新接口失败:', error)
-      ElMessage.error('刷新接口失败')
+      console.error('更新接口数据失败:', error)
+      ElMessage.error('更新接口数据失败')
     }
   }
+}
+
+// 刷新接口详情（当接口信息更新后）
+const handleRefreshApi = async () => {
+  // 只更新当前接口数据，不重新加载整个树，保持折叠状态
+  await updateCurrentApiData()
 }
 
 // 更新当前选中的用例数据
