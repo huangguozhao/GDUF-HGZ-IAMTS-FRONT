@@ -24,9 +24,9 @@ public ResponseVO<ApiDTO> updateApi(
 
 ## 前端实现
 
-### 1. API函数（已存在）
+### 1. API函数
 
-在 `src/api/project.js` 中已有 `updateApi` 函数：
+在 `src/api/project.js` 中的 `updateApi` 函数：
 
 ```javascript
 export function updateApi(apiId, data) {
@@ -34,13 +34,18 @@ export function updateApi(apiId, data) {
     url: `/apis/${apiId}`,
     method: 'put',
     data: {
+      module_id: data.module_id,
+      api_code: data.api_code,
       name: data.name,
       method: data.method,
       path: data.path,
+      base_url: data.base_url,
       description: data.description,
+      precondition: data.precondition,
       request_parameters: data.request_parameters,
       request_headers: data.request_headers,
       request_body: data.request_body,
+      request_body_type: data.request_body_type,
       tags: data.tags
     }
   })

@@ -117,22 +117,32 @@ export function getApisByModule(moduleId) {
 
 // 创建接口
 export function createApi(moduleId, data) {
+  const requestData = {
+    moduleId: moduleId,  // 使用驼峰命名
+    apiCode: data.api_code || data.apiCode,
+    name: data.name,
+    method: data.method,
+    path: data.path,
+    baseUrl: data.base_url || data.baseUrl,
+    description: data.description,
+    precondition: data.precondition,
+    status: 'active',  // 显式设置为 active（数据库只支持 active/inactive/deprecated）
+    requestParameters: data.request_parameters || data.requestParameters,
+    requestHeaders: data.request_headers || data.requestHeaders,
+    requestBody: data.request_body || data.requestBody,
+    requestBodyType: data.request_body_type || data.requestBodyType || 'json',
+    tags: data.tags || []
+  }
+  
+  console.log('=== createApi 函数 ===')
+  console.log('moduleId 参数:', moduleId)
+  console.log('data 参数:', data)
+  console.log('最终请求体 (驼峰命名):', requestData)
+  
   return request({
-    url: `/modules/${moduleId}/apis`,
+    url: `/apis`,
     method: 'post',
-    data: {
-      api_code: data.api_code,
-      name: data.name,
-      method: data.method,
-      path: data.path,
-      base_url: data.base_url,
-      description: data.description,
-      request_parameters: data.request_parameters,
-      request_headers: data.request_headers,
-      request_body: data.request_body,
-      request_body_type: data.request_body_type,
-      tags: data.tags
-    }
+    data: requestData
   })
 }
 
@@ -146,19 +156,31 @@ export function getApiById(apiId) {
 
 // 更新接口
 export function updateApi(apiId, data) {
+  const requestData = {
+    moduleId: data.module_id || data.moduleId,
+    apiCode: data.api_code || data.apiCode,
+    name: data.name,
+    method: data.method,
+    path: data.path,
+    baseUrl: data.base_url || data.baseUrl,
+    description: data.description,
+    precondition: data.precondition,
+    status: data.status || 'active',  // 默认为 active（数据库只支持 active/inactive/deprecated）
+    requestParameters: data.request_parameters || data.requestParameters,
+    requestHeaders: data.request_headers || data.requestHeaders,
+    requestBody: data.request_body || data.requestBody,
+    requestBodyType: data.request_body_type || data.requestBodyType,
+    tags: data.tags || []
+  }
+  
+  console.log('=== updateApi 函数 ===')
+  console.log('apiId:', apiId)
+  console.log('最终请求体 (驼峰命名):', requestData)
+  
   return request({
     url: `/apis/${apiId}`,
     method: 'put',
-    data: {
-      name: data.name,
-      method: data.method,
-      path: data.path,
-      description: data.description,
-      request_parameters: data.request_parameters,
-      request_headers: data.request_headers,
-      request_body: data.request_body,
-      tags: data.tags
-    }
+    data: requestData
   })
 }
 

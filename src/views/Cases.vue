@@ -1677,9 +1677,9 @@ const loadProjectModules = async (project) => {
 }
 
 // 加载模块接口
-const loadModuleApis = async (module) => {
-  // 如果接口已经加载过，直接返回
-  if (module.apis && module.apis.length > 0) {
+const loadModuleApis = async (module, forceRefresh = false) => {
+  // 如果接口已经加载过且不是强制刷新，直接返回
+  if (!forceRefresh && module.apis && module.apis.length > 0) {
     return
   }
   
@@ -1817,6 +1817,46 @@ const handleRefreshCases = async () => {
   }
 }
 
+// 刷新模块的接口列表（保持折叠状态）
+const refreshModuleApis = async (moduleId) => {
+  if (!moduleId) {
+    console.error('模块ID不能为空')
+    return
+  }
+  
+  try {
+    // 查找对应的模块节点
+    let targetModule = null
+    projects.value.forEach(project => {
+      if (project.modules) {
+        const module = project.modules.find(m => m.module_id === moduleId)
+        if (module) {
+          targetModule = module
+        }
+        // 也检查子模块
+        project.modules.forEach(m => {
+          if (m.children) {
+            const subModule = m.children.find(sm => sm.module_id === moduleId)
+            if (subModule) {
+              targetModule = subModule
+            }
+          }
+        })
+      }
+    })
+    
+    if (!targetModule) {
+      console.error('未找到模块节点')
+      return
+    }
+    
+    // 重新加载该模块的接口列表（强制刷新）
+    await loadModuleApis(targetModule, true)
+  } catch (error) {
+    console.error('刷新模块接口列表失败:', error)
+  }
+}
+
 // 更新当前选中的接口数据（保持折叠状态）
 const updateCurrentApiData = async () => {
   if (selectedLevel.value === 'api' && selectedNode.value) {
@@ -1942,10 +1982,25 @@ const handleAddModule = (project) => {
 }
 
 const handleAddApi = (module) => {
+  console.log('=== 新建接口 ===')
+  console.log('模块对象:', module)
+  console.log('module_id:', module.module_id)
+  console.log('moduleId:', module.moduleId)
+  
   dialogType.value = 'api'
   isEdit.value = false
   resetForm()
-  formData.parentId = module.module_id // 保存模块ID
+  
+  // 尝试多种方式获取模块ID
+  const moduleId = module.module_id || module.moduleId || module.id
+  console.log('最终使用的模块ID:', moduleId)
+  
+  if (!moduleId) {
+    ElMessage.error('无法获取模块ID，请重试')
+    return
+  }
+  
+  formData.parentId = moduleId // 保存模块ID
   dialogVisible.value = true
 }
 
@@ -2521,10 +2576,27 @@ const handleSaveWithAPI = async () => {
   } else if (dialogType.value === 'api') {
     if (isEdit.value) {
       await updateApi(formData.api_id, data)
+      // 更新后只刷新当前接口数据，保持展开状态
+      await updateCurrentApiData()
     } else {
-      await createApi(formData.parentId, data)
+      // 创建接口
+      console.log('=== 准备创建接口 ===')
+      console.log('模块ID (formData.parentId):', formData.parentId)
+      console.log('转换后的数据:', data)
+      
+      if (!formData.parentId) {
+        ElMessage.error('模块ID不能为空，请重新打开对话框')
+        return
+      }
+      
+      const response = await createApi(formData.parentId, data)
+      console.log('创建接口响应:', response)
+      
+      if (response.code === 1) {
+        // 创建成功后，重新加载当前模块的接口列表
+        await refreshModuleApis(formData.parentId)
+      }
     }
-    await loadProjectTree()
   } else if (dialogType.value === 'case') {
     const apiId = getCurrentApiId()
     if (!apiId) {
