@@ -183,6 +183,7 @@
           :related-cases="selectedNode.cases || []"
           @select-case="handleSelectCase"
           @edit-case="handleEditCase"
+          @refresh="handleRefreshApi"
           @delete-case="handleDeleteCase"
           @refresh-cases="handleRefreshCases"
         />
@@ -1811,6 +1812,42 @@ const handleRefreshCases = async () => {
     } catch (error) {
       console.error('刷新测试用例失败:', error)
       ElMessage.error('刷新数据失败')
+    }
+  }
+}
+
+// 刷新接口详情（当接口信息更新后）
+const handleRefreshApi = async () => {
+  if (selectedLevel.value === 'api' && selectedNode.value) {
+    try {
+      // 重新加载整个项目树以获取最新的接口信息
+      await loadProjectTree()
+      
+      // 重新查找并选中当前接口节点
+      const apiId = selectedNode.value.api_id || selectedNode.value.id
+      const findApiNode = (nodes) => {
+        for (const node of nodes) {
+          if (node.modules) {
+            for (const module of node.modules) {
+              if (module.apis) {
+                const api = module.apis.find(a => 
+                  (a.api_id || a.id) === apiId
+                )
+                if (api) return api
+              }
+            }
+          }
+        }
+        return null
+      }
+      
+      const updatedApi = findApiNode(projects.value)
+      if (updatedApi) {
+        selectedNode.value = updatedApi
+      }
+    } catch (error) {
+      console.error('刷新接口失败:', error)
+      ElMessage.error('刷新接口失败')
     }
   }
 }

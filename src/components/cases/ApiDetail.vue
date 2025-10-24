@@ -1722,7 +1722,7 @@ import {
   getExecutionRecordById,
   deleteExecutionRecord
 } from '@/api/testCase'
-import { getModulesByProject } from '@/api/project'
+import { getModulesByProject, updateApi } from '@/api/project'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
@@ -1737,7 +1737,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['select-case', 'edit-case', 'delete-case', 'close', 'refresh-cases'])
+const emit = defineEmits(['select-case', 'edit-case', 'delete-case', 'close', 'refresh-cases', 'refresh'])
 
 // 组件销毁时的清理
 onBeforeUnmount(() => {
@@ -1765,17 +1765,45 @@ const availableModules = ref([])
 const modulesLoading = ref(false)
 
 // 计算属性：从props.api中获取真实数据
-const apiData = computed(() => {
-  return {
-    project: props.api.project_name || props.api.projectName || '-',
-    module: props.api.module_name || props.api.moduleName || '-',
-    name: props.api.name || '-',
-    path: props.api.path || props.api.url || '-',
-    method: props.api.method || '-',
-    description: props.api.description || '-',
-    precondition: props.api.precondition || props.api.pre_condition || '-'
-  }
+// 可编辑的接口数据
+const apiData = reactive({
+  project: '',
+  module: '',
+  moduleId: null,
+  name: '',
+  path: '',
+  method: 'GET',
+  description: '',
+  precondition: '',
+  tags: [],
+  requestParameters: null,
+  requestHeaders: null,
+  requestBody: null,
+  requestBodyType: 'json'
 })
+
+// 监听 props.api 变化，更新表单数据
+watch(
+  () => props.api,
+  (newApi) => {
+    if (newApi) {
+      apiData.project = newApi.project_name || newApi.projectName || '-'
+      apiData.module = newApi.module_name || newApi.moduleName || '-'
+      apiData.moduleId = newApi.module_id || newApi.moduleId
+      apiData.name = newApi.name || ''
+      apiData.path = newApi.path || newApi.url || ''
+      apiData.method = newApi.method || 'GET'
+      apiData.description = newApi.description || ''
+      apiData.precondition = newApi.precondition || newApi.pre_condition || ''
+      apiData.tags = newApi.tags || []
+      apiData.requestParameters = newApi.request_parameters || newApi.requestParameters
+      apiData.requestHeaders = newApi.request_headers || newApi.requestHeaders
+      apiData.requestBody = newApi.request_body || newApi.requestBody
+      apiData.requestBodyType = newApi.request_body_type || newApi.requestBodyType || 'json'
+    }
+  },
+  { immediate: true }
+)
 
 /**
  * 加载项目下的模块列表
@@ -3488,8 +3516,77 @@ const getAuthTypeText = (authType) => {
   return textMap[authType] || authType || '无认证'
 }
 
-const handleSave = () => {
-  ElMessage.success('保存成功')
+/**
+ * 保存接口修改
+ */
+const handleSave = async () => {
+  // 基本验证
+  if (!apiData.name || apiData.name.trim() === '') {
+    ElMessage.error('接口名称不能为空')
+    return
+  }
+  
+  if (!apiData.path || apiData.path.trim() === '') {
+    ElMessage.error('接口路径不能为空')
+    return
+  }
+  
+  if (!apiData.method) {
+    ElMessage.error('请求方法不能为空')
+    return
+  }
+  
+  // 获取接口ID
+  const apiId = props.api?.api_id || props.api?.id
+  if (!apiId) {
+    ElMessage.error('无法获取接口ID')
+    return
+  }
+  
+  try {
+    // 如果用户选择了新的模块，需要找到对应的模块ID
+    let targetModuleId = apiData.moduleId
+    if (apiData.module !== (props.api.module_name || props.api.moduleName)) {
+      // 用户更改了模块，需要从 availableModules 中查找新模块的ID
+      const selectedModule = availableModules.value.find(m => m.name === apiData.module)
+      if (selectedModule) {
+        targetModuleId = selectedModule.id
+      }
+    }
+    
+    // 构造请求数据
+    const updateData = {
+      name: apiData.name.trim(),
+      method: apiData.method,
+      path: apiData.path.trim(),
+      description: apiData.description || '',
+      module_id: targetModuleId,
+      precondition: apiData.precondition || '',
+      tags: apiData.tags || [],
+      request_parameters: apiData.requestParameters,
+      request_headers: apiData.requestHeaders,
+      request_body: apiData.requestBody,
+      request_body_type: apiData.requestBodyType
+    }
+    
+    // 调用API更新接口
+    const response = await updateApi(apiId, updateData)
+    
+    if (response.code === 1) {
+      ElMessage.success('保存成功')
+      // 触发父组件刷新数据
+      emit('refresh')
+    } else {
+      ElMessage.error(response.msg || '保存失败')
+    }
+  } catch (error) {
+    console.error('保存接口失败:', error)
+    if (error.response?.data?.msg) {
+      ElMessage.error(error.response.data.msg)
+    } else {
+      ElMessage.error('保存失败，请稍后重试')
+    }
+  }
 }
 
 /**
