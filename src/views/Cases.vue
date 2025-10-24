@@ -1612,6 +1612,19 @@ const handleSelectNode = async (node, level) => {
   }
 }
 
+// 处理节点展开/收起
+const handleToggleExpand = (nodeId) => {
+  if (expandedNodes.value.has(nodeId)) {
+    // 如果已展开，则收起
+    expandedNodes.value.delete(nodeId)
+  } else {
+    // 如果已收起，则展开
+    expandedNodes.value.add(nodeId)
+  }
+  // 保存页面状态
+  savePageState()
+}
+
 // 加载项目模块
 const loadProjectModules = async (project) => {
   // 如果模块已经加载过，直接返回
@@ -1684,9 +1697,13 @@ const loadModuleApis = async (module) => {
       // 转换接口数据并添加到模块中
       module.apis = apis.map(api => {
         const transformedApi = transformApi(api)
-        // 添加上下文信息：项目名称和模块名称
+        // 添加上下文信息：项目ID、项目名称、模块ID和模块名称
+        transformedApi.project_id = module.project_id
+        transformedApi.projectId = module.project_id
         transformedApi.project_name = module.project_name || '-'
         transformedApi.projectName = module.project_name || '-'
+        transformedApi.module_id = module.module_id
+        transformedApi.moduleId = module.module_id
         transformedApi.module_name = module.name
         transformedApi.moduleName = module.name
         return transformedApi

@@ -106,9 +106,26 @@
 
         <div class="form-section">
           <div class="section-title">所属模块</div>
-          <el-select v-model="apiData.module" placeholder="请选择模块" class="form-select">
-            <el-option label="用户模块" value="用户模块" />
+          <el-select 
+            v-model="apiData.module" 
+            placeholder="请选择模块" 
+            class="form-select"
+            v-loading="modulesLoading"
+          >
+            <el-option 
+              v-for="module in availableModules" 
+              :key="module.id"
+              :label="module.name" 
+              :value="module.name"
+            >
+              <span :style="{ paddingLeft: `${(module.level - 1) * 20}px` }">
+                {{ module.level > 1 ? '└─ ' : '' }}{{ module.name }}
+              </span>
+            </el-option>
           </el-select>
+          <div class="form-tip" v-if="availableModules.length === 0 && !modulesLoading">
+            该项目下暂无模块
+          </div>
         </div>
 
         <div class="form-section">
@@ -1705,6 +1722,7 @@ import {
   getExecutionRecordById,
   deleteExecutionRecord
 } from '@/api/testCase'
+import { getModulesByProject } from '@/api/project'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
 
@@ -1742,6 +1760,10 @@ onBeforeUnmount(() => {
 const activeTab = ref('basic')
 const deleteLoading = ref(false)
 
+// 模块相关状态
+const availableModules = ref([])
+const modulesLoading = ref(false)
+
 // 计算属性：从props.api中获取真实数据
 const apiData = computed(() => {
   return {
@@ -1754,6 +1776,109 @@ const apiData = computed(() => {
     precondition: props.api.precondition || props.api.pre_condition || '-'
   }
 })
+
+/**
+ * 加载项目下的模块列表
+ */
+const loadModules = async () => {
+  const projectId = props.api?.project_id || props.api?.projectId
+  
+  if (!projectId) {
+    console.warn('无法获取项目ID，无法加载模块列表')
+    return
+  }
+  
+  try {
+    modulesLoading.value = true
+    console.log('开始加载项目模块列表，项目ID:', projectId)
+    
+    const response = await getModulesByProject(projectId, {
+      structure: 'tree',
+      status: 'active',
+      includeStatistics: false
+    })
+    
+    console.log('模块列表API响应:', response)
+    console.log('响应数据类型:', typeof response.data)
+    console.log('响应数据内容:', response.data)
+    
+    if (response.code === 1 && response.data) {
+      // 扁平化树形结构，便于展示
+      const flattenModules = (modules, level = 1) => {
+        let result = []
+        if (!modules || !Array.isArray(modules)) {
+          console.warn('模块数据不是数组:', modules)
+          return result
+        }
+        
+        modules.forEach(module => {
+          result.push({
+            id: module.moduleId || module.module_id || module.id,
+            name: module.name || module.moduleName || '未命名模块',
+            level: level
+          })
+          if (module.children && Array.isArray(module.children) && module.children.length > 0) {
+            result = result.concat(flattenModules(module.children, level + 1))
+          }
+        })
+        return result
+      }
+      
+      // 尝试多种可能的数据结构
+      let modulesData = []
+      if (Array.isArray(response.data)) {
+        // 直接是数组
+        modulesData = response.data
+      } else if (response.data.items && Array.isArray(response.data.items)) {
+        // 包含items字段
+        modulesData = response.data.items
+      } else if (response.data.modules && Array.isArray(response.data.modules)) {
+        // 包含modules字段
+        modulesData = response.data.modules
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        // 嵌套data字段
+        modulesData = response.data.data
+      }
+      
+      console.log('提取的模块数据:', modulesData)
+      availableModules.value = flattenModules(modulesData)
+      console.log('扁平化后的模块列表:', availableModules.value)
+      console.log('模块数量:', availableModules.value.length)
+    } else {
+      console.warn('获取模块列表失败:', response.msg || '响应code不为1')
+      availableModules.value = []
+    }
+  } catch (error) {
+    console.error('加载模块列表失败:', error)
+    ElMessage.error('加载模块列表失败')
+    availableModules.value = []
+  } finally {
+    modulesLoading.value = false
+  }
+}
+
+// 监听API变化，重新加载模块列表
+watch(
+  () => props.api?.project_id || props.api?.projectId,
+  (newProjectId, oldProjectId) => {
+    console.log('=== ApiDetail 监听到API变化 ===')
+    console.log('props.api:', props.api)
+    console.log('project_id:', props.api?.project_id)
+    console.log('projectId:', props.api?.projectId)
+    console.log('newProjectId:', newProjectId)
+    console.log('oldProjectId:', oldProjectId)
+    
+    if (newProjectId && newProjectId !== oldProjectId) {
+      console.log('✅ 项目ID变化，开始加载模块列表')
+      loadModules()
+    } else {
+      console.log('❌ 不满足加载条件')
+      console.log('  - newProjectId存在?', !!newProjectId)
+      console.log('  - ID是否变化?', newProjectId !== oldProjectId)
+    }
+  },
+  { immediate: true }
+)
 
 // 请求参数数据
 const bodyType = ref('json')
