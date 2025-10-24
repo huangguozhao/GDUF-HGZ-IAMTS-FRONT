@@ -2121,6 +2121,12 @@ const getCaseTypeText = (type) => {
 // 获取优先级标签颜色
 const getPriorityTagType = (priority) => {
   const priorityMap = {
+    // P0-P3 优先级映射
+    'P0': 'danger',    // 红色 - 最高优先级（严重/紧急）
+    'P1': 'warning',   // 橙色 - 高优先级（重要）
+    'P2': '',          // 灰色 - 中等优先级（正常）
+    'P3': 'info',      // 蓝色 - 低优先级（次要）
+    // 兼容中文优先级
     '高': 'danger',
     '中': 'warning',
     '低': 'info'
@@ -3845,6 +3851,68 @@ onMounted(() => {
   color: #303133;
   font-weight: 500;
   transition: color 0.2s;
+}
+
+/* 优先级标签样式优化 */
+.cases-table :deep(.el-tag) {
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 12px;
+  border-radius: 4px;
+  border: none;
+}
+
+/* P0 - 最高优先级（红色） */
+.cases-table :deep(.el-tag--danger) {
+  background: linear-gradient(135deg, #f56c6c 0%, #ef4444 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(245, 108, 108, 0.3);
+}
+
+.cases-table :deep(.el-tag--danger:hover) {
+  box-shadow: 0 4px 8px rgba(245, 108, 108, 0.4);
+  transform: translateY(-1px);
+}
+
+/* P1 - 高优先级（橙色） */
+.cases-table :deep(.el-tag--warning) {
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(230, 162, 60, 0.3);
+}
+
+.cases-table :deep(.el-tag--warning:hover) {
+  box-shadow: 0 4px 8px rgba(230, 162, 60, 0.4);
+  transform: translateY(-1px);
+}
+
+/* P2 - 中等优先级（灰色） */
+.cases-table :deep(.el-tag:not(.el-tag--danger):not(.el-tag--warning):not(.el-tag--info):not(.el-tag--success)) {
+  background: linear-gradient(135deg, #909399 0%, #6b7280 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(144, 147, 153, 0.3);
+}
+
+.cases-table :deep(.el-tag:not(.el-tag--danger):not(.el-tag--warning):not(.el-tag--info):not(.el-tag--success):hover) {
+  box-shadow: 0 4px 8px rgba(144, 147, 153, 0.4);
+  transform: translateY(-1px);
+}
+
+/* P3 - 低优先级（蓝色） */
+.cases-table :deep(.el-tag--info) {
+  background: linear-gradient(135deg, #409eff 0%, #3b82f6 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.3);
+}
+
+.cases-table :deep(.el-tag--info:hover) {
+  box-shadow: 0 4px 8px rgba(64, 158, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* 标签过渡动画 */
+.cases-table :deep(.el-tag) {
+  transition: all 0.3s ease;
 }
 
 /* 测试数据单元格 */
