@@ -127,6 +127,8 @@ export function transformTestCase(testCase) {
     description: testCase.description,
     priority: testCase.priority,
     severity: testCase.severity,
+    test_type: testCase.testType || testCase.test_type,
+    testType: testCase.testType || testCase.test_type,
     tags: testCase.tags || [],
     is_enabled: testCase.isEnabled !== undefined ? testCase.isEnabled : testCase.is_enabled,
     isEnabled: testCase.isEnabled !== undefined ? testCase.isEnabled : testCase.is_enabled,
@@ -223,6 +225,7 @@ export function transformTestCaseToBackend(testCase) {
     description: testCase.description,
     priority: testCase.priority || 'P2',
     severity: testCase.severity || 'medium',
+    test_type: testCase.test_type || testCase.testType || 'functional',
     tags: testCase.tags || []
   }
   

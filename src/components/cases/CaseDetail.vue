@@ -105,6 +105,16 @@
               </el-tag>
             </div>
             <div class="info-item">
+              <span class="info-label">测试类型</span>
+              <el-tag 
+                :type="getTestTypeTagType(testCase?.testType || testCase?.test_type)" 
+                size="small"
+                class="test-type-tag"
+              >
+                {{ getTestTypeText(testCase?.testType || testCase?.test_type) }}
+              </el-tag>
+            </div>
+            <div class="info-item">
               <span class="info-label">创建人</span>
               <span class="info-value">{{ getCreatorName() }}</span>
             </div>
@@ -1418,6 +1428,36 @@ const getSeverityText = (severity) => {
   return textMap[severity] || severity || '中'
 }
 
+// 获取测试类型标签颜色
+const getTestTypeTagType = (type) => {
+  const typeMap = {
+    'functional': 'primary',     // 蓝色 - 功能测试
+    'boundary': 'warning',       // 橙色 - 边界测试
+    'exception': 'danger',       // 红色 - 异常测试
+    'security': 'success',       // 绿色 - 安全测试
+    'performance': 'info',       // 灰色 - 性能测试
+    'integration': 'primary',    // 蓝色 - 集成测试
+    'smoke': 'success',          // 绿色 - 冒烟测试
+    'regression': 'warning'      // 橙色 - 回归测试
+  }
+  return typeMap[type] || ''
+}
+
+// 获取测试类型文本
+const getTestTypeText = (type) => {
+  const textMap = {
+    'functional': '功能测试',
+    'boundary': '边界测试',
+    'exception': '异常测试',
+    'security': '安全测试',
+    'performance': '性能测试',
+    'integration': '集成测试',
+    'smoke': '冒烟测试',
+    'regression': '回归测试'
+  }
+  return textMap[type] || type || '功能测试'
+}
+
 // 获取状态码标签类型
 const getStatusCodeType = (code) => {
   if (!code) return 'success'
@@ -2245,6 +2285,46 @@ onMounted(() => {
   font-size: 14px;
   color: #303133;
   font-weight: 500;
+}
+
+/* 测试类型标签样式 */
+.info-item .test-type-tag {
+  margin: 0 auto;
+  font-weight: 500;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  align-self: flex-start;
+}
+
+.info-item .test-type-tag.el-tag--primary {
+  background: linear-gradient(135deg, #409eff 0%, #3b82f6 100%);
+  color: white;
+  border: none;
+}
+
+.info-item .test-type-tag.el-tag--warning {
+  background: linear-gradient(135deg, #e6a23c 0%, #f59e0b 100%);
+  color: white;
+  border: none;
+}
+
+.info-item .test-type-tag.el-tag--danger {
+  background: linear-gradient(135deg, #f56c6c 0%, #ef4444 100%);
+  color: white;
+  border: none;
+}
+
+.info-item .test-type-tag.el-tag--success {
+  background: linear-gradient(135deg, #67c23a 0%, #10b981 100%);
+  color: white;
+  border: none;
+}
+
+.info-item .test-type-tag.el-tag--info {
+  background: linear-gradient(135deg, #909399 0%, #6b7280 100%);
+  color: white;
+  border: none;
 }
 
 /* 区块卡片 */
