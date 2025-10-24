@@ -866,18 +866,32 @@
           <el-table-column label="测试数据" min-width="250">
             <template #default="{ row }">
               <div class="test-data-cell">
-                <el-tooltip :content="row.testData" placement="top">
-                  <span class="test-data-text">{{ truncateText(row.testData, 50) }}</span>
+                <el-tooltip placement="top" :show-after="300">
+                  <template #content>
+                    <div class="tooltip-content">
+                      <div class="tooltip-title">🔍 完整测试数据</div>
+                      <pre class="tooltip-json">{{ formatTestDataFull(row.preConditions) }}</pre>
+                    </div>
+                  </template>
+                  <span class="test-data-text">{{ truncateText(formatTestData(row.preConditions), 50) }}</span>
                 </el-tooltip>
-        </div>
+              </div>
             </template>
           </el-table-column>
 
           <el-table-column label="预期结果" min-width="200">
             <template #default="{ row }">
               <div class="expected-result-cell">
-                <span class="result-summary">{{ row.expectedResult }}</span>
-      </div>
+                <el-tooltip placement="top" :show-after="300">
+                  <template #content>
+                    <div class="tooltip-content">
+                      <div class="tooltip-title">🎯 完整预期结果</div>
+                      <pre class="tooltip-json">{{ formatExpectedResultFull(row.expectedResponseBody) }}</pre>
+                    </div>
+                  </template>
+                  <span class="result-summary">{{ truncateText(formatExpectedResult(row.expectedResponseBody), 40) }}</span>
+                </el-tooltip>
+              </div>
             </template>
           </el-table-column>
 
@@ -2119,6 +2133,124 @@ const truncateText = (text, maxLength) => {
   if (!text) return ''
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + '...'
+}
+
+/**
+ * 格式化测试数据（preConditions）
+ */
+const formatTestData = (preConditions) => {
+  if (!preConditions) return '📋 无测试数据'
+  
+  // 如果是字符串，尝试解析为JSON
+  if (typeof preConditions === 'string') {
+    try {
+      preConditions = JSON.parse(preConditions)
+    } catch (e) {
+      return `📝 ${preConditions}`
+    }
+  }
+  
+  // 如果是对象，格式化为键值对形式
+  if (typeof preConditions === 'object' && preConditions !== null) {
+    const pairs = []
+    for (const [key, value] of Object.entries(preConditions)) {
+      // 美化键名
+      const displayKey = key.charAt(0).toUpperCase() + key.slice(1)
+      // 处理空值
+      const displayValue = value === '' ? '(空)' : value
+      pairs.push(`${displayKey}: ${displayValue}`)
+    }
+    return pairs.length > 0 ? `📊 ${pairs.join(' | ')}` : '📋 无测试数据'
+  }
+  
+  return `📝 ${String(preConditions)}`
+}
+
+/**
+ * 格式化预期结果（expectedResponseBody）
+ */
+const formatExpectedResult = (expectedResponseBody) => {
+  if (!expectedResponseBody) return '📋 无预期结果'
+  
+  // 如果是字符串，尝试解析为JSON并美化
+  if (typeof expectedResponseBody === 'string') {
+    try {
+      const parsed = JSON.parse(expectedResponseBody)
+      // 提取关键信息
+      if (parsed.code !== undefined && parsed.msg) {
+        // 根据code值添加不同图标
+        const icon = parsed.code === 1 ? '✅' : parsed.code === -1 ? '❌' : '⚠️'
+        return `${icon} code: ${parsed.code} | msg: ${parsed.msg}`
+      }
+      // 如果有data字段，显示它
+      if (parsed.data !== undefined && parsed.data !== null) {
+        return `✓ 包含数据: ${typeof parsed.data === 'object' ? 'Object' : parsed.data}`
+      }
+      return `📄 ${JSON.stringify(parsed)}`
+    } catch (e) {
+      // 如果解析失败，直接返回字符串
+      return `📝 ${expectedResponseBody}`
+    }
+  }
+  
+  // 如果是对象，格式化为JSON字符串
+  if (typeof expectedResponseBody === 'object' && expectedResponseBody !== null) {
+    if (expectedResponseBody.code !== undefined && expectedResponseBody.msg) {
+      const icon = expectedResponseBody.code === 1 ? '✅' : expectedResponseBody.code === -1 ? '❌' : '⚠️'
+      return `${icon} code: ${expectedResponseBody.code} | msg: ${expectedResponseBody.msg}`
+    }
+    return `📄 ${JSON.stringify(expectedResponseBody)}`
+  }
+  
+  return `📝 ${String(expectedResponseBody)}`
+}
+
+/**
+ * 格式化完整测试数据（用于tooltip）
+ */
+const formatTestDataFull = (preConditions) => {
+  if (!preConditions) return '暂无测试数据'
+  
+  // 如果是字符串，尝试解析为JSON
+  if (typeof preConditions === 'string') {
+    try {
+      const parsed = JSON.parse(preConditions)
+      return JSON.stringify(parsed, null, 2)
+    } catch (e) {
+      return preConditions
+    }
+  }
+  
+  // 如果是对象，格式化为美化的JSON
+  if (typeof preConditions === 'object' && preConditions !== null) {
+    return JSON.stringify(preConditions, null, 2)
+  }
+  
+  return String(preConditions)
+}
+
+/**
+ * 格式化完整预期结果（用于tooltip）
+ */
+const formatExpectedResultFull = (expectedResponseBody) => {
+  if (!expectedResponseBody) return '暂无预期结果'
+  
+  // 如果是字符串，尝试解析为JSON
+  if (typeof expectedResponseBody === 'string') {
+    try {
+      const parsed = JSON.parse(expectedResponseBody)
+      return JSON.stringify(parsed, null, 2)
+    } catch (e) {
+      return expectedResponseBody
+    }
+  }
+  
+  // 如果是对象，格式化为美化的JSON
+  if (typeof expectedResponseBody === 'object' && expectedResponseBody !== null) {
+    return JSON.stringify(expectedResponseBody, null, 2)
+  }
+  
+  return String(expectedResponseBody)
 }
 
 // 添加测试用例对话框
@@ -3715,27 +3847,102 @@ onMounted(() => {
   transition: color 0.2s;
 }
 
+/* 测试数据单元格 */
 .test-data-cell {
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .test-data-text {
-  font-size: 13px;
-  color: #606266;
-  line-height: 1.5;
-  display: block;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.6;
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(to right, #f0f9ff 0%, #e6f7ff 100%);
+  border-left: 3px solid #409eff;
+  border-radius: 4px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  transition: all 0.2s;
 }
 
+.test-data-text:hover {
+  background: linear-gradient(to right, #e6f7ff 0%, #d9ecff 100%);
+  border-left-color: #66b1ff;
+  box-shadow: 0 2px 4px rgba(64, 158, 255, 0.1);
+}
+
+/* 预期结果单元格 */
 .expected-result-cell {
-  padding: 4px 0;
+  padding: 6px 0;
 }
 
 .result-summary {
-  font-size: 13px;
-  color: #606266;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  color: #303133;
+  line-height: 1.6;
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(to right, #f0f9ff 0%, #f5f7fa 100%);
+  border-left: 3px solid #67c23a;
+  border-radius: 4px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.result-summary:hover {
+  background: linear-gradient(to right, #e6f7ff 0%, #eef1f6 100%);
+  border-left-color: #85ce61;
+  box-shadow: 0 2px 4px rgba(103, 194, 58, 0.1);
+}
+
+/* Tooltip样式 */
+.tooltip-content {
+  max-width: 500px;
+}
+
+.tooltip-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tooltip-json {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #e6f7ff;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 10px;
+  border-radius: 4px;
+  margin: 0;
+  max-height: 300px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.tooltip-json::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tooltip-json::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.tooltip-json::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
 }
 
 /* 用例分页 */
