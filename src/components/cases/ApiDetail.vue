@@ -525,7 +525,13 @@
             </el-select>
           </div>
           <div class="toolbar-right">
-            <el-button size="small" :icon="Download">导出</el-button>
+            <el-button 
+              size="small" 
+              :icon="Download"
+              @click="handleOpenExportHistoryDialog"
+            >
+              导出
+            </el-button>
             <el-input 
               v-model="historySearchText" 
               placeholder="搜索..." 
@@ -1591,6 +1597,83 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 导出测试历史对话框 -->
+    <el-dialog
+      v-model="exportHistoryDialogVisible"
+      title="导出测试历史"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <el-form :model="exportHistoryForm" label-width="100px">
+        <el-form-item label="导出格式">
+          <el-radio-group v-model="exportHistoryForm.format">
+            <el-radio-button label="excel">Excel</el-radio-button>
+            <el-radio-button label="json">JSON</el-radio-button>
+            <el-radio-button label="csv">CSV</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="导出范围">
+          <el-radio-group v-model="exportHistoryForm.scope">
+            <el-radio label="current">当前筛选结果 ({{ filteredHistoryRecords.length }} 条)</el-radio>
+            <el-radio label="all">全部记录 ({{ historyRecords.length }} 条)</el-radio>
+          </el-radio-group>
+        </el-form-item>
+
+        <el-form-item label="包含字段">
+          <el-checkbox-group v-model="exportHistoryForm.includeFields">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+              <el-checkbox label="testTime">测试时间</el-checkbox>
+              <el-checkbox label="executor">执行人</el-checkbox>
+              <el-checkbox label="environment">执行环境</el-checkbox>
+              <el-checkbox label="executionType">执行类型</el-checkbox>
+              <el-checkbox label="responseTime">响应时间</el-checkbox>
+              <el-checkbox label="status">测试结果</el-checkbox>
+              <el-checkbox label="totalCases">总用例数</el-checkbox>
+              <el-checkbox label="executedCases">已执行数</el-checkbox>
+              <el-checkbox label="passedCases">通过数</el-checkbox>
+              <el-checkbox label="failedCases">失败数</el-checkbox>
+              <el-checkbox label="skippedCases">跳过数</el-checkbox>
+              <el-checkbox label="successRate">成功率</el-checkbox>
+              <el-checkbox label="errorMessage">错误信息</el-checkbox>
+              <el-checkbox label="browser">浏览器</el-checkbox>
+              <el-checkbox label="appVersion">应用版本</el-checkbox>
+              <el-checkbox label="reportUrl">报告地址</el-checkbox>
+              <el-checkbox label="executionConfig">执行配置</el-checkbox>
+            </div>
+          </el-checkbox-group>
+          <div style="margin-top: 8px;">
+            <el-button size="small" text type="primary" @click="selectAllFields">全选</el-button>
+            <el-button size="small" text @click="clearAllFields">清空</el-button>
+            <el-button size="small" text @click="selectRecommendedFields">推荐字段</el-button>
+          </div>
+        </el-form-item>
+
+        <el-form-item label="文件名">
+          <el-input 
+            v-model="exportHistoryForm.fileName" 
+            placeholder="留空则自动生成"
+          />
+          <span class="form-tip">
+            建议格式：{{ suggestedFileName }}
+          </span>
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="exportHistoryDialogVisible = false">取消</el-button>
+          <el-button 
+            type="primary" 
+            @click="handleConfirmExportHistory"
+            :loading="exportingHistory"
+          >
+            {{ exportingHistory ? '导出中...' : '确认导出' }}
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1622,6 +1705,8 @@ import {
   getExecutionRecordById,
   deleteExecutionRecord
 } from '@/api/testCase'
+import * as XLSX from 'xlsx'
+import { saveAs } from 'file-saver'
 
 const props = defineProps({
   api: {
@@ -1747,6 +1832,28 @@ const historyRecords = ref([])
 const historyLoading = ref(false)
 const historyDetailDialogVisible = ref(false)
 const currentHistoryDetail = ref(null)
+
+// 导出历史相关
+const exportHistoryDialogVisible = ref(false)
+const exportingHistory = ref(false)
+const exportHistoryForm = reactive({
+  format: 'excel',
+  scope: 'current',
+  includeFields: [
+    'testTime', 'executor', 'environment', 'executionType', 
+    'responseTime', 'status', 'totalCases', 'passedCases', 
+    'failedCases', 'successRate'
+  ],
+  fileName: ''
+})
+
+// 所有可用字段
+const allExportFields = [
+  'testTime', 'executor', 'environment', 'executionType',
+  'responseTime', 'status', 'totalCases', 'executedCases',
+  'passedCases', 'failedCases', 'skippedCases', 'successRate',
+  'errorMessage', 'browser', 'appVersion', 'reportUrl', 'executionConfig'
+]
 
 /**
  * 计算时间范围
@@ -2002,6 +2109,196 @@ const handleHistorySizeChange = (pageSize) => {
 const handleHistoryPageChange = (page) => {
   historyPagination.currentPage = page
   loadHistoryRecords()
+}
+
+/**
+ * 建议的文件名
+ */
+const suggestedFileName = computed(() => {
+  const apiName = props.api?.name || '接口'
+  const timestamp = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+  const ext = exportHistoryForm.format === 'excel' ? 'xlsx' : exportHistoryForm.format
+  return `${apiName}_测试历史_${timestamp}.${ext}`
+})
+
+/**
+ * 字段选择快捷操作
+ */
+const selectAllFields = () => {
+  exportHistoryForm.includeFields = [...allExportFields]
+}
+
+const clearAllFields = () => {
+  exportHistoryForm.includeFields = []
+}
+
+const selectRecommendedFields = () => {
+  exportHistoryForm.includeFields = [
+    'testTime', 'executor', 'environment', 'executionType', 
+    'responseTime', 'status', 'totalCases', 'passedCases', 
+    'failedCases', 'successRate'
+  ]
+}
+
+/**
+ * 打开导出对话框
+ */
+const handleOpenExportHistoryDialog = () => {
+  // 重置为推荐字段
+  selectRecommendedFields()
+  exportHistoryForm.format = 'excel'
+  exportHistoryForm.scope = 'current'
+  exportHistoryForm.fileName = ''
+  
+  exportHistoryDialogVisible.value = true
+}
+
+/**
+ * 确认导出测试历史
+ */
+const handleConfirmExportHistory = async () => {
+  try {
+    exportingHistory.value = true
+    
+    // 确定要导出的数据
+    const dataToExport = exportHistoryForm.scope === 'current' 
+      ? filteredHistoryRecords.value 
+      : historyRecords.value
+    
+    if (dataToExport.length === 0) {
+      ElMessage.warning('没有可导出的数据')
+      return
+    }
+    
+    // 字段映射配置
+    const fieldMapping = {
+      'testTime': { label: '测试时间', getValue: (r) => r.testTime },
+      'executor': { label: '执行人', getValue: (r) => r.executor },
+      'environment': { label: '执行环境', getValue: (r) => r.environment || '-' },
+      'executionType': { label: '执行类型', getValue: (r) => {
+        const typeMap = {
+          'manual': '手动执行',
+          'auto': '自动执行',
+          'scheduled': '定时执行',
+          'api': '接口调用'
+        }
+        return typeMap[r.executionType] || r.executionType || '-'
+      }},
+      'responseTime': { label: '响应时间', getValue: (r) => r.responseTime },
+      'status': { label: '测试结果', getValue: (r) => getStatusText(r.status) },
+      'totalCases': { label: '总用例数', getValue: (r) => r.totalCases || 0 },
+      'executedCases': { label: '已执行数', getValue: (r) => r.executedCases || 0 },
+      'passedCases': { label: '通过数', getValue: (r) => r.passedCases || 0 },
+      'failedCases': { label: '失败数', getValue: (r) => r.failedCases || 0 },
+      'skippedCases': { label: '跳过数', getValue: (r) => r.skippedCases || 0 },
+      'successRate': { label: '成功率', getValue: (r) => {
+        if (r.successRate !== undefined && r.successRate !== null) {
+          return `${(r.successRate * 100).toFixed(2)}%`
+        }
+        return '-'
+      }},
+      'errorMessage': { label: '错误信息', getValue: (r) => r.errorMessage || '-' },
+      'browser': { label: '浏览器', getValue: (r) => r.browser || '-' },
+      'appVersion': { label: '应用版本', getValue: (r) => r.appVersion || '-' },
+      'reportUrl': { label: '报告地址', getValue: (r) => r.reportUrl || '-' },
+      'executionConfig': { label: '执行配置', getValue: (r) => {
+        if (!r.executionConfig) return '-'
+        if (typeof r.executionConfig === 'string') {
+          return r.executionConfig
+        }
+        return JSON.stringify(r.executionConfig)
+      }}
+    }
+    
+    // 根据选择的字段过滤数据
+    const filteredData = dataToExport.map(record => {
+      const filtered = {}
+      exportHistoryForm.includeFields.forEach(field => {
+        if (fieldMapping[field]) {
+          filtered[fieldMapping[field].label] = fieldMapping[field].getValue(record)
+        }
+      })
+      return filtered
+    })
+    
+    // 文件名
+    const fileName = exportHistoryForm.fileName || suggestedFileName.value
+    
+    // 根据格式导出
+    if (exportHistoryForm.format === 'excel') {
+      exportToExcel(filteredData, fileName)
+    } else if (exportHistoryForm.format === 'json') {
+      exportToJson(filteredData, fileName)
+    } else if (exportHistoryForm.format === 'csv') {
+      exportToCsv(filteredData, fileName)
+    }
+    
+    ElMessage.success('导出成功')
+    exportHistoryDialogVisible.value = false
+  } catch (error) {
+    console.error('导出失败:', error)
+    ElMessage.error('导出失败: ' + (error.message || '未知错误'))
+  } finally {
+    exportingHistory.value = false
+  }
+}
+
+/**
+ * 导出为Excel
+ */
+const exportToExcel = (data, fileName) => {
+  const worksheet = XLSX.utils.json_to_sheet(data)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, '测试历史')
+  
+  // 设置列宽
+  const colWidths = Object.keys(data[0] || {}).map(() => ({ wch: 20 }))
+  worksheet['!cols'] = colWidths
+  
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' })
+  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+  saveAs(blob, fileName)
+}
+
+/**
+ * 导出为JSON
+ */
+const exportToJson = (data, fileName) => {
+  const jsonStr = JSON.stringify(data, null, 2)
+  const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8' })
+  saveAs(blob, fileName)
+}
+
+/**
+ * 导出为CSV
+ */
+const exportToCsv = (data, fileName) => {
+  if (data.length === 0) {
+    ElMessage.warning('没有数据可以导出')
+    return
+  }
+  
+  // 获取列标题
+  const headers = Object.keys(data[0])
+  
+  // 生成CSV内容
+  const csvContent = [
+    headers.join(','),  // 标题行
+    ...data.map(row => 
+      headers.map(header => {
+        const value = row[header] || ''
+        // 如果值包含逗号或引号，需要用引号包裹并转义
+        if (value.toString().includes(',') || value.toString().includes('"')) {
+          return `"${value.toString().replace(/"/g, '""')}"`
+        }
+        return value
+      }).join(',')
+    )
+  ].join('\n')
+  
+  // 添加BOM以支持Excel正确识别UTF-8
+  const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8' })
+  saveAs(blob, fileName)
 }
 
 // 测试用例数据
