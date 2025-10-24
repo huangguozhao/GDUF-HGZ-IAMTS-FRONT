@@ -200,12 +200,26 @@ export function transformProjectToBackend(project) {
 }
 
 export function transformModuleToBackend(module) {
-  return {
-    module_code: module.module_code,
+  const data = {
     name: module.name,
     description: module.description,
-    parent_module_id: module.parent_module_id || null
+    parent_module_id: module.parent_module_id || module.parentModuleId || null,
+    sort_order: module.sort_order || module.sortOrder || 0,
+    status: module.status || 'active',
+    tags: module.tags || []
   }
+  
+  // 模块编码（如果有）
+  if (module.module_code || module.moduleCode) {
+    data.module_code = module.module_code || module.moduleCode
+  }
+  
+  // 负责人ID（如果有）
+  if (module.owner_id || module.ownerId) {
+    data.owner_id = module.owner_id || module.ownerId
+  }
+  
+  return data
 }
 
 export function transformApiToBackend(api) {

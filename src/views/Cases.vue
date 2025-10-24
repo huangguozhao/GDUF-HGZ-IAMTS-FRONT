@@ -787,6 +787,17 @@
           <el-form-item label="模块名称" prop="name">
             <el-input v-model="formData.name" placeholder="请输入模块名称" />
           </el-form-item>
+          
+          <el-form-item label="模块编码" prop="module_code">
+            <el-input 
+              v-model="formData.module_code" 
+              placeholder="留空则自动生成"
+              :disabled="isEdit"
+            />
+            <span class="form-tip" v-if="!isEdit">模块编码在项目内唯一，留空则自动生成</span>
+            <span class="form-tip" v-else>模块编码创建后不可修改</span>
+          </el-form-item>
+          
           <el-form-item label="模块描述" prop="description">
             <el-input
               v-model="formData.description"
@@ -794,6 +805,40 @@
               :rows="3"
               placeholder="请输入模块描述"
             />
+          </el-form-item>
+          
+          <el-form-item label="排序顺序" prop="sort_order">
+            <el-input-number 
+              v-model="formData.sort_order" 
+              :min="0" 
+              :step="1"
+              placeholder="数字越小越靠前"
+            />
+            <span class="form-tip">用于控制模块在列表中的显示顺序</span>
+          </el-form-item>
+          
+          <el-form-item label="模块状态" prop="status">
+            <el-select v-model="formData.status" placeholder="请选择状态">
+              <el-option label="活跃" value="active" />
+              <el-option label="已归档" value="archived" />
+              <el-option label="已禁用" value="disabled" />
+            </el-select>
+          </el-form-item>
+          
+          <el-form-item label="标签" prop="tags">
+            <el-select
+              v-model="formData.tags"
+              multiple
+              filterable
+              allow-create
+              placeholder="请选择或输入标签"
+              style="width: 100%"
+            >
+              <el-option label="核心功能" value="核心功能" />
+              <el-option label="辅助功能" value="辅助功能" />
+              <el-option label="测试中" value="测试中" />
+              <el-option label="待开发" value="待开发" />
+            </el-select>
           </el-form-item>
         </template>
 
@@ -1392,6 +1437,11 @@ const formData = reactive({
   description: '',
   url: '',
   method: 'GET',
+  // 模块相关字段
+  module_code: '',
+  sort_order: 0,
+  status: 'active',
+  owner_id: null,
   // 用例相关字段
   case_code: '',
   priority: 'P2',
@@ -2747,6 +2797,11 @@ const resetForm = () => {
     description: '',
     url: '',
     method: 'GET',
+    // 模块相关字段
+    module_code: '',
+    sort_order: 0,
+    status: 'active',
+    owner_id: null,
     // 用例相关字段
     case_code: '',
     priority: 'P2',

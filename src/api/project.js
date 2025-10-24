@@ -83,15 +83,27 @@ export function getModulesByProject(projectId, params = {}) {
 
 // 创建模块
 export function createModule(projectId, data) {
+  const requestData = {
+    projectId: projectId,
+    moduleCode: data.module_code || data.moduleCode,
+    name: data.name,
+    description: data.description,
+    parentModuleId: data.parent_module_id || data.parentModuleId || null,
+    sortOrder: data.sort_order || data.sortOrder || 0,
+    status: data.status || 'active',
+    ownerId: data.owner_id || data.ownerId || null,
+    tags: data.tags || []
+  }
+  
+  console.log('=== createModule 函数 ===')
+  console.log('projectId 参数:', projectId)
+  console.log('data 参数:', data)
+  console.log('最终请求体 (驼峰命名):', requestData)
+  
   return request({
-    url: `/projects/${projectId}/modules`,
+    url: `/modules`,
     method: 'post',
-    data: {
-      module_code: data.module_code,
-      name: data.name,
-      description: data.description,
-      parent_module_id: data.parent_module_id || null
-    }
+    data: requestData
   })
 }
 
@@ -112,6 +124,14 @@ export function deleteModule(moduleId) {
   return request({
     url: `/modules/${moduleId}`,
     method: 'delete'
+  })
+}
+
+// 获取模块统计数据
+export function getModuleStatistics(moduleId) {
+  return request({
+    url: `/modules/${moduleId}/statistics`,
+    method: 'get'
   })
 }
 
