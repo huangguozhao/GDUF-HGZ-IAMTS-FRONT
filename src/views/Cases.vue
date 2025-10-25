@@ -238,14 +238,31 @@
                 'is-active': currentEnvIndex === index,
                 'is-default': env.is_default
               }"
-              @click="currentEnvIndex = index"
             >
-              <div class="env-item-name">{{ env.name || '未命名环境' }}</div>
-              <div class="env-item-badge" v-if="env.is_default">
-                <span class="badge-text">默认</span>
+              <div class="env-item-content" @click="currentEnvIndex = index">
+                <div class="env-item-name">{{ env.name || '未命名环境' }}</div>
+                <div class="env-item-badges">
+                  <div class="env-item-badge" v-if="env.is_default">
+                    <span class="badge-text">默认</span>
+                  </div>
+                  <div class="env-item-badge active" v-if="env.status === 'active'">
+                    <span class="badge-text">运行中</span>
+                  </div>
+                </div>
               </div>
-              <div class="env-item-badge active" v-if="env.status === 'active'">
-                <span class="badge-text">运行中</span>
+              <div class="env-item-actions">
+                <el-button 
+                  size="small" 
+                  text 
+                  type="danger"
+                  @click.stop="handleRemoveEnvironment(index)"
+                  :disabled="env.is_default || envFormData.environments.length <= 1 || !env.env_id"
+                  :title="env.is_default ? '默认环境不能删除' : 
+                          envFormData.environments.length <= 1 ? '至少保留一个环境' : 
+                          !env.env_id ? '未保存的环境不能删除' : '删除环境'"
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
               </div>
             </div>
             
@@ -446,7 +463,7 @@
                     + 添加配置项
                   </el-button>
                 </div>
-                <el-table :data="currentEnvironment.dataConfigs || []" border class="config-table">
+                <el-table :data="Array.isArray(currentEnvironment.dataConfigs) ? currentEnvironment.dataConfigs : []" border class="config-table">
                   <el-table-column label="配置项名称" width="200">
                     <template #default="{ row }">
                       <el-input v-model="row.name" placeholder="配置项名称" size="small" />
@@ -474,6 +491,9 @@
                       </el-button>
                     </template>
                   </el-table-column>
+                  <template #empty>
+                    <el-empty description="暂无数据配置项，点击上方'+ 添加配置项'按钮添加" :image-size="80" />
+                  </template>
                 </el-table>
               </div>
 
@@ -485,7 +505,7 @@
                     + 添加服务
                   </el-button>
                 </div>
-                <el-table :data="currentEnvironment.externalServices || []" border class="config-table">
+                <el-table :data="Array.isArray(currentEnvironment.externalServices) ? currentEnvironment.externalServices : []" border class="config-table">
                   <el-table-column label="服务名称" width="150">
                     <template #default="{ row }">
                       <el-input v-model="row.name" placeholder="服务名称" size="small" />
@@ -525,6 +545,9 @@
                       </el-button>
                     </template>
                   </el-table-column>
+                  <template #empty>
+                    <el-empty description="暂无外部服务配置，点击上方'+ 添加服务'按钮添加" :image-size="80" />
+                  </template>
                 </el-table>
               </div>
 
@@ -536,7 +559,7 @@
                     + 添加变量
                   </el-button>
                 </div>
-                <el-table :data="currentEnvironment.envVariables || []" border class="config-table">
+                <el-table :data="Array.isArray(currentEnvironment.envVariables) ? currentEnvironment.envVariables : []" border class="config-table">
                   <el-table-column label="变量名" width="200">
                     <template #default="{ row }">
                       <el-input v-model="row.key" placeholder="变量名" size="small" />
@@ -564,6 +587,9 @@
                       </el-button>
                     </template>
                   </el-table-column>
+                  <template #empty>
+                    <el-empty description="暂无环境变量，点击上方'+ 添加变量'按钮添加" :image-size="80" />
+                  </template>
                 </el-table>
               </div>
 
@@ -786,17 +812,29 @@
           <div class="env-empty-content">
             <div class="empty-icon-large">🌐</div>
             <div class="empty-title">暂无环境配置</div>
-            <div class="empty-description">请点击左侧"+ 新建环境"按钮创建环境配置</div>
+            <div class="empty-description">请点击左侧'+ 新建环境'按钮创建环境配置</div>
           </div>
         </div>
       </div>
 
       <template #footer>
         <div class="env-dialog-footer">
-          <el-button @click="envDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleSaveEnvironments">
-            保存配置
-          </el-button>
+          <div class="env-footer-left">
+            <el-button 
+              v-if="envFormData.environments.length > 1"
+              type="danger" 
+              text
+              @click="handleBatchDeleteEnvironments"
+            >
+              批量删除
+            </el-button>
+          </div>
+          <div class="env-footer-right">
+            <el-button @click="envDialogVisible = false">取消</el-button>
+            <el-button type="primary" @click="handleSaveEnvironments">
+              保存配置
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -1233,7 +1271,8 @@ import {
   CircleCheckFilled, 
   CircleCloseFilled, 
   WarningFilled, 
-  InfoFilled
+  InfoFilled,
+  Delete
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
@@ -1304,6 +1343,15 @@ const handleAPIError = (error, operation = '操作') => {
   // 检查是否是系统异常错误
   if (error.msg && error.msg.includes('系统异常')) {
     ElMessage.error('后端服务异常，请检查后端服务状态')
+  } 
+  // 检查是否是删除功能不支持的错误
+  else if (error.msg && (error.msg.includes('不支持删除') || error.msg.includes('请联系管理员'))) {
+    ElMessage.warning({
+      message: '删除功能暂不可用',
+      description: '当前版本不支持删除环境配置功能，请使用其他方式管理环境配置。',
+      type: 'warning',
+      duration: 5000
+    })
   } else {
     ElMessage.error(error.msg || `${operation}失败`)
   }
@@ -2349,6 +2397,12 @@ const handleRemoveEnvironment = async (index) => {
   
   const env = envFormData.environments[index]
   
+  // 检查是否是未保存的环境
+  if (!env.env_id && !env.envId) {
+    ElMessage.warning('未保存的环境不能删除，请先保存环境配置')
+    return
+  }
+  
   try {
     await ElMessageBox.confirm(
       `确定要删除环境 "${env.name}" 吗？`,
@@ -2364,6 +2418,10 @@ const handleRemoveEnvironment = async (index) => {
     if (USE_REAL_API && (env.env_id || env.envId)) {
       try {
         const envId = env.env_id || env.envId
+        console.log('=== 删除环境配置 ===')
+        console.log('环境ID:', envId)
+        console.log('环境名称:', env.name)
+        
         const response = await deleteEnvironmentConfig(envId)
         
         if (response.code === 1) {
@@ -2374,11 +2432,10 @@ const handleRemoveEnvironment = async (index) => {
           }
           ElMessage.success('环境已删除')
         } else {
-          ElMessage.error(response.msg || '删除环境失败')
+          handleAPIError(response, `删除环境 "${env.name}"`)
         }
       } catch (error) {
-        console.error('删除环境失败:', error)
-        ElMessage.error('删除环境失败: ' + (error.message || '未知错误'))
+        handleAPIError(error, `删除环境 "${env.name}"`)
       }
     } else {
       // 未保存的新环境，直接从列表中移除
@@ -2388,6 +2445,99 @@ const handleRemoveEnvironment = async (index) => {
       }
       ElMessage.success('环境已删除')
     }
+  } catch (error) {
+    // 用户取消
+  }
+}
+
+// 批量删除环境配置
+const handleBatchDeleteEnvironments = async () => {
+  if (envFormData.environments.length <= 1) {
+    ElMessage.warning('至少保留一个环境配置')
+    return
+  }
+  
+  // 过滤出非默认环境
+  const nonDefaultEnvs = envFormData.environments.filter(env => !env.is_default)
+  
+  if (nonDefaultEnvs.length === 0) {
+    ElMessage.warning('没有可删除的环境（默认环境不能删除）')
+    return
+  }
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除 ${nonDefaultEnvs.length} 个环境配置吗？\n\n将被删除的环境：\n${nonDefaultEnvs.map(env => `• ${env.name}`).join('\n')}`,
+      '批量删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        dangerouslyUseHTMLString: true,
+        message: `
+          <div>
+            <p>确定要删除 <strong>${nonDefaultEnvs.length}</strong> 个环境配置吗？</p>
+            <div style="margin: 12px 0; padding: 8px; background: #f5f7fa; border-radius: 4px;">
+              <div style="font-weight: 500; margin-bottom: 8px;">将被删除的环境：</div>
+              ${nonDefaultEnvs.map(env => `<div style="color: #606266;">• ${env.name}</div>`).join('')}
+            </div>
+            <p style="color: #e6a23c; font-size: 12px;">
+              ⚠️ 注意：此操作不可撤销
+            </p>
+          </div>
+        `
+      }
+    )
+    
+    let successCount = 0
+    let failCount = 0
+    
+    // 逐个删除环境
+    for (let i = envFormData.environments.length - 1; i >= 0; i--) {
+      const env = envFormData.environments[i]
+      
+      // 跳过默认环境
+      if (env.is_default) {
+        continue
+      }
+      
+      try {
+        if (USE_REAL_API && (env.env_id || env.envId)) {
+          const envId = env.env_id || env.envId
+          const response = await deleteEnvironmentConfig(envId)
+          
+          if (response.code === 1) {
+            envFormData.environments.splice(i, 1)
+            successCount++
+          } else {
+            handleAPIError(response, `删除环境 "${env.name}"`)
+            failCount++
+          }
+        } else {
+          // 演示模式，直接删除
+          envFormData.environments.splice(i, 1)
+          successCount++
+        }
+      } catch (error) {
+        handleAPIError(error, `删除环境 "${env.name}"`)
+        failCount++
+      }
+    }
+    
+    // 调整当前选中的环境索引
+    if (currentEnvIndex.value >= envFormData.environments.length) {
+      currentEnvIndex.value = envFormData.environments.length - 1
+    }
+    
+    // 显示结果
+    if (successCount > 0 && failCount === 0) {
+      ElMessage.success(`已删除 ${successCount} 个环境配置`)
+    } else if (successCount > 0 && failCount > 0) {
+      ElMessage.warning(`部分环境删除成功（成功${successCount}个，失败${failCount}个）`)
+    } else {
+      ElMessage.error('环境删除失败')
+    }
+    
   } catch (error) {
     // 用户取消
   }
@@ -3837,10 +3987,12 @@ onDeactivated(() => {
   padding: 12px;
   margin-bottom: 4px;
   border-radius: 4px;
-  cursor: pointer;
   transition: all 0.2s;
   background: white;
   border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .env-sidebar-item:hover {
@@ -3863,11 +4015,38 @@ onDeactivated(() => {
   background: white;
 }
 
+.env-item-content {
+  flex: 1;
+  cursor: pointer;
+  min-width: 0;
+}
+
 .env-item-name {
   font-size: 14px;
   color: #303133;
   font-weight: 500;
   margin-bottom: 6px;
+}
+
+.env-item-badges {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.env-item-actions {
+  margin-left: 8px;
+  opacity: 1;
+  transition: opacity 0.2s;
+}
+
+.env-sidebar-item:hover .env-item-actions {
+  opacity: 1;
+}
+
+.env-item-actions .el-button {
+  padding: 4px;
+  min-height: auto;
 }
 
 .env-item-badge {
@@ -4122,7 +4301,18 @@ onDeactivated(() => {
 /* 对话框底部 */
 .env-dialog-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.env-footer-left {
+  display: flex;
+  gap: 8px;
+}
+
+.env-footer-right {
+  display: flex;
   gap: 12px;
 }
 

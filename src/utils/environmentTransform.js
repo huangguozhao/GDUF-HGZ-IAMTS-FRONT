@@ -8,7 +8,10 @@
 export function transformEnvironmentConfig(env) {
   if (!env) return null
   
-  return {
+  console.log('=== 转换环境配置数据（后端->前端）===')
+  console.log('原始数据:', env)
+  
+  const result = {
     env_id: env.envId || env.env_id,
     envId: env.envId || env.env_id,
     env_code: env.envCode || env.env_code,
@@ -28,13 +31,19 @@ export function transformEnvironmentConfig(env) {
     // JSON 字段
     database_config: env.databaseConfig || env.database_config,
     databaseConfig: env.databaseConfig || env.database_config,
-    dataConfigs: env.databaseConfig || env.database_config || [],
+    dataConfigs: Array.isArray(env.databaseConfig) ? env.databaseConfig : 
+                 Array.isArray(env.database_config) ? env.database_config : 
+                 (env.databaseConfig && typeof env.databaseConfig === 'object') ? Object.values(env.databaseConfig) : [],
     
     external_services: env.externalServices || env.external_services,
-    externalServices: env.externalServices || env.external_services,
+    externalServices: Array.isArray(env.externalServices) ? env.externalServices : 
+                      Array.isArray(env.external_services) ? env.external_services : 
+                      (env.externalServices && typeof env.externalServices === 'object') ? Object.values(env.externalServices) : 
+                      (env.external_services && typeof env.external_services === 'object') ? Object.values(env.external_services) : [],
     
     variables: env.variables,
-    envVariables: env.variables || [],
+    envVariables: Array.isArray(env.variables) ? env.variables : 
+                  (env.variables && typeof env.variables === 'object') ? Object.values(env.variables) : [],
     
     auth_config: env.authConfig || env.auth_config,
     authConfig: env.authConfig || env.auth_config,
@@ -102,6 +111,13 @@ export function transformEnvironmentConfig(env) {
     updated_at: env.updatedAt || env.updated_at,
     updatedAt: env.updatedAt || env.updated_at
   }
+  
+  console.log('转换结果:', result)
+  console.log('dataConfigs 类型:', Array.isArray(result.dataConfigs) ? 'Array' : typeof result.dataConfigs)
+  console.log('externalServices 类型:', Array.isArray(result.externalServices) ? 'Array' : typeof result.externalServices)
+  console.log('envVariables 类型:', Array.isArray(result.envVariables) ? 'Array' : typeof result.envVariables)
+  
+  return result
 }
 
 /**
