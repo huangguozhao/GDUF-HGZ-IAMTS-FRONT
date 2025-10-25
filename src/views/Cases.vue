@@ -229,6 +229,7 @@
           </div>
 
           <div class="env-sidebar-list">
+            <!-- 环境列表 -->
             <div 
               v-for="(env, index) in envFormData.environments" 
               :key="index"
@@ -246,6 +247,13 @@
               <div class="env-item-badge active" v-if="env.status === 'active'">
                 <span class="badge-text">运行中</span>
               </div>
+            </div>
+            
+            <!-- 空状态 -->
+            <div v-if="envFormData.environments.length === 0" class="env-empty-state">
+              <div class="empty-icon">🌍</div>
+              <div class="empty-text">暂无环境配置</div>
+              <div class="empty-tip">点击下方按钮创建新环境</div>
             </div>
           </div>
 
@@ -327,7 +335,35 @@
               <!-- 1. 基础配置 -->
               <div v-if="envActiveTab === 'basic'" class="env-form-section">
                 <div class="form-group">
-                  <label class="form-label">基础URL</label>
+                  <label class="form-label">环境编码 <span class="required">*</span></label>
+                  <el-input 
+                    v-model="currentEnvironment.env_code" 
+                    placeholder="ENV_DEV_001"
+                    :disabled="currentEnvironment.env_id || currentEnvironment.envId"
+                  />
+                  <div class="form-tip">环境编码用于唯一标识环境，创建后不可修改</div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">环境名称 <span class="required">*</span></label>
+                  <el-input 
+                    v-model="currentEnvironment.name" 
+                    placeholder="开发环境"
+                  />
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">环境类型</label>
+                  <el-select v-model="currentEnvironment.env_type" placeholder="请选择环境类型">
+                    <el-option label="开发环境" value="development" />
+                    <el-option label="测试环境" value="testing" />
+                    <el-option label="预生产环境" value="staging" />
+                    <el-option label="生产环境" value="production" />
+                  </el-select>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">基础URL <span class="required">*</span></label>
                   <el-input 
                     v-model="currentEnvironment.base_url" 
                     placeholder="https://dev.example.com"
@@ -742,6 +778,15 @@
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+        
+        <!-- 右侧空状态 -->
+        <div class="env-content env-content-empty" v-else>
+          <div class="env-empty-content">
+            <div class="empty-icon-large">🌐</div>
+            <div class="empty-title">暂无环境配置</div>
+            <div class="empty-description">请点击左侧"+ 新建环境"按钮创建环境配置</div>
           </div>
         </div>
       </div>
@@ -1227,10 +1272,42 @@ import {
   transformApiToBackend,
   transformTestCaseToBackend
 } from '../utils/dataTransform'
+import {
+  createEnvironmentConfig,
+  updateEnvironmentConfig,
+  deleteEnvironmentConfig,
+  getEnvironmentConfigList,
+  getProjectEnvironments
+} from '../api/environment'
+import {
+  transformEnvironmentConfig,
+  transformEnvironmentConfigToBackend
+} from '../utils/environmentTransform'
 
 // 配置：是否使用真实API（设置为 true 则调用后端，false 则使用假数据）
 // 后端准备好后，将此值改为 true
-const USE_REAL_API = true
+let USE_REAL_API = true // 尝试使用真实API
+let API_ERROR_COUNT = 0 // API错误计数
+const MAX_API_ERRORS = 3 // 最大错误次数，超过后自动切换到演示模式
+
+// 处理API错误
+const handleAPIError = (error, operation = '操作') => {
+  API_ERROR_COUNT++
+  console.error(`${operation}失败:`, error)
+  
+  if (API_ERROR_COUNT >= MAX_API_ERRORS) {
+    USE_REAL_API = false
+    ElMessage.warning('后端服务异常，已自动切换到演示模式')
+    console.log('已切换到演示模式')
+  }
+  
+  // 检查是否是系统异常错误
+  if (error.msg && error.msg.includes('系统异常')) {
+    ElMessage.error('后端服务异常，请检查后端服务状态')
+  } else {
+    ElMessage.error(error.msg || `${operation}失败`)
+  }
+}
 
 // 响应式数据
 const loading = ref(false)
@@ -2146,59 +2223,174 @@ const handleEditChild = (child) => {
 }
 
 // 打开环境配置对话框
-const handleConfigEnvironment = (project) => {
+const handleConfigEnvironment = async (project) => {
   envFormData.project_id = project.project_id
   currentEnvIndex.value = 0
   envActiveTab.value = 'basic'
   envDialogVisible.value = true
   
-  // TODO: 从后端加载环境配置
-  // const response = await getProjectEnvironments(project.project_id)
-  // if (response.code === 1) {
-  //   envFormData.environments = response.data.environments
-  // }
+  // 从后端加载环境配置
+  if (USE_REAL_API) {
+    try {
+      loading.value = true
+      // 注意：后端接口可能不支持直接按项目查询，这里先查询所有环境
+      const response = await getEnvironmentConfigList({
+        pageSize: 100
+      })
+      
+      if (response.code === 1 && response.data) {
+        const environments = response.data.items || []
+        // 转换为前端格式
+        envFormData.environments = environments.map(transformEnvironmentConfig)
+        
+        if (envFormData.environments.length === 0) {
+          // 如果没有环境配置，显示空状态
+          envFormData.environments = []
+          ElMessage.info('暂无环境配置，请创建新环境')
+        } else {
+          ElMessage.success(`加载了 ${envFormData.environments.length} 个环境配置`)
+        }
+      } else {
+        ElMessage.warning('暂无环境配置，请创建新环境')
+        envFormData.environments = []
+      }
+    } catch (error) {
+      console.error('加载环境配置失败:', error)
+      ElMessage.error('加载环境配置失败')
+      // 显示空状态
+      envFormData.environments = []
+    } finally {
+      loading.value = false
+    }
+  }
+}
+
+// 创建默认环境配置
+const createDefaultEnvironment = () => {
+  return {
+    name: '开发环境',
+    env_code: 'ENV_DEV_001',
+    envCode: 'ENV_DEV_001',
+    env_type: 'development',
+    envType: 'development',
+    base_url: 'https://dev.example.com',
+    baseUrl: 'https://dev.example.com',
+    port: '8080',
+    domain: 'dev.example.com',
+    protocol: 'https',
+    description: '开发环境主要用于开发人员本地开发和单元测试',
+    is_default: true,
+    isDefault: true,
+    status: 'active',
+    dataConfigs: [],
+    externalServices: [],
+    envVariables: [],
+    authType: 'bearer',
+    authToken: '',
+    authUsername: '',
+    authPassword: '',
+    apiKey: '',
+    apiKeyHeader: 'X-API-Key',
+    oauth2Config: '',
+    debugMode: true,
+    sslVerify: false,
+    autoRetry: true,
+    logging: true,
+    monitoring: true,
+    serverIp: '192.168.1.100',
+    deployPath: '/var/www/app',
+    containerId: 'docker-abc123',
+    version: 'v1.2.3',
+    deployTime: '2024-02-20 15:30:00',
+    deployer: '张三',
+    deployNote: '常规更新部署'
+  }
 }
 
 // 添加环境
 const handleAddEnvironment = () => {
-  envFormData.environments.push({
+  const newEnv = {
     name: `新环境 ${envFormData.environments.length + 1}`,
+    env_code: `ENV_${Date.now()}`, // 生成唯一的环境编码
+    envCode: `ENV_${Date.now()}`, // 生成唯一的环境编码
+    env_type: 'development',
+    envType: 'development',
     base_url: '',
+    baseUrl: '',
     port: '8080',
     domain: '',
     protocol: 'https',
     description: '',
     is_default: false,
-    status: 'inactive'
-  })
+    isDefault: false,
+    status: 'inactive',
+    dataConfigs: [],
+    externalServices: [],
+    envVariables: [],
+    authType: 'none',
+    debugMode: false,
+    sslVerify: true,
+    autoRetry: false,
+    logging: true,
+    monitoring: true
+  }
+  
+  envFormData.environments.push(newEnv)
   currentEnvIndex.value = envFormData.environments.length - 1
   ElMessage.success('环境已添加，请配置基本信息')
 }
 
 // 删除环境
-const handleRemoveEnvironment = (index) => {
+const handleRemoveEnvironment = async (index) => {
   if (envFormData.environments.length <= 1) {
     ElMessage.warning('至少保留一个环境配置')
     return
   }
   
-  ElMessageBox.confirm(
-    `确定要删除环境 "${envFormData.environments[index].name}" 吗？`,
-    '删除确认',
-    {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
-      type: 'warning'
+  const env = envFormData.environments[index]
+  
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除环境 "${env.name}" 吗？`,
+      '删除确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    // 如果环境有ID，调用后端删除接口
+    if (USE_REAL_API && (env.env_id || env.envId)) {
+      try {
+        const envId = env.env_id || env.envId
+        const response = await deleteEnvironmentConfig(envId)
+        
+        if (response.code === 1) {
+          // 从列表中移除
+          envFormData.environments.splice(index, 1)
+          if (currentEnvIndex.value >= envFormData.environments.length) {
+            currentEnvIndex.value = envFormData.environments.length - 1
+          }
+          ElMessage.success('环境已删除')
+        } else {
+          ElMessage.error(response.msg || '删除环境失败')
+        }
+      } catch (error) {
+        console.error('删除环境失败:', error)
+        ElMessage.error('删除环境失败: ' + (error.message || '未知错误'))
+      }
+    } else {
+      // 未保存的新环境，直接从列表中移除
+      envFormData.environments.splice(index, 1)
+      if (currentEnvIndex.value >= envFormData.environments.length) {
+        currentEnvIndex.value = envFormData.environments.length - 1
+      }
+      ElMessage.success('环境已删除')
     }
-  ).then(() => {
-    envFormData.environments.splice(index, 1)
-    if (currentEnvIndex.value >= envFormData.environments.length) {
-      currentEnvIndex.value = envFormData.environments.length - 1
-    }
-    ElMessage.success('环境已删除')
-  }).catch(() => {
+  } catch (error) {
     // 用户取消
-  })
+  }
 }
 
 // 编辑环境名称
@@ -2230,23 +2422,84 @@ const handleSetDefaultEnvironment = (index) => {
 }
 
 // 保存环境配置
-const handleSaveEnvironments = () => {
+const handleSaveEnvironments = async () => {
   // 验证表单
-  const hasEmpty = envFormData.environments.some(env => !env.name || !env.base_url)
+  const hasEmpty = envFormData.environments.some(env => 
+    !env.name || 
+    !env.base_url || 
+    !env.env_code
+  )
   if (hasEmpty) {
-    ElMessage.error('请填写完整的环境配置信息（环境名称和Base URL为必填项）')
+    ElMessage.error('请填写完整的环境配置信息（环境编码、环境名称和Base URL为必填项）')
     return
   }
   
-  // TODO: 调用后端API保存环境配置
-  // const response = await saveProjectEnvironments(envFormData.project_id, envFormData.environments)
-  // if (response.code === 1) {
-  //   ElMessage.success('环境配置已保存')
-  //   envDialogVisible.value = false
-  // }
-  
-  ElMessage.success('环境配置已保存')
-  envDialogVisible.value = false
+  if (USE_REAL_API) {
+    try {
+      loading.value = true
+      let successCount = 0
+      let failCount = 0
+      
+      // 逐个保存或更新环境配置
+      for (const env of envFormData.environments) {
+        try {
+          // 转换为后端格式
+          const backendData = transformEnvironmentConfigToBackend(env)
+          
+          if (env.env_id || env.envId) {
+            // 更新已存在的环境
+            const envId = env.env_id || env.envId
+            const response = await updateEnvironmentConfig(envId, backendData)
+            
+            if (response.code === 1) {
+              successCount++
+              console.log(`环境 "${env.name}" 更新成功`)
+            } else {
+              failCount++
+              console.error(`环境 "${env.name}" 更新失败:`, response.msg)
+            }
+          } else {
+            // 创建新环境
+            const response = await createEnvironmentConfig(backendData)
+            
+            if (response.code === 1) {
+              successCount++
+              // 更新环境ID
+              if (response.data) {
+                env.env_id = response.data.envId || response.data.env_id
+                env.envId = response.data.envId || response.data.env_id
+              }
+              console.log(`环境 "${env.name}" 创建成功`)
+            } else {
+              failCount++
+              handleAPIError(response, `环境 "${env.name}" 创建`)
+            }
+          }
+        } catch (error) {
+          failCount++
+          handleAPIError(error, `保存环境 "${env.name}"`)
+        }
+      }
+      
+      // 显示结果
+      if (successCount > 0 && failCount === 0) {
+        ElMessage.success(`环境配置已保存（${successCount}个）`)
+        envDialogVisible.value = false
+      } else if (successCount > 0 && failCount > 0) {
+        ElMessage.warning(`部分环境配置保存成功（成功${successCount}个，失败${failCount}个）`)
+      } else {
+        ElMessage.error('环境配置保存失败')
+      }
+    } catch (error) {
+      console.error('保存环境配置失败:', error)
+      ElMessage.error('保存环境配置失败: ' + (error.message || '未知错误'))
+    } finally {
+      loading.value = false
+    }
+  } else {
+    ElMessage.success('环境配置已保存（演示模式）')
+    envDialogVisible.value = false
+  }
 }
 
 // 添加数据配置项
@@ -2361,8 +2614,6 @@ const handleDeleteModule = async (module) => {
       const response = await deleteModule(moduleId)
       
       if (response.code === 1) {
-        ElMessage.success('模块删除成功')
-        
         // 清空选中状态（如果删除的是当前选中的模块）
         if (selectedLevel.value === 'module' && 
             (selectedNode.value?.module_id === moduleId || selectedNode.value?.id === moduleId)) {
@@ -2370,8 +2621,48 @@ const handleDeleteModule = async (module) => {
           selectedLevel.value = null
         }
         
-        // 重新加载项目树
-        await loadProjectTree()
+        // 等待 DOM 更新
+        await nextTick()
+        
+        // 在树结构中找到并移除对应的模块节点（不重新加载，保持展开状态）
+        let found = false
+        projects.value.forEach(project => {
+          if (project.modules && Array.isArray(project.modules)) {
+            // 检查一级模块
+            const moduleIndex = project.modules.findIndex(m => 
+              (m.module_id || m.moduleId || m.id) === moduleId
+            )
+            if (moduleIndex !== -1) {
+              console.log(`从项目 "${project.name}" 中移除模块，索引: ${moduleIndex}`)
+              // 从数组中移除该模块
+              project.modules.splice(moduleIndex, 1)
+              found = true
+            } else {
+              // 检查子模块（二级模块）
+              project.modules.forEach(parentModule => {
+                if (parentModule.children && Array.isArray(parentModule.children)) {
+                  const subModuleIndex = parentModule.children.findIndex(sm => 
+                    (sm.module_id || sm.moduleId || sm.id) === moduleId
+                  )
+                  if (subModuleIndex !== -1) {
+                    console.log(`从父模块 "${parentModule.name}" 中移除子模块，索引: ${subModuleIndex}`)
+                    // 从数组中移除该子模块
+                    parentModule.children.splice(subModuleIndex, 1)
+                    found = true
+                  }
+                }
+              })
+            }
+          }
+        })
+        
+        if (found) {
+          console.log('模块已从树中移除')
+          ElMessage.success('模块删除成功')
+        } else {
+          console.warn('在项目树中未找到对应的模块节点')
+          ElMessage.warning('模块已删除，请刷新页面')
+        }
         
         // 保存状态
         savePageState()
@@ -3628,6 +3919,65 @@ onDeactivated(() => {
   overflow: hidden;
 }
 
+/* 环境配置空状态 */
+.env-content-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.env-empty-content {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.empty-icon-large {
+  font-size: 80px;
+  margin-bottom: 20px;
+  opacity: 0.5;
+}
+
+.empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #909399;
+  line-height: 1.6;
+}
+
+/* 左侧环境列表空状态 */
+.env-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.env-empty-state .empty-icon {
+  font-size: 60px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.env-empty-state .empty-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.env-empty-state .empty-tip {
+  font-size: 13px;
+  color: #909399;
+}
+
 .env-content-header {
   padding: 16px 24px;
   border-bottom: 1px solid #e4e7ed;
@@ -3723,6 +4073,18 @@ onDeactivated(() => {
   font-size: 14px;
   color: #606266;
   font-weight: 500;
+}
+
+.form-label .required {
+  color: #f56c6c;
+  margin-left: 4px;
+}
+
+.form-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 4px;
+  line-height: 1.4;
 }
 
 /* 状态指示行 */

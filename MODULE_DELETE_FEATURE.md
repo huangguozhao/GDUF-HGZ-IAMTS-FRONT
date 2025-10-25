@@ -120,21 +120,64 @@ const moduleId = module.module_id || module.moduleId || module.id
 ```
 兼容多种命名格式，确保正确获取模块ID
 
-### 3. 状态管理
+### 3. 局部更新机制 ⭐
+**核心优化**：删除模块后不重新加载整个项目树，保持展开/折叠状态
+
+```javascript
+// 直接在树结构中找到并移除对应的模块节点
+projects.value.forEach(project => {
+  if (project.modules && Array.isArray(project.modules)) {
+    // 检查一级模块
+    const moduleIndex = project.modules.findIndex(m => 
+      (m.module_id || m.moduleId || m.id) === moduleId
+    )
+    if (moduleIndex !== -1) {
+      // 从数组中移除该模块
+      project.modules.splice(moduleIndex, 1)
+      found = true
+    } else {
+      // 检查子模块（二级模块）
+      project.modules.forEach(parentModule => {
+        if (parentModule.children && Array.isArray(parentModule.children)) {
+          const subModuleIndex = parentModule.children.findIndex(sm => 
+            (sm.module_id || sm.moduleId || sm.id) === moduleId
+          )
+          if (subModuleIndex !== -1) {
+            // 从数组中移除该子模块
+            parentModule.children.splice(subModuleIndex, 1)
+            found = true
+          }
+        }
+      })
+    }
+  }
+})
+```
+
+**优势**：
+- ✅ 保持用户的展开/折叠状态
+- ✅ 保持其他模块的加载状态（已加载的接口列表不会丢失）
+- ✅ 更好的用户体验（无闪烁）
+- ✅ 减少不必要的网络请求
+
+### 4. 状态管理
 - 如果删除的是当前选中的模块，自动清空选中状态
-- 删除成功后自动刷新项目树
+- ✅ **不重新加载项目树**（保持展开状态）
 - 保存页面状态到 localStorage
 
-### 4. 错误处理
+### 5. 错误处理
 - 用户取消操作：静默处理
 - 删除失败：显示后端返回的错误信息
 - 异常情况：显示通用错误提示
+- 找不到模块：提示用户刷新页面
 
-### 5. 调试日志
+### 6. 调试日志
 ```javascript
 console.log('=== 删除模块 ===')
 console.log('模块ID:', moduleId)
 console.log('模块名称:', module.name)
+console.log(`从项目 "${project.name}" 中移除模块，索引: ${moduleIndex}`)
+console.log(`从父模块 "${parentModule.name}" 中移除子模块，索引: ${subModuleIndex}`)
 ```
 便于开发调试和问题排查
 
@@ -153,9 +196,13 @@ console.log('模块名称:', module.name)
    ↓
 6. 后端验证（子模块、接口、权限等）
    ↓
-7a. 成功 → 显示成功消息 → 刷新树
+7a. 成功 → 清空选中状态 → 从树中移除节点 → 显示成功消息
 7b. 失败 → 显示错误消息（如：存在子模块）
 ```
+
+**关键改进**：
+- ❌ 旧版：成功后调用 `loadProjectTree()` → 所有展开状态丢失
+- ✅ 新版：成功后直接操作 `projects.value` → 保持展开状态
 
 ## 后端验证规则
 
@@ -190,24 +237,58 @@ console.log('模块名称:', module.name)
 ## 与其他删除功能的对比
 
 ### 删除项目 (`handleDeleteProject`)
-使用通用的 `handleDelete` 函数
+- 使用通用的 `handleDelete` 函数
+- ❌ 删除后重新加载整个项目树
 
-### 删除模块 (`handleDeleteModule`)
-✅ 独立实现，带特定警告提示
+### 删除模块 (`handleDeleteModule`) ⭐
+- ✅ 独立实现，带特定警告提示
+- ✅ **局部更新**：直接从树中移除节点
+- ✅ 支持删除一级模块和二级子模块
+- ✅ 保持展开/折叠状态
 
-### 删除接口 (`handleDeleteApi`)
-独立实现，保持展开状态
+### 删除接口 (`handleDeleteApi`) ⭐
+- ✅ 独立实现
+- ✅ **局部更新**：直接从树中移除节点
+- ✅ 保持展开状态
+- 参考实现，模块删除采用相同机制
 
-### 删除用例 (`handleDeleteCase`)
-独立实现，智能选择相邻用例
+### 删除用例 (`handleDeleteCase`) ⭐
+- ✅ 独立实现
+- ✅ **局部更新**：重新加载当前接口的用例列表
+- ✅ 智能选择相邻用例
+
+## 局部更新机制的统一性
+
+模块删除现在采用与接口删除相同的机制：
+
+| 功能 | 更新方式 | 状态保持 |
+|------|---------|---------|
+| 删除项目 | 重新加载整树 | ❌ 丢失 |
+| **删除模块** | **局部移除节点** | **✅ 保持** |
+| **删除接口** | **局部移除节点** | **✅ 保持** |
+| **删除用例** | **重新加载用例** | **✅ 保持** |
+
+**统一的设计原则**：
+1. 能局部更新就不全局刷新
+2. 保持用户的操作状态
+3. 减少不必要的网络请求
+4. 提供更流畅的用户体验
 
 ## 测试建议
 
 ### 正常场景：
 1. ✅ 删除空模块（无子模块、无接口）
-2. ✅ 删除后自动刷新树
+2. ✅ 删除后保持树的展开状态
 3. ✅ 删除当前选中的模块，自动清空选中状态
 4. ✅ 删除非选中模块，保持当前选中状态
+5. ✅ 删除一级模块
+6. ✅ 删除二级子模块
+
+### 展开状态保持测试（重要）：
+1. ✅ 展开项目A和模块B，删除模块C → 项目A和模块B保持展开
+2. ✅ 展开多个项目，删除其中一个模块 → 其他项目保持展开状态
+3. ✅ 已加载的接口列表在删除其他模块后仍然存在
+4. ✅ 删除子模块后，父模块保持展开状态
 
 ### 异常场景：
 1. ✅ 删除包含子模块的模块 → 显示错误
@@ -232,14 +313,43 @@ console.log('模块名称:', module.name)
 - Element Plus MessageBox（确认对话框）
 - Element Plus Message（提示消息）
 
-## 优化点
+## 核心优化 ⭐
 
-### 相比旧版本的改进：
+### 最重要的改进：局部更新机制
+
+#### 问题分析：
+旧版本在删除模块后会调用 `loadProjectTree()`，这会导致：
+- ❌ 所有展开的项目和模块重新折叠
+- ❌ 已加载的接口列表丢失（需要重新点击展开）
+- ❌ 用户体验差（需要重新找到之前查看的位置）
+- ❌ 不必要的网络请求（重新加载所有项目）
+
+#### 解决方案：
+新版本采用局部更新机制：
+```javascript
+// 不调用 loadProjectTree()
+// 而是直接操作 projects.value 响应式数据
+project.modules.splice(moduleIndex, 1)
+```
+
+#### 优势对比：
+
+| 方面 | 旧版本 (loadProjectTree) | 新版本 (局部更新) |
+|------|-------------------------|-----------------|
+| 展开状态 | ❌ 全部重置 | ✅ 完全保持 |
+| 已加载数据 | ❌ 全部丢失 | ✅ 完全保持 |
+| 网络请求 | ❌ 重新加载所有项目 | ✅ 仅删除请求 |
+| 用户体验 | ❌ 需要重新展开 | ✅ 无感知更新 |
+| 性能 | ❌ 较差 | ✅ 优秀 |
+
+### 其他改进：
 1. ✅ **不依赖 `selectedLevel`** - 直接使用传入的 module 对象
 2. ✅ **详细的警告提示** - 告知用户删除限制
 3. ✅ **智能状态管理** - 只在必要时清空选中状态
 4. ✅ **完善的错误处理** - 区分用户取消和真实错误
 5. ✅ **调试信息** - 便于排查问题
+6. ✅ **支持子模块** - 可以删除一级模块和二级子模块
+7. ✅ **与接口删除一致** - 采用相同的设计模式
 
 ## 注意事项
 
