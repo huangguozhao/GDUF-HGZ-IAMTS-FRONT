@@ -2336,7 +2336,57 @@ const handleDeleteProject = async (project) => {
 }
 
 const handleDeleteModule = async (module) => {
-  handleDelete(module)
+  try {
+    await ElMessageBox.confirm(`确定要删除模块 "${module.name}" 吗？`, '删除确认', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning',
+      dangerouslyUseHTMLString: true,
+      message: `
+        <div>
+          <p>确定要删除模块 <strong>${module.name}</strong> 吗？</p>
+          <p style="color: #e6a23c; font-size: 12px; margin-top: 8px;">
+            ⚠️ 注意：如果模块下存在子模块或接口，将无法删除
+          </p>
+        </div>
+      `
+    })
+    
+    if (USE_REAL_API) {
+      const moduleId = module.module_id || module.moduleId || module.id
+      console.log('=== 删除模块 ===')
+      console.log('模块ID:', moduleId)
+      console.log('模块名称:', module.name)
+      
+      const response = await deleteModule(moduleId)
+      
+      if (response.code === 1) {
+        ElMessage.success('模块删除成功')
+        
+        // 清空选中状态（如果删除的是当前选中的模块）
+        if (selectedLevel.value === 'module' && 
+            (selectedNode.value?.module_id === moduleId || selectedNode.value?.id === moduleId)) {
+          selectedNode.value = null
+          selectedLevel.value = null
+        }
+        
+        // 重新加载项目树
+        await loadProjectTree()
+        
+        // 保存状态
+        savePageState()
+      } else {
+        ElMessage.error(response.msg || '删除模块失败')
+      }
+    } else {
+      ElMessage.success('删除成功（演示模式）')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除模块失败:', error)
+      ElMessage.error(error.msg || error.message || '删除模块失败')
+    }
+  }
 }
 
 const handleDeleteChild = async (child) => {
