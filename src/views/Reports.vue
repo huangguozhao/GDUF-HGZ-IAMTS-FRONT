@@ -42,10 +42,10 @@
         </el-form-item>
 
         <el-form-item label="报告类型">
-          <el-select
+        <el-select 
             v-model="filterForm.reportType"
             placeholder="全部"
-            clearable
+          clearable
             @change="handleSearch"
             style="width: 150px"
           >
@@ -55,14 +55,14 @@
             <el-option label="性能测试" value="performance" />
             <el-option label="自动化测试" value="automation" />
             <el-option label="手工测试" value="manual" />
-          </el-select>
+        </el-select>
         </el-form-item>
 
         <el-form-item label="环境">
           <el-select
             v-model="filterForm.environment"
             placeholder="全部"
-            clearable
+          clearable
             @change="handleSearch"
             style="width: 120px"
           >
@@ -126,7 +126,7 @@
         <el-collapse-item title="高级筛选" name="advanced">
           <el-form :model="filterForm" inline>
             <el-form-item label="开始时间">
-              <el-date-picker
+        <el-date-picker
                 v-model="filterForm.startTimeBegin"
                 type="datetime"
                 placeholder="选择开始时间"
@@ -148,10 +148,10 @@
             </el-form-item>
 
             <el-form-item label="文件格式">
-              <el-select
+        <el-select 
                 v-model="filterForm.fileFormat"
                 placeholder="全部"
-                clearable
+          clearable
                 @change="handleSearch"
                 style="width: 120px"
               >
@@ -159,7 +159,7 @@
                 <el-option label="JSON" value="json" />
                 <el-option label="PDF" value="pdf" />
                 <el-option label="Excel" value="excel" />
-              </el-select>
+        </el-select>
             </el-form-item>
 
             <el-form-item label="包含已删除">
@@ -171,7 +171,7 @@
           </el-form>
         </el-collapse-item>
       </el-collapse>
-    </div>
+      </div>
 
     <!-- 调试信息面板 -->
     <el-alert
@@ -192,15 +192,15 @@
           <p style="color: #e6a23c">
             ⚠️ 如果数据已查询到但未显示，请检查浏览器控制台日志
           </p>
-        </div>
+      </div>
       </template>
     </el-alert>
 
     <!-- 报告列表 -->
     <div class="reports-list">
-      <el-table
-        :data="reportList"
-        v-loading="loading"
+    <el-table 
+      :data="reportList" 
+      v-loading="loading"
         stripe
         border
         @selection-change="handleSelectionChange"
@@ -251,17 +251,17 @@
         <el-table-column prop="successRate" label="成功率" width="120" align="center">
           <template #default="{ row }">
             <div style="padding: 0 10px">
-              <el-progress
+            <el-progress 
                 :percentage="parseFloat(row.successRate || 0)"
                 :color="getSuccessRateColor(row.successRate)"
                 :stroke-width="6"
                 :show-text="true"
                 :format="() => `${row.successRate}%`"
               />
-            </div>
-          </template>
-        </el-table-column>
-
+          </div>
+        </template>
+      </el-table-column>
+      
         <el-table-column label="测试统计" width="240">
           <template #default="{ row }">
             <div class="test-stats">
@@ -269,10 +269,10 @@
               <span class="stat-badge success">通过: {{ row.passedCases || 0 }}</span>
               <span class="stat-badge danger">失败: {{ row.failedCases || 0 }}</span>
               <span class="stat-badge warning">跳过: {{ row.skippedCases || 0 }}</span>
-            </div>
-          </template>
-        </el-table-column>
-
+          </div>
+        </template>
+      </el-table-column>
+      
         <el-table-column prop="startTime" label="开始时间" width="160" align="center">
           <template #default="{ row }">
             <div style="line-height: 1.5; white-space: nowrap">
@@ -294,16 +294,16 @@
             <div class="action-buttons">
               <el-button size="small" type="primary" link @click="handleViewDetail(row)" :icon="View">
                 查看
-              </el-button>
+          </el-button>
               <el-button size="small" type="success" link @click="handleExport(row)" :icon="Download">
                 导出
-              </el-button>
+          </el-button>
               <el-button size="small" type="danger" link @click="handleDelete(row)" :icon="Delete">
                 删除
               </el-button>
             </div>
-          </template>
-        </el-table-column>
+        </template>
+      </el-table-column>
 
         <!-- 空状态 -->
         <template #empty>
@@ -314,7 +314,7 @@
             <el-button type="primary" @click="handleRefresh">刷新数据</el-button>
           </el-empty>
         </template>
-      </el-table>
+    </el-table>
 
       <!-- 批量操作工具栏 -->
       <div v-if="selectedReports.length > 0" class="batch-actions">
@@ -325,18 +325,18 @@
         </el-button>
       </div>
 
-      <!-- 分页 -->
-      <div class="pagination-container">
-        <el-pagination
+    <!-- 分页 -->
+    <div class="pagination-container">
+      <el-pagination
           v-model:current-page="pagination.page"
-          v-model:page-size="pagination.pageSize"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
+        v-model:page-size="pagination.pageSize"
+        :page-sizes="[10, 20, 50, 100]"
+        :total="pagination.total"
           layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
-        />
-      </div>
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
     </div>
 
     <!-- 报告详情对话框 -->
@@ -637,11 +637,11 @@
 <script setup>
 import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import {
+import { 
   Refresh,
   Search,
   RefreshLeft,
-  View,
+  View, 
   Download,
   Delete
 } from '@element-plus/icons-vue'
@@ -728,7 +728,7 @@ const loadReportList = async () => {
 
     console.log('=== 开始加载报告列表 ===')
     console.log('请求参数:', params)
-
+    
     const response = await getReportList(params)
     
     console.log('=== API响应 ===')
@@ -785,7 +785,7 @@ const handleResetFilter = () => {
   Object.keys(filterForm).forEach(key => {
     if (typeof filterForm[key] === 'boolean') {
       filterForm[key] = false
-    } else {
+  } else {
       filterForm[key] = null
     }
   })

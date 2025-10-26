@@ -1993,6 +1993,37 @@ const handleRefreshCases = async () => {
   }
 }
 
+// 刷新项目的模块列表（保持折叠状态）
+const refreshProjectModules = async (projectId) => {
+  if (!projectId) {
+    console.error('项目ID不能为空')
+    return
+  }
+  
+  try {
+    // 查找对应的项目节点
+    let targetProject = null
+    projects.value.forEach(project => {
+      if (project.project_id === projectId) {
+        targetProject = project
+      }
+    })
+    
+    if (!targetProject) {
+      console.error('未找到项目节点')
+      return
+    }
+    
+    // 重新加载该项目的模块列表（强制刷新）
+    // 先清空现有模块，避免重复加载标志位
+    delete targetProject._loadingModules
+    targetProject.modules = []
+    await loadProjectModules(targetProject)
+  } catch (error) {
+    console.error('刷新项目模块列表失败:', error)
+  }
+}
+
 // 刷新模块的接口列表（保持折叠状态）
 const refreshModuleApis = async (moduleId) => {
   if (!moduleId) {
@@ -3156,12 +3187,22 @@ const handleSaveWithAPI = async () => {
     }
     await loadProjectTree()
   } else if (dialogType.value === 'module') {
+    // 获取项目ID（创建时是parentId，编辑时是project_id）
+    const projectId = formData.parentId || formData.project_id
+    
     if (isEdit.value) {
       await updateModule(formData.module_id, data)
+      // 更新后只刷新当前项目的模块数据，保持展开状态
+      await refreshProjectModules(projectId)
     } else {
-      await createModule(formData.parentId, data)
+      const response = await createModule(projectId, data)
+      console.log('创建模块响应:', response)
+      
+      if (response.code === 1) {
+        // 创建成功后，重新加载当前项目的模块列表
+        await refreshProjectModules(projectId)
+      }
     }
-    await loadProjectTree()
   } else if (dialogType.value === 'api') {
     if (isEdit.value) {
       await updateApi(formData.api_id, data)

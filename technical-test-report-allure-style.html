@@ -1,0 +1,2425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Allure风格测试报告 - 技术详细版</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+  <style>
+    /* ==================== 全局样式 ==================== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      background: #f5f7fa;
+      color: #333;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ==================== 顶部导航栏 ==================== */
+    .top-navbar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .navbar-brand {
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .navbar-brand .logo {
+      width: 32px;
+      height: 32px;
+      background: white;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .navbar-info {
+      display: flex;
+      gap: 30px;
+      font-size: 14px;
+    }
+
+    .navbar-info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      opacity: 0.95;
+    }
+
+    /* ==================== 主布局 ==================== */
+    .main-container {
+      display: flex;
+      min-height: calc(100vh - 62px);
+    }
+
+    /* ==================== 侧边栏 ==================== */
+    .sidebar {
+      width: 260px;
+      background: white;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 62px;
+      height: calc(100vh - 62px);
+      overflow-y: auto;
+    }
+
+    .sidebar-nav {
+      list-style: none;
+      padding: 20px 0;
+    }
+
+    .sidebar-nav-item {
+      padding: 12px 25px;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 15px;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-nav-item:hover {
+      background: #f5f7fa;
+    }
+
+    .sidebar-nav-item.active {
+      background: #ecf5ff;
+      border-left-color: #667eea;
+      color: #667eea;
+      font-weight: 600;
+    }
+
+    .sidebar-nav-icon {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
+    }
+
+    /* ==================== 主内容区 ==================== */
+    .content-area {
+      flex: 1;
+      padding: 30px;
+      overflow-y: auto;
+    }
+
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    /* ==================== 概览页面 ==================== */
+    .overview-header {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      margin-bottom: 30px;
+    }
+
+    .overview-title {
+      font-size: 28px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .overview-subtitle {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .stat-card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      text-align: center;
+      transition: all 0.3s;
+      border-top: 4px solid #667eea;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    }
+
+    .stat-card.success {
+      border-top-color: #10b981;
+    }
+
+    .stat-card.danger {
+      border-top-color: #ef4444;
+    }
+
+    .stat-card.warning {
+      border-top-color: #f59e0b;
+    }
+
+    .stat-icon {
+      font-size: 40px;
+      margin-bottom: 15px;
+    }
+
+    .stat-value {
+      font-size: 36px;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      font-size: 14px;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-change {
+      font-size: 12px;
+      margin-top: 10px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+
+    .stat-change.positive {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .stat-change.negative {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* ==================== 图表区域 ==================== */
+    .charts-section {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      margin-bottom: 30px;
+    }
+
+    .chart-container {
+      width: 100%;
+      height: 400px;
+      margin-top: 20px;
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    /* ==================== 统计表格 ==================== */
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .stats-table thead {
+      background: #f9fafb;
+    }
+
+    .stats-table th {
+      padding: 15px;
+      text-align: center;
+      font-size: 14px;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .stats-table td {
+      padding: 15px;
+      text-align: center;
+      font-size: 15px;
+      color: #333;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .stats-table td:first-child {
+      text-align: left;
+      font-weight: 500;
+    }
+
+    .stats-table tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    .pass-rate {
+      font-weight: 600;
+      color: #10b981;
+    }
+
+    /* ==================== 双图表容器 ==================== */
+    .double-chart-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 20px;
+    }
+
+    .chart-wrapper {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .chart-wrapper-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* ==================== 测试套件列表 ==================== */
+    .suites-container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .suite-item {
+      border-bottom: 1px solid #e5e7eb;
+      transition: background 0.2s;
+    }
+
+    .suite-item:last-child {
+      border-bottom: none;
+    }
+
+    .suite-header {
+      padding: 20px 25px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+      transition: all 0.3s;
+    }
+
+    .suite-header:hover {
+      background: #f5f7fa;
+    }
+
+    .suite-header.expanded {
+      background: #ecf5ff;
+    }
+
+    .suite-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex: 1;
+    }
+
+    .suite-icon {
+      font-size: 24px;
+    }
+
+    .suite-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .suite-stats {
+      display: flex;
+      gap: 15px;
+      font-size: 14px;
+    }
+
+    .suite-stat {
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-weight: 500;
+    }
+
+    .suite-stat.passed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .suite-stat.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .suite-stat.skipped {
+      background: #e5e7eb;
+      color: #374151;
+    }
+
+    .suite-body {
+      display: none;
+      padding: 0;
+    }
+
+    .suite-body.expanded {
+      display: block;
+    }
+
+    /* ==================== 测试用例列表 ==================== */
+    .test-case-item {
+      border-bottom: 1px solid #f3f4f6;
+      transition: all 0.2s;
+    }
+
+    .test-case-item:hover {
+      background: #fafafa;
+    }
+
+    .test-case-header {
+      padding: 15px 40px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .test-case-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      flex: 1;
+    }
+
+    .test-status-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .test-status-icon.passed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .test-status-icon.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .test-status-icon.skipped {
+      background: #e5e7eb;
+      color: #6b7280;
+    }
+
+    .test-case-name {
+      font-size: 15px;
+      color: #333;
+      font-weight: 500;
+    }
+
+    .test-case-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .test-duration {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .test-case-body {
+      display: none;
+      padding: 0 40px 25px 87px;
+      background: #fafafa;
+    }
+
+    .test-case-body.expanded {
+      display: block;
+    }
+
+    /* ==================== 测试详情标签页 ==================== */
+    .test-details-tabs {
+      border-bottom: 2px solid #e5e7eb;
+      margin-bottom: 20px;
+    }
+
+    .test-details-tabs-list {
+      display: flex;
+      gap: 5px;
+      list-style: none;
+    }
+
+    .test-details-tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      font-size: 14px;
+      color: #666;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+    }
+
+    .test-details-tab:hover {
+      color: #667eea;
+    }
+
+    .test-details-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      font-weight: 600;
+    }
+
+    .test-details-content {
+      display: none;
+    }
+
+    .test-details-content.active {
+      display: block;
+    }
+
+    /* ==================== 测试步骤 ==================== */
+    .test-steps {
+      list-style: none;
+    }
+
+    .test-step {
+      padding: 12px 20px;
+      margin-bottom: 10px;
+      border-radius: 8px;
+      border-left: 4px solid #10b981;
+      background: white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .test-step.failed {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+
+    .test-step-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .test-step-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .test-step-status {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 12px;
+    }
+
+    .test-step-status.passed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .test-step-status.failed {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .test-step-description {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .test-step-time {
+      font-size: 12px;
+      color: #999;
+    }
+
+    /* ==================== 参数和断言 ==================== */
+    .params-table,
+    .assertions-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .params-table th,
+    .assertions-table th {
+      background: #f9fafb;
+      padding: 12px;
+      text-align: left;
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .params-table td,
+    .assertions-table td {
+      padding: 10px 12px;
+      font-size: 13px;
+      border-bottom: 1px solid #f3f4f6;
+      font-family: 'Consolas', 'Monaco', monospace;
+    }
+
+    .params-table tbody tr:hover,
+    .assertions-table tbody tr:hover {
+      background: #f9fafb;
+    }
+
+    /* ==================== 错误信息 ==================== */
+    .error-container {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-left: 4px solid #ef4444;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 15px;
+    }
+
+    .error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #991b1b;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .error-message {
+      background: white;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #dc2626;
+      margin-bottom: 15px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .error-stack {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .error-stack-line {
+      margin-bottom: 4px;
+    }
+
+    .error-stack-highlight {
+      color: #fbbf24;
+      font-weight: bold;
+    }
+
+    /* ==================== HTTP请求/响应 ==================== */
+    .http-section {
+      margin-top: 15px;
+    }
+
+    .http-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 15px;
+      background: #f9fafb;
+      border-radius: 8px 8px 0 0;
+      border: 1px solid #e5e7eb;
+      border-bottom: none;
+    }
+
+    .http-method {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+      color: white;
+    }
+
+    .http-method.GET {
+      background: #10b981;
+    }
+
+    .http-method.POST {
+      background: #3b82f6;
+    }
+
+    .http-method.PUT {
+      background: #f59e0b;
+    }
+
+    .http-method.DELETE {
+      background: #ef4444;
+    }
+
+    .http-url {
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      color: #4b5563;
+      flex: 1;
+      margin: 0 15px;
+    }
+
+    .http-status {
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: bold;
+    }
+
+    .http-status.success {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .http-status.error {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .http-body {
+      background: #1f2937;
+      color: #f3f4f6;
+      padding: 20px;
+      border-radius: 0 0 8px 8px;
+      border: 1px solid #e5e7eb;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 13px;
+      line-height: 1.8;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .json-key {
+      color: #93c5fd;
+    }
+
+    .json-string {
+      color: #86efac;
+    }
+
+    .json-number {
+      color: #fbbf24;
+    }
+
+    .json-boolean {
+      color: #c084fc;
+    }
+
+    /* ==================== 附件 ==================== */
+    .attachments-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+      margin-top: 15px;
+    }
+
+    .attachment-item {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .attachment-item:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .attachment-icon {
+      font-size: 48px;
+      margin-bottom: 10px;
+    }
+
+    .attachment-name {
+      font-size: 13px;
+      color: #374151;
+      word-break: break-word;
+    }
+
+    .attachment-size {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 5px;
+    }
+
+    /* ==================== 时间线 ==================== */
+    .timeline-container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .timeline {
+      position: relative;
+      padding-left: 40px;
+    }
+
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 15px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #e5e7eb;
+    }
+
+    .timeline-item {
+      position: relative;
+      padding-bottom: 30px;
+    }
+
+    .timeline-dot {
+      position: absolute;
+      left: -29px;
+      top: 5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      border: 3px solid white;
+      box-shadow: 0 0 0 2px #e5e7eb;
+    }
+
+    .timeline-dot.failed {
+      background: #ef4444;
+    }
+
+    .timeline-content {
+      background: #f9fafb;
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 3px solid #10b981;
+    }
+
+    .timeline-content.failed {
+      border-left-color: #ef4444;
+    }
+
+    .timeline-time {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 5px;
+    }
+
+    .timeline-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 5px;
+    }
+
+    .timeline-description {
+      font-size: 13px;
+      color: #666;
+    }
+
+    /* ==================== 滚动条美化 ==================== */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a8a8a8;
+    }
+
+    /* ==================== 响应式 ==================== */
+    @media (max-width: 1024px) {
+      .sidebar {
+        width: 220px;
+      }
+
+      .content-area {
+        padding: 20px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        position: fixed;
+        left: -260px;
+        transition: left 0.3s;
+        z-index: 999;
+      }
+
+      .sidebar.mobile-open {
+        left: 0;
+      }
+
+      .content-area {
+        padding: 15px;
+      }
+
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航栏 -->
+  <div class="top-navbar">
+    <div class="navbar-brand">
+      <div class="logo">🧪</div>
+      <span>Allure风格测试报告</span>
+    </div>
+    <div class="navbar-info">
+      <div class="navbar-info-item">
+        <span>📅</span>
+        <span>2024-01-20 17:30:00</span>
+      </div>
+      <div class="navbar-info-item">
+        <span>⏱️</span>
+        <span>耗时: 5分32秒</span>
+      </div>
+      <div class="navbar-info-item">
+        <span>🎯</span>
+        <span>通过率: 93.3%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 主容器 -->
+  <div class="main-container">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-item active" onclick="showSection('overview')">
+          <span class="sidebar-nav-icon">📊</span>
+          <span>Overview</span>
+        </li>
+        <li class="sidebar-nav-item" onclick="showSection('suites')">
+          <span class="sidebar-nav-icon">📦</span>
+          <span>Suites</span>
+        </li>
+        <li class="sidebar-nav-item" onclick="showSection('graphs')">
+          <span class="sidebar-nav-icon">📈</span>
+          <span>Graphs</span>
+        </li>
+        <li class="sidebar-nav-item" onclick="showSection('timeline')">
+          <span class="sidebar-nav-icon">⏰</span>
+          <span>Timeline</span>
+        </li>
+        <li class="sidebar-nav-item" onclick="showSection('behaviors')">
+          <span class="sidebar-nav-icon">🎭</span>
+          <span>Behaviors</span>
+        </li>
+        <li class="sidebar-nav-item" onclick="showSection('packages')">
+          <span class="sidebar-nav-icon">📂</span>
+          <span>Packages</span>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="content-area">
+      <!-- ==================== Overview 概览 ==================== -->
+      <section id="overview" class="content-section active">
+        <div class="overview-header">
+          <h1 class="overview-title">电商系统 API 自动化测试报告</h1>
+          <p class="overview-subtitle">生成时间: 2024-01-20 17:30:00 | 执行ID: #20240120-001</p>
+        </div>
+
+        <!-- 统计表格 -->
+        <div class="charts-section">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th style="text-align: left;">测试名称</th>
+                <th>总用例数</th>
+                <th>已执行</th>
+                <th>通过</th>
+                <th>失败</th>
+                <th>异常</th>
+                <th>跳过</th>
+                <th>通过率</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>全部测试用例</td>
+                <td>150</td>
+                <td>150</td>
+                <td>140</td>
+                <td>8</td>
+                <td>2</td>
+                <td>0</td>
+                <td class="pass-rate">93.33%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 双饼图：用例状态分布 + 缺陷优先级分布 -->
+        <div class="double-chart-container">
+          <div class="chart-wrapper">
+            <div class="chart-wrapper-title">
+              <span>🎯</span>
+              <span>用例状态分布</span>
+            </div>
+            <div id="statusPieChart" style="height: 400px;"></div>
+          </div>
+          <div class="chart-wrapper">
+            <div class="chart-wrapper-title">
+              <span>🚦</span>
+              <span>缺陷优先级分布</span>
+            </div>
+            <div id="severityChart" style="height: 400px;"></div>
+          </div>
+        </div>
+
+        <!-- 测试结果统计柱状图 -->
+        <div class="charts-section">
+          <h2 class="section-title">📊 测试结果统计</h2>
+          <div id="resultBarChart" class="chart-container"></div>
+        </div>
+      </section>
+
+      <!-- ==================== Suites 测试套件 ==================== -->
+      <section id="suites" class="content-section">
+        <div class="suites-container">
+          <!-- 用户管理模块 -->
+          <div class="suite-item">
+            <div class="suite-header" onclick="toggleSuite(this)">
+              <div class="suite-info">
+                <span class="suite-icon">👤</span>
+                <div>
+                  <div class="suite-name">用户管理模块 (UserManagement)</div>
+                  <div style="font-size: 13px; color: #666; margin-top: 4px;">
+                    测试用户注册、登录、个人信息管理等功能
+                  </div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 28 Passed</span>
+                <span class="suite-stat failed">✗ 2 Failed</span>
+                <span class="suite-stat">30 Total</span>
+              </div>
+            </div>
+            <div class="suite-body">
+              <!-- 测试用例1 - 成功案例 -->
+              <div class="test-case-item">
+                <div class="test-case-header" onclick="toggleTestCase(this)">
+                  <div class="test-case-left">
+                    <div class="test-status-icon passed">✓</div>
+                    <div class="test-case-name">test_user_registration_with_valid_data</div>
+                  </div>
+                  <div class="test-case-right">
+                    <div class="test-duration">
+                      <span>⏱️</span>
+                      <span>1.23s</span>
+                    </div>
+                    <span>🏷️ @smoke @critical</span>
+                  </div>
+                </div>
+                <div class="test-case-body">
+                  <!-- 标签页 -->
+                  <div class="test-details-tabs">
+                    <ul class="test-details-tabs-list">
+                      <li class="test-details-tab active" onclick="switchTab(this, 'steps-1')">Steps</li>
+                      <li class="test-details-tab" onclick="switchTab(this, 'params-1')">Parameters</li>
+                      <li class="test-details-tab" onclick="switchTab(this, 'http-1')">HTTP</li>
+                      <li class="test-details-tab" onclick="switchTab(this, 'attach-1')">Attachments</li>
+                    </ul>
+                  </div>
+
+                  <!-- Steps内容 -->
+                  <div id="steps-1" class="test-details-content active">
+                    <ol class="test-steps">
+                      <li class="test-step">
+                        <div class="test-step-header">
+                          <span class="test-step-title">1. 准备测试数据</span>
+                          <span class="test-step-status passed">✓ Passed</span>
+                        </div>
+                        <div class="test-step-description">
+                          生成随机用户名: user_20240120_173001<br>
+                          生成邮箱: user_20240120_173001@test.com
+                        </div>
+                        <div class="test-step-time">⏱️ 0.05s</div>
+                      </li>
+                      <li class="test-step">
+                        <div class="test-step-header">
+                          <span class="test-step-title">2. 发送注册请求</span>
+                          <span class="test-step-status passed">✓ Passed</span>
+                        </div>
+                        <div class="test-step-description">
+                          POST /api/v1/users/register<br>
+                          Status Code: 200 OK
+                        </div>
+                        <div class="test-step-time">⏱️ 0.85s</div>
+                      </li>
+                      <li class="test-step">
+                        <div class="test-step-header">
+                          <span class="test-step-title">3. 验证响应数据</span>
+                          <span class="test-step-status passed">✓ Passed</span>
+                        </div>
+                        <div class="test-step-description">
+                          断言: response.code == 200 ✓<br>
+                          断言: response.data.userId != null ✓<br>
+                          断言: response.data.username == expected ✓
+                        </div>
+                        <div class="test-step-time">⏱️ 0.12s</div>
+                      </li>
+                      <li class="test-step">
+                        <div class="test-step-header">
+                          <span class="test-step-title">4. 验证数据库记录</span>
+                          <span class="test-step-status passed">✓ Passed</span>
+                        </div>
+                        <div class="test-step-description">
+                          查询数据库: SELECT * FROM users WHERE username = ?<br>
+                          记录存在: ✓<br>
+                          状态正确: status = 'ACTIVE' ✓
+                        </div>
+                        <div class="test-step-time">⏱️ 0.21s</div>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <!-- Parameters内容 -->
+                  <div id="params-1" class="test-details-content">
+                    <table class="params-table">
+                      <thead>
+                        <tr>
+                          <th>Parameter</th>
+                          <th>Value</th>
+                          <th>Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>username</td>
+                          <td>user_20240120_173001</td>
+                          <td>String</td>
+                        </tr>
+                        <tr>
+                          <td>email</td>
+                          <td>user_20240120_173001@test.com</td>
+                          <td>String</td>
+                        </tr>
+                        <tr>
+                          <td>password</td>
+                          <td>********</td>
+                          <td>String (masked)</td>
+                        </tr>
+                        <tr>
+                          <td>phone</td>
+                          <td>13800138000</td>
+                          <td>String</td>
+                        </tr>
+                      </tbody>
+                    </table>
+
+                    <h3 style="margin-top: 25px; margin-bottom: 10px; font-size: 16px;">Assertions (3 passed)</h3>
+                    <table class="assertions-table">
+                      <thead>
+                        <tr>
+                          <th>Assertion</th>
+                          <th>Expected</th>
+                          <th>Actual</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td>response.code</td>
+                          <td>200</td>
+                          <td>200</td>
+                          <td><span class="test-step-status passed">✓</span></td>
+                        </tr>
+                        <tr>
+                          <td>response.data.userId</td>
+                          <td>not null</td>
+                          <td>1001</td>
+                          <td><span class="test-step-status passed">✓</span></td>
+                        </tr>
+                        <tr>
+                          <td>response.data.username</td>
+                          <td>user_20240120_173001</td>
+                          <td>user_20240120_173001</td>
+                          <td><span class="test-step-status passed">✓</span></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <!-- HTTP内容 -->
+                  <div id="http-1" class="test-details-content">
+                    <h3 style="margin-bottom: 15px; font-size: 16px;">Request</h3>
+                    <div class="http-section">
+                      <div class="http-header">
+                        <span class="http-method POST">POST</span>
+                        <span class="http-url">/api/v1/users/register</span>
+                        <span class="http-status success">200 OK</span>
+                      </div>
+                      <div class="http-body">
+<span class="json-key">"headers"</span>: {
+  <span class="json-key">"Content-Type"</span>: <span class="json-string">"application/json"</span>,
+  <span class="json-key">"User-Agent"</span>: <span class="json-string">"RestAssured/5.3.0"</span>
+},
+<span class="json-key">"body"</span>: {
+  <span class="json-key">"username"</span>: <span class="json-string">"user_20240120_173001"</span>,
+  <span class="json-key">"email"</span>: <span class="json-string">"user_20240120_173001@test.com"</span>,
+  <span class="json-key">"password"</span>: <span class="json-string">"encrypted_password_hash"</span>,
+  <span class="json-key">"phone"</span>: <span class="json-string">"13800138000"</span>
+}
+                      </div>
+                    </div>
+
+                    <h3 style="margin: 25px 0 15px; font-size: 16px;">Response</h3>
+                    <div class="http-section">
+                      <div class="http-header">
+                        <span class="http-status success">200 OK</span>
+                        <span style="font-size: 12px; color: #666;">⏱️ 850ms</span>
+                      </div>
+                      <div class="http-body">
+{
+  <span class="json-key">"code"</span>: <span class="json-number">200</span>,
+  <span class="json-key">"msg"</span>: <span class="json-string">"注册成功"</span>,
+  <span class="json-key">"data"</span>: {
+    <span class="json-key">"userId"</span>: <span class="json-number">1001</span>,
+    <span class="json-key">"username"</span>: <span class="json-string">"user_20240120_173001"</span>,
+    <span class="json-key">"email"</span>: <span class="json-string">"user_20240120_173001@test.com"</span>,
+    <span class="json-key">"phone"</span>: <span class="json-string">"13800138000"</span>,
+    <span class="json-key">"status"</span>: <span class="json-string">"ACTIVE"</span>,
+    <span class="json-key">"createdAt"</span>: <span class="json-string">"2024-01-20T17:30:01"</span>
+  }
+}
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Attachments内容 -->
+                  <div id="attach-1" class="test-details-content">
+                    <div class="attachments-grid">
+                      <div class="attachment-item">
+                        <div class="attachment-icon">📸</div>
+                        <div class="attachment-name">response_screenshot.png</div>
+                        <div class="attachment-size">45.2 KB</div>
+                      </div>
+                      <div class="attachment-item">
+                        <div class="attachment-icon">📄</div>
+                        <div class="attachment-name">request_log.txt</div>
+                        <div class="attachment-size">2.1 KB</div>
+                      </div>
+                      <div class="attachment-item">
+                        <div class="attachment-icon">🗄️</div>
+                        <div class="attachment-name">database_dump.sql</div>
+                        <div class="attachment-size">12.8 KB</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 测试用例2 - 失败案例 -->
+              <div class="test-case-item">
+                <div class="test-case-header" onclick="toggleTestCase(this)">
+                  <div class="test-case-left">
+                    <div class="test-status-icon failed">✗</div>
+                    <div class="test-case-name">test_user_login_with_invalid_password</div>
+                  </div>
+                  <div class="test-case-right">
+                    <div class="test-duration">
+                      <span>⏱️</span>
+                      <span>0.87s</span>
+                    </div>
+                    <span>🏷️ @negative @security</span>
+                  </div>
+                </div>
+                <div class="test-case-body">
+                  <div class="test-details-tabs">
+                    <ul class="test-details-tabs-list">
+                      <li class="test-details-tab active" onclick="switchTab(this, 'steps-2')">Steps</li>
+                      <li class="test-details-tab" onclick="switchTab(this, 'error-2')">Error</li>
+                      <li class="test-details-tab" onclick="switchTab(this, 'http-2')">HTTP</li>
+                    </ul>
+                  </div>
+
+                  <!-- Steps -->
+                  <div id="steps-2" class="test-details-content active">
+                    <ol class="test-steps">
+                      <li class="test-step">
+                        <div class="test-step-header">
+                          <span class="test-step-title">1. 准备无效密码</span>
+                          <span class="test-step-status passed">✓ Passed</span>
+                        </div>
+                        <div class="test-step-description">
+                          使用用户名: testuser<br>
+                          使用错误密码: wrong_password_123
+                        </div>
+                        <div class="test-step-time">⏱️ 0.02s</div>
+                      </li>
+                      <li class="test-step failed">
+                        <div class="test-step-header">
+                          <span class="test-step-title">2. 发送登录请求</span>
+                          <span class="test-step-status failed">✗ Failed</span>
+                        </div>
+                        <div class="test-step-description">
+                          POST /api/v1/users/login<br>
+                          Expected Status: 401 Unauthorized<br>
+                          Actual Status: 500 Internal Server Error ❌
+                        </div>
+                        <div class="test-step-time">⏱️ 0.85s</div>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <!-- Error -->
+                  <div id="error-2" class="test-details-content">
+                    <div class="error-container">
+                      <div class="error-title">
+                        <span>🚨</span>
+                        <span>AssertionError</span>
+                      </div>
+                      <div class="error-message">
+Expected status code: 401
+Actual status code: 500
+
+服务器应该返回401 Unauthorized，但实际返回了500 Internal Server Error
+这表明密码验证逻辑存在未处理的异常
+                      </div>
+                      <h4 style="margin: 15px 0 10px; font-size: 14px; font-weight: 600;">Stack Trace:</h4>
+                      <div class="error-stack">
+<div class="error-stack-line">at UserLoginTest.test_user_login_with_invalid_password(UserLoginTest.java:45)</div>
+<div class="error-stack-line">at RestAssured.post(RestAssured.java:128)</div>
+<div class="error-stack-line">at HttpClient.execute(HttpClient.java:87)</div>
+<div class="error-stack-line error-stack-highlight">Caused by: NullPointerException: user.passwordHash is null</div>
+<div class="error-stack-line">at PasswordService.verify(PasswordService.java:32)</div>
+<div class="error-stack-line">at AuthController.login(AuthController.java:67)</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- HTTP -->
+                  <div id="http-2" class="test-details-content">
+                    <h3 style="margin-bottom: 15px; font-size: 16px;">Response (Error)</h3>
+                    <div class="http-section">
+                      <div class="http-header">
+                        <span class="http-status error">500 Internal Server Error</span>
+                        <span style="font-size: 12px; color: #666;">⏱️ 850ms</span>
+                      </div>
+                      <div class="http-body">
+{
+  <span class="json-key">"code"</span>: <span class="json-number">500</span>,
+  <span class="json-key">"msg"</span>: <span class="json-string">"系统异常"</span>,
+  <span class="json-key">"error"</span>: {
+    <span class="json-key">"type"</span>: <span class="json-string">"NullPointerException"</span>,
+    <span class="json-key">"message"</span>: <span class="json-string">"user.passwordHash is null"</span>,
+    <span class="json-key">"timestamp"</span>: <span class="json-string">"2024-01-20T17:30:05"</span>
+  }
+}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 订单管理模块 -->
+          <div class="suite-item">
+            <div class="suite-header" onclick="toggleSuite(this)">
+              <div class="suite-info">
+                <span class="suite-icon">🛒</span>
+                <div>
+                  <div class="suite-name">订单管理模块 (OrderManagement)</div>
+                  <div style="font-size: 13px; color: #666; margin-top: 4px;">
+                    测试订单创建、查询、取消、退款等功能
+                  </div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 35 Passed</span>
+                <span class="suite-stat failed">✗ 3 Failed</span>
+                <span class="suite-stat">38 Total</span>
+              </div>
+            </div>
+            <div class="suite-body">
+              <!-- 更多测试用例... -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== Graphs 图表 ==================== -->
+      <section id="graphs" class="content-section">
+        <!-- 测试结果趋势 -->
+        <div class="charts-section">
+          <h2 class="section-title">📈 测试结果趋势分析</h2>
+          <div id="historyChart" class="chart-container"></div>
+        </div>
+
+        <!-- 双图表：耗时分析 + 模块分布 -->
+        <div class="double-chart-container">
+          <div class="chart-wrapper">
+            <div class="chart-wrapper-title">
+              <span>⏱️</span>
+              <span>测试耗时趋势</span>
+            </div>
+            <div id="durationChart" style="height: 400px;"></div>
+          </div>
+          <div class="chart-wrapper">
+            <div class="chart-wrapper-title">
+              <span>📦</span>
+              <span>模块测试分布</span>
+            </div>
+            <div id="modulePieChart" style="height: 400px;"></div>
+          </div>
+        </div>
+
+        <!-- 执行成功率趋势 -->
+        <div class="charts-section">
+          <h2 class="section-title">📊 执行成功率趋势</h2>
+          <div id="passRateTrendChart" class="chart-container"></div>
+        </div>
+      </section>
+
+      <!-- ==================== Timeline 时间线 ==================== -->
+      <section id="timeline" class="content-section">
+        <div class="timeline-container">
+          <h2 class="section-title">Execution Timeline</h2>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">17:30:00.123</div>
+                <div class="timeline-title">测试开始 - 初始化测试环境</div>
+                <div class="timeline-description">加载配置文件、连接数据库、清理测试数据</div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">17:30:02.456</div>
+                <div class="timeline-title">UserManagement 测试套件开始</div>
+                <div class="timeline-description">执行用户管理模块的30个测试用例</div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">17:30:15.789</div>
+                <div class="timeline-title">test_user_registration_with_valid_data - PASSED</div>
+                <div class="timeline-description">用户注册测试通过 | 耗时: 1.23s</div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot failed"></div>
+              <div class="timeline-content failed">
+                <div class="timeline-time">17:30:20.345</div>
+                <div class="timeline-title">test_user_login_with_invalid_password - FAILED</div>
+                <div class="timeline-description">
+                  ❌ 断言失败: Expected 401, but got 500<br>
+                  错误: NullPointerException in PasswordService
+                </div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">17:31:30.678</div>
+                <div class="timeline-title">OrderManagement 测试套件开始</div>
+                <div class="timeline-description">执行订单管理模块的38个测试用例</div>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div class="timeline-time">17:35:32.901</div>
+                <div class="timeline-title">测试完成 - 生成报告</div>
+                <div class="timeline-description">
+                  总计: 150个用例 | 通过: 140 | 失败: 8 | 跳过: 2 | 总耗时: 5分32秒
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== Behaviors 行为 ==================== -->
+      <section id="behaviors" class="content-section">
+        <div class="suites-container">
+          <h2 class="section-title" style="padding: 20px 25px 10px;">Features by Epic</h2>
+          
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">🎯</span>
+                <div>
+                  <div class="suite-name">Epic: 用户体系</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 63 Passed</span>
+                <span class="suite-stat failed">✗ 5 Failed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">🎯</span>
+                <div>
+                  <div class="suite-name">Epic: 交易流程</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 52 Passed</span>
+                <span class="suite-stat failed">✗ 3 Failed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">🎯</span>
+                <div>
+                  <div class="suite-name">Epic: 数据分析</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 25 Passed</span>
+                <span class="suite-stat">✓ 0 Failed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==================== Packages 包 ==================== -->
+      <section id="packages" class="content-section">
+        <div class="suites-container">
+          <h2 class="section-title" style="padding: 20px 25px 10px;">Tests by Package</h2>
+          
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">📦</span>
+                <div>
+                  <div class="suite-name">com.ecommerce.api.user</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 28 Passed</span>
+                <span class="suite-stat failed">✗ 2 Failed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">📦</span>
+                <div>
+                  <div class="suite-name">com.ecommerce.api.order</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 35 Passed</span>
+                <span class="suite-stat failed">✗ 3 Failed</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="suite-item">
+            <div class="suite-header">
+              <div class="suite-info">
+                <span class="suite-icon">📦</span>
+                <div>
+                  <div class="suite-name">com.ecommerce.api.payment</div>
+                </div>
+              </div>
+              <div class="suite-stats">
+                <span class="suite-stat passed">✓ 30 Passed</span>
+                <span class="suite-stat failed">✗ 1 Failed</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- JavaScript -->
+  <script>
+    // 切换侧边栏导航
+    function showSection(sectionId) {
+      // 隐藏所有section
+      document.querySelectorAll('.content-section').forEach(section => {
+        section.classList.remove('active');
+      });
+      
+      // 显示目标section
+      document.getElementById(sectionId).classList.add('active');
+      
+      // 更新侧边栏激活状态
+      document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+        item.classList.remove('active');
+      });
+      event.currentTarget.classList.add('active');
+    }
+
+    // 切换测试套件
+    function toggleSuite(element) {
+      const suiteBody = element.nextElementSibling;
+      const header = element;
+      
+      if (suiteBody.classList.contains('expanded')) {
+        suiteBody.classList.remove('expanded');
+        header.classList.remove('expanded');
+      } else {
+        suiteBody.classList.add('expanded');
+        header.classList.add('expanded');
+      }
+    }
+
+    // 切换测试用例
+    function toggleTestCase(element) {
+      const testBody = element.nextElementSibling;
+      
+      if (testBody.classList.contains('expanded')) {
+        testBody.classList.remove('expanded');
+      } else {
+        testBody.classList.add('expanded');
+      }
+    }
+
+    // 切换标签页
+    function switchTab(tabElement, contentId) {
+      // 移除所有active状态
+      tabElement.parentElement.querySelectorAll('.test-details-tab').forEach(tab => {
+        tab.classList.remove('active');
+      });
+      
+      const container = tabElement.closest('.test-case-body');
+      container.querySelectorAll('.test-details-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // 激活当前tab和内容
+      tabElement.classList.add('active');
+      container.querySelector('#' + contentId).classList.add('active');
+    }
+
+    // 初始化图表
+    window.addEventListener('load', function() {
+      // 测试结果统计柱状图
+      const resultBarChart = echarts.init(document.getElementById('resultBarChart'));
+      resultBarChart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(50, 50, 50, 0.95)',
+          borderColor: '#667eea',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff',
+            fontSize: 14
+          },
+          axisPointer: {
+            type: 'shadow',
+            shadowStyle: {
+              color: 'rgba(102, 126, 234, 0.1)'
+            }
+          }
+        },
+        grid: {
+          left: '3%',
+          right: '5%',
+          bottom: '8%',
+          top: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: ['总用例数', '已执行', '通过', '失败', '异常', '跳过'],
+          axisLine: {
+            lineStyle: {
+              color: '#e5e7eb',
+              width: 2
+            }
+          },
+          axisLabel: {
+            fontSize: 14,
+            color: '#6b7280',
+            margin: 15,
+            fontWeight: 500
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            lineStyle: {
+              color: '#f3f4f6',
+              type: 'dashed'
+            }
+          },
+          axisLine: {
+            show: false
+          },
+          axisLabel: {
+            fontSize: 13,
+            color: '#6b7280'
+          }
+        },
+        series: [
+          {
+            name: '数量',
+            type: 'bar',
+            data: [
+              { value: 150, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#60a5fa' },
+                { offset: 1, color: '#3b82f6' }
+              ])}},
+              { value: 150, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#60a5fa' },
+                { offset: 1, color: '#3b82f6' }
+              ])}},
+              { value: 140, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#34d399' },
+                { offset: 1, color: '#10b981' }
+              ])}},
+              { value: 8, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#f87171' },
+                { offset: 1, color: '#ef4444' }
+              ])}},
+              { value: 2, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#fbbf24' },
+                { offset: 1, color: '#f59e0b' }
+              ])}},
+              { value: 0, itemStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#d1d5db' },
+                { offset: 1, color: '#9ca3af' }
+              ])}}
+            ],
+            barWidth: '45%',
+            label: {
+              show: true,
+              position: 'top',
+              fontSize: 14,
+              fontWeight: 600,
+              color: '#333'
+            },
+            itemStyle: {
+              borderRadius: [8, 8, 0, 0],
+              shadowBlur: 8,
+              shadowColor: 'rgba(0, 0, 0, 0.15)',
+              shadowOffsetY: 3
+            },
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 15,
+                shadowColor: 'rgba(0, 0, 0, 0.3)'
+              }
+            }
+          }
+        ]
+      });
+
+      // 用例状态分布饼图
+      const statusPieChart = echarts.init(document.getElementById('statusPieChart'));
+      statusPieChart.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(50, 50, 50, 0.95)',
+          borderColor: '#667eea',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff',
+            fontSize: 14
+          },
+          formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          right: 20,
+          top: 'center',
+          textStyle: {
+            fontSize: 13,
+            fontWeight: 500
+          },
+          itemWidth: 16,
+          itemHeight: 16,
+          itemGap: 12
+        },
+        series: [
+          {
+            name: '用例状态',
+            type: 'pie',
+            radius: ['50%', '75%'],
+            center: ['40%', '50%'],
+            avoidLabelOverlap: true,
+            itemStyle: {
+              borderRadius: 8,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              position: 'outside',
+              fontSize: 13,
+              fontWeight: 600,
+              formatter: function(params) {
+                if (params.value === 0) {
+                  return '{a|' + params.name + ': ' + params.value + '}';
+                }
+                return '{b|' + params.name + ': ' + params.value + '}';
+              },
+              rich: {
+                a: {
+                  color: '#999',
+                  fontSize: 12
+                },
+                b: {
+                  color: '#333',
+                  fontSize: 13,
+                  fontWeight: 600
+                }
+              }
+            },
+            labelLine: {
+              show: true,
+              length: 10,
+              length2: 8,
+              lineStyle: {
+                width: 1.5
+              }
+            },
+            data: [
+              {
+                value: 140,
+                name: '通过',
+                itemStyle: { color: '#5cb87a' }
+              },
+              {
+                value: 8,
+                name: '失败',
+                itemStyle: { color: '#e05d5d' }
+              },
+              {
+                value: 2,
+                name: '阻塞',
+                itemStyle: { color: '#8b4513' }
+              },
+              {
+                value: 0,
+                name: '跳过',
+                itemStyle: { color: '#c0c0c0' }
+              }
+            ],
+            emphasis: {
+              scale: true,
+              scaleSize: 8,
+              itemStyle: {
+                shadowBlur: 15,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.4)'
+              }
+            }
+          }
+        ]
+      });
+
+      // 缺陷优先级分布饼图
+      const severityChart = echarts.init(document.getElementById('severityChart'));
+      severityChart.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(50, 50, 50, 0.95)',
+          borderColor: '#667eea',
+          borderWidth: 1,
+          textStyle: {
+            color: '#fff',
+            fontSize: 14
+          },
+          formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          right: 20,
+          top: 'center',
+          textStyle: {
+            fontSize: 13,
+            fontWeight: 500
+          },
+          itemWidth: 16,
+          itemHeight: 16,
+          itemGap: 12
+        },
+        series: [
+          {
+            name: '缺陷优先级',
+            type: 'pie',
+            radius: ['50%', '75%'],
+            center: ['40%', '50%'],
+            avoidLabelOverlap: true,
+            itemStyle: {
+              borderRadius: 8,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              position: 'outside',
+              fontSize: 13,
+              fontWeight: 600,
+              formatter: function(params) {
+                if (params.value === 0) {
+                  return '{a|' + params.name + ': ' + params.value + '}';
+                }
+                return '{b|' + params.name + ': ' + params.value + '}';
+              },
+              rich: {
+                a: {
+                  color: '#999',
+                  fontSize: 12
+                },
+                b: {
+                  color: '#333',
+                  fontSize: 13,
+                  fontWeight: 600
+                }
+              }
+            },
+            labelLine: {
+              show: true,
+              length: 10,
+              length2: 8,
+              lineStyle: {
+                width: 1.5
+              }
+            },
+            data: [
+              {
+                value: 0,
+                name: 'P0 (阻塞)',
+                itemStyle: { color: '#8b0000' }
+              },
+              {
+                value: 0,
+                name: 'P1 (严重)',
+                itemStyle: { color: '#e85d5d' }
+              },
+              {
+                value: 0,
+                name: 'P2 (一般)',
+                itemStyle: { color: '#f39c6b' }
+              },
+              {
+                value: 150,
+                name: 'P3 (轻微)',
+                itemStyle: { color: '#5b9bd5' }
+              }
+            ],
+            emphasis: {
+              scale: true,
+              scaleSize: 8,
+              itemStyle: {
+                shadowBlur: 15,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.4)'
+              }
+            }
+          }
+        ]
+      });
+
+      // 测试结果趋势分析 - 简洁柱状图
+      const historyChart = echarts.init(document.getElementById('historyChart'));
+      historyChart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          textStyle: {
+            color: '#333',
+            fontSize: 13
+          },
+          padding: 12,
+          axisPointer: {
+            type: 'shadow',
+            shadowStyle: {
+              color: 'rgba(0, 0, 0, 0.05)'
+            }
+          }
+        },
+        legend: {
+          data: ['通过', '失败', '跳过'],
+          top: 15,
+          right: 30,
+          textStyle: {
+            fontSize: 13,
+            color: '#666'
+          },
+          itemWidth: 14,
+          itemHeight: 14,
+          itemGap: 20
+        },
+        grid: {
+          left: '3%',
+          right: '5%',
+          bottom: '5%',
+          top: '15%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: ['01-14', '01-15', '01-16', '01-17', '01-18', '01-19', '01-20'],
+          axisLine: {
+            lineStyle: {
+              color: '#e5e7eb'
+            }
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666',
+            margin: 12
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            lineStyle: {
+              color: '#f3f4f6',
+              type: 'solid'
+            }
+          },
+          axisLine: {
+            show: false
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666'
+          }
+        },
+        series: [
+          {
+            name: '通过',
+            type: 'bar',
+            stack: 'total',
+            data: [125, 130, 132, 135, 137, 140, 140],
+            itemStyle: {
+              color: '#5cb87a',
+              borderRadius: [0, 0, 0, 0]
+            },
+            emphasis: {
+              itemStyle: {
+                color: '#4ca366'
+              }
+            }
+          },
+          {
+            name: '失败',
+            type: 'bar',
+            stack: 'total',
+            data: [15, 12, 13, 13, 11, 10, 8],
+            itemStyle: {
+              color: '#e05d5d'
+            },
+            emphasis: {
+              itemStyle: {
+                color: '#d44a4a'
+              }
+            }
+          },
+          {
+            name: '跳过',
+            type: 'bar',
+            stack: 'total',
+            data: [0, 0, 0, 0, 0, 0, 2],
+            itemStyle: {
+              color: '#c0c0c0',
+              borderRadius: [4, 4, 0, 0]
+            }
+          }
+        ]
+      });
+
+      // 测试耗时趋势 - 简洁线图
+      const durationChart = echarts.init(document.getElementById('durationChart'));
+      durationChart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          textStyle: {
+            color: '#333',
+            fontSize: 13
+          },
+          padding: 12,
+          formatter: function(params) {
+            return params[0].name + '<br/>' +
+                   '耗时: ' + params[0].value + '秒';
+          }
+        },
+        grid: {
+          left: '5%',
+          right: '5%',
+          bottom: '8%',
+          top: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: ['01-14', '01-15', '01-16', '01-17', '01-18', '01-19', '01-20'],
+          boundaryGap: false,
+          axisLine: {
+            lineStyle: {
+              color: '#e5e7eb'
+            }
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666',
+            margin: 10
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          splitLine: {
+            lineStyle: {
+              color: '#f3f4f6',
+              type: 'solid'
+            }
+          },
+          axisLine: {
+            show: false
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666',
+            formatter: '{value}s'
+          }
+        },
+        series: [
+          {
+            data: [380, 365, 358, 345, 340, 335, 332],
+            type: 'line',
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+              width: 2.5,
+              color: '#5b9bd5'
+            },
+            itemStyle: {
+              color: '#5b9bd5',
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(91, 155, 213, 0.25)' },
+                  { offset: 1, color: 'rgba(91, 155, 213, 0.05)' }
+                ]
+              }
+            }
+          }
+        ]
+      });
+
+      // 模块测试分布饼图
+      const modulePieChart = echarts.init(document.getElementById('modulePieChart'));
+      modulePieChart.setOption({
+        tooltip: {
+          trigger: 'item',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          textStyle: {
+            color: '#333',
+            fontSize: 13
+          },
+          padding: 12,
+          formatter: '{b}: {c} ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          right: 20,
+          top: 'center',
+          textStyle: {
+            fontSize: 12,
+            color: '#666'
+          },
+          itemWidth: 14,
+          itemHeight: 14,
+          itemGap: 12
+        },
+        series: [
+          {
+            name: '模块分布',
+            type: 'pie',
+            radius: ['45%', '70%'],
+            center: ['38%', '50%'],
+            avoidLabelOverlap: true,
+            itemStyle: {
+              borderRadius: 6,
+              borderColor: '#fff',
+              borderWidth: 2
+            },
+            label: {
+              show: true,
+              position: 'outside',
+              fontSize: 12,
+              color: '#666',
+              formatter: '{b}\n{d}%'
+            },
+            labelLine: {
+              show: true,
+              length: 8,
+              length2: 6,
+              lineStyle: {
+                width: 1.5
+              }
+            },
+            data: [
+              { value: 30, name: '用户管理', itemStyle: { color: '#5b9bd5' } },
+              { value: 38, name: '订单管理', itemStyle: { color: '#70ad47' } },
+              { value: 30, name: '支付管理', itemStyle: { color: '#ffc000' } },
+              { value: 28, name: '商品管理', itemStyle: { color: '#ed7d31' } },
+              { value: 24, name: '数据分析', itemStyle: { color: '#9e7bb5' } }
+            ],
+            emphasis: {
+              scale: true,
+              scaleSize: 6,
+              itemStyle: {
+                shadowBlur: 12,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.3)'
+              }
+            }
+          }
+        ]
+      });
+
+      // 执行成功率趋势图
+      const passRateTrendChart = echarts.init(document.getElementById('passRateTrendChart'));
+      passRateTrendChart.setOption({
+        tooltip: {
+          trigger: 'axis',
+          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+          borderColor: '#e5e7eb',
+          borderWidth: 1,
+          textStyle: {
+            color: '#333',
+            fontSize: 13
+          },
+          padding: 12,
+          formatter: function(params) {
+            return params[0].name + '<br/>' +
+                   '通过率: ' + params[0].value + '%';
+          }
+        },
+        grid: {
+          left: '5%',
+          right: '5%',
+          bottom: '8%',
+          top: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'category',
+          data: ['01-14', '01-15', '01-16', '01-17', '01-18', '01-19', '01-20'],
+          boundaryGap: false,
+          axisLine: {
+            lineStyle: {
+              color: '#e5e7eb'
+            }
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666',
+            margin: 10
+          },
+          axisTick: {
+            show: false
+          }
+        },
+        yAxis: {
+          type: 'value',
+          min: 80,
+          max: 100,
+          splitLine: {
+            lineStyle: {
+              color: '#f3f4f6',
+              type: 'solid'
+            }
+          },
+          axisLine: {
+            show: false
+          },
+          axisLabel: {
+            fontSize: 12,
+            color: '#666',
+            formatter: '{value}%'
+          }
+        },
+        series: [
+          {
+            data: [89.3, 91.5, 91.0, 91.2, 92.6, 93.3, 93.3],
+            type: 'line',
+            smooth: true,
+            showSymbol: true,
+            symbol: 'circle',
+            symbolSize: 6,
+            lineStyle: {
+              width: 2.5,
+              color: '#5cb87a'
+            },
+            itemStyle: {
+              color: '#5cb87a',
+              borderWidth: 2,
+              borderColor: '#fff'
+            },
+            areaStyle: {
+              color: {
+                type: 'linear',
+                x: 0,
+                y: 0,
+                x2: 0,
+                y2: 1,
+                colorStops: [
+                  { offset: 0, color: 'rgba(92, 184, 122, 0.25)' },
+                  { offset: 1, color: 'rgba(92, 184, 122, 0.05)' }
+                ]
+              }
+            },
+            markLine: {
+              silent: true,
+              symbol: 'none',
+              lineStyle: {
+                color: '#f39c6b',
+                type: 'dashed',
+                width: 1.5
+              },
+              label: {
+                show: true,
+                position: 'end',
+                formatter: '目标: 90%',
+                color: '#f39c6b',
+                fontSize: 12
+              },
+              data: [{ yAxis: 90 }]
+            }
+          }
+        ]
+      });
+
+
+      // 响应式
+      window.addEventListener('resize', function() {
+        resultBarChart.resize();
+        statusPieChart.resize();
+        severityChart.resize();
+        historyChart.resize();
+        durationChart.resize();
+        modulePieChart.resize();
+        passRateTrendChart.resize();
+      });
+    });
+  </script>
+</body>
+</html>
+
