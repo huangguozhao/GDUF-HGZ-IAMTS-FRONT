@@ -188,7 +188,7 @@ export function exportReport(reportId, options = {}) {
   console.log('导出选项:', options)
   
   return request({
-    url: `/reports/${reportId}/export`,
+    url: `/reports/${reportId}/export/enterprise`,
     method: 'get',
     params: {
       export_format: options.exportFormat || 'html',
