@@ -342,72 +342,244 @@
     <!-- 报告详情对话框 -->
     <el-dialog
       v-model="detailDialogVisible"
-      title="报告详情"
-      width="80%"
+      :title="`报告详情 - ${currentReport?.reportName || ''}`"
+      width="90%"
       :close-on-click-modal="false"
+      class="report-detail-dialog"
+      top="5vh"
     >
       <div v-if="currentReport" class="report-detail">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="报告ID">{{ currentReport.reportId }}</el-descriptions-item>
-          <el-descriptions-item label="报告名称">{{ currentReport.reportName }}</el-descriptions-item>
-          <el-descriptions-item label="报告类型">
-            <el-tag :type="getReportTypeTag(currentReport.reportType)" size="small">
-              {{ formatReportType(currentReport.reportType) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="环境">
-            <el-tag :type="getEnvironmentTag(currentReport.environment)" size="small">
-              {{ formatEnvironment(currentReport.environment) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="getStatusTag(currentReport.reportStatus)" size="small">
-              {{ formatStatus(currentReport.reportStatus) }}
-            </el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="成功率">
-            <el-progress
-              :percentage="parseFloat(currentReport.successRate || 0)"
-              :color="getSuccessRateColor(currentReport.successRate)"
-            />
-          </el-descriptions-item>
-          <el-descriptions-item label="总用例数">{{ currentReport.totalCases || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="已执行">{{ currentReport.executedCases || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="通过数">
-            <span class="text-success">{{ currentReport.passedCases || 0 }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="失败数">
-            <span class="text-danger">{{ currentReport.failedCases || 0 }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="异常数">
-            <span class="text-danger">{{ currentReport.brokenCases || 0 }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="跳过数">
-            <span class="text-warning">{{ currentReport.skippedCases || 0 }}</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="开始时间">{{ formatDateTime(currentReport.startTime) }}</el-descriptions-item>
-          <el-descriptions-item label="结束时间">{{ formatDateTime(currentReport.endTime) }}</el-descriptions-item>
-          <el-descriptions-item label="耗时">{{ formatDuration(currentReport.duration) }}</el-descriptions-item>
-          <el-descriptions-item label="文件格式">{{ currentReport.fileFormat }}</el-descriptions-item>
-          <el-descriptions-item label="文件大小">{{ formatFileSize(currentReport.fileSize) }}</el-descriptions-item>
-          <el-descriptions-item label="下载地址" :span="2">
-            <el-link v-if="currentReport.downloadUrl" :href="currentReport.downloadUrl" type="primary" target="_blank">
-              {{ currentReport.downloadUrl }}
-            </el-link>
-            <span v-else>-</span>
-          </el-descriptions-item>
-          <el-descriptions-item label="描述" :span="2">
-            {{ currentReport.description || '-' }}
-          </el-descriptions-item>
-        </el-descriptions>
+        <!-- 顶部概览卡片 -->
+        <div class="detail-overview">
+          <div class="overview-card">
+            <div class="card-icon success-icon">✅</div>
+            <div class="card-content">
+              <div class="card-label">通过用例</div>
+              <div class="card-value success-text">{{ currentReport.passedCases || 0 }}</div>
+            </div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="card-icon danger-icon">❌</div>
+            <div class="card-content">
+              <div class="card-label">失败用例</div>
+              <div class="card-value danger-text">{{ currentReport.failedCases || 0 }}</div>
+            </div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="card-icon warning-icon">⚠️</div>
+            <div class="card-content">
+              <div class="card-label">跳过用例</div>
+              <div class="card-value warning-text">{{ currentReport.skippedCases || 0 }}</div>
+            </div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="card-icon info-icon">📊</div>
+            <div class="card-content">
+              <div class="card-label">总用例数</div>
+              <div class="card-value">{{ currentReport.totalCases || 0 }}</div>
+            </div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="card-icon primary-icon">🎯</div>
+            <div class="card-content">
+              <div class="card-label">成功率</div>
+              <div class="card-value primary-text">{{ currentReport.successRate }}%</div>
+            </div>
+          </div>
+          
+          <div class="overview-card">
+            <div class="card-icon time-icon">⏱️</div>
+            <div class="card-content">
+              <div class="card-label">执行耗时</div>
+              <div class="card-value">{{ formatDuration(currentReport.duration) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 标签页内容 -->
+        <el-tabs v-model="activeDetailTab" class="detail-tabs">
+          <!-- 数据可视化 -->
+          <el-tab-pane label="📊 数据可视化" name="charts">
+            <div class="charts-container">
+              <div class="chart-row">
+                <div class="chart-card chart-half">
+                  <div class="chart-title">测试用例分布</div>
+                  <div ref="pieChartRef" class="chart-content"></div>
+                </div>
+                <div class="chart-card chart-half">
+                  <div class="chart-title">成功率仪表盘</div>
+                  <div ref="gaugeChartRef" class="chart-content"></div>
+                </div>
+              </div>
+              <div class="chart-row">
+                <div class="chart-card chart-full">
+                  <div class="chart-title">测试结果统计</div>
+                  <div ref="barChartRef" class="chart-content"></div>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+
+          <!-- 基本信息 -->
+          <el-tab-pane label="ℹ️ 基本信息" name="basic">
+            <el-descriptions :column="2" border class="detail-descriptions">
+              <el-descriptions-item label="报告ID">
+                <el-tag size="small">{{ currentReport.reportId }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="报告名称">
+                {{ currentReport.reportName }}
+              </el-descriptions-item>
+              <el-descriptions-item label="项目名称">
+                {{ currentReport.projectName }}
+              </el-descriptions-item>
+              <el-descriptions-item label="报告类型">
+                <el-tag :type="getReportTypeTag(currentReport.reportType)" size="small">
+                  {{ formatReportType(currentReport.reportType) }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="环境">
+                <el-tag :type="getEnvironmentTag(currentReport.environment)" size="small">
+                  {{ formatEnvironment(currentReport.environment) }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="状态">
+                <el-tag :type="getStatusTag(currentReport.reportStatus)" size="small">
+                  {{ formatStatus(currentReport.reportStatus) }}
+                </el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="开始时间">
+                <span>{{ formatDateTime(currentReport.startTime) }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="结束时间">
+                <span>{{ formatDateTime(currentReport.endTime) }}</span>
+              </el-descriptions-item>
+              <el-descriptions-item label="执行耗时">
+                <el-tag type="info" size="small">{{ formatDuration(currentReport.duration) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="文件格式">
+                {{ currentReport.fileFormat || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="文件大小">
+                {{ formatFileSize(currentReport.fileSize) }}
+              </el-descriptions-item>
+              <el-descriptions-item label="生成人">
+                {{ currentReport.generatorName || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="下载地址" :span="2">
+                <el-link v-if="currentReport.downloadUrl" :href="currentReport.downloadUrl" type="primary" target="_blank">
+                  <el-icon><Download /></el-icon>
+                  {{ currentReport.downloadUrl }}
+                </el-link>
+                <span v-else class="text-muted">暂无下载地址</span>
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-tab-pane>
+
+          <!-- 详细数据 -->
+          <el-tab-pane label="📋 详细数据" name="details">
+            <div class="data-grid">
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div class="data-card-title">✅ 成功用例</div>
+                  <div class="data-card-count success-text">{{ currentReport.passedCases || 0 }}</div>
+                </div>
+                <el-progress
+                  :percentage="parseFloat((currentReport.passedCases / currentReport.totalCases * 100).toFixed(2))"
+                  :stroke-width="10"
+                  status="success"
+                />
+              </div>
+
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div class="data-card-title">❌ 失败用例</div>
+                  <div class="data-card-count danger-text">{{ currentReport.failedCases || 0 }}</div>
+                </div>
+                <el-progress
+                  :percentage="parseFloat((currentReport.failedCases / currentReport.totalCases * 100).toFixed(2))"
+                  :stroke-width="10"
+                  status="exception"
+                />
+              </div>
+
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div class="data-card-title">💔 异常用例</div>
+                  <div class="data-card-count danger-text">{{ currentReport.brokenCases || 0 }}</div>
+                </div>
+                <el-progress
+                  :percentage="parseFloat((currentReport.brokenCases / currentReport.totalCases * 100).toFixed(2))"
+                  :stroke-width="10"
+                  color="#f56c6c"
+                />
+              </div>
+
+              <div class="data-card">
+                <div class="data-card-header">
+                  <div class="data-card-title">⏭️ 跳过用例</div>
+                  <div class="data-card-count warning-text">{{ currentReport.skippedCases || 0 }}</div>
+                </div>
+                <el-progress
+                  :percentage="parseFloat((currentReport.skippedCases / currentReport.totalCases * 100).toFixed(2))"
+                  :stroke-width="10"
+                  status="warning"
+                />
+              </div>
+            </div>
+
+            <!-- 汇总信息 -->
+            <div class="summary-section">
+              <h3 class="section-title">📈 统计汇总</h3>
+              <el-descriptions :column="3" border>
+                <el-descriptions-item label="总用例数">
+                  <el-tag size="large" type="info">{{ currentReport.totalCases || 0 }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="已执行">
+                  <el-tag size="large">{{ currentReport.executedCases || 0 }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="未执行">
+                  <el-tag size="large" type="info">{{ (currentReport.totalCases || 0) - (currentReport.executedCases || 0) }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="通过数">
+                  <el-tag size="large" type="success">{{ currentReport.passedCases || 0 }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="失败数">
+                  <el-tag size="large" type="danger">{{ currentReport.failedCases || 0 }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="跳过数">
+                  <el-tag size="large" type="warning">{{ currentReport.skippedCases || 0 }}</el-tag>
+                </el-descriptions-item>
+                <el-descriptions-item label="成功率" :span="3">
+                  <div style="display: flex; align-items: center; gap: 16px;">
+                    <el-progress
+                      :percentage="parseFloat(currentReport.successRate || 0)"
+                      :color="getSuccessRateColor(currentReport.successRate)"
+                      :stroke-width="20"
+                      style="flex: 1"
+                    />
+                    <el-tag size="large" :type="parseFloat(currentReport.successRate) >= 80 ? 'success' : 'danger'">
+                      {{ currentReport.successRate }}%
+                    </el-tag>
+                  </div>
+                </el-descriptions-item>
+              </el-descriptions>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
       </div>
 
       <template #footer>
-        <el-button @click="detailDialogVisible = false">关闭</el-button>
-        <el-button type="primary" @click="handleExport(currentReport)">
-          <el-icon><Download /></el-icon>
-          导出报告
-        </el-button>
+        <div class="dialog-footer-actions">
+          <el-button @click="detailDialogVisible = false">关闭</el-button>
+          <el-button type="primary" @click="handleExport(currentReport)">
+            <el-icon><Download /></el-icon>
+            导出报告
+          </el-button>
+        </div>
       </template>
     </el-dialog>
 
@@ -463,7 +635,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   Refresh,
@@ -480,6 +652,7 @@ import {
   batchDeleteReports,
   exportReport
 } from '../api/report'
+import * as echarts from 'echarts'
 
 // 响应式数据
 const loading = ref(false)
@@ -491,6 +664,17 @@ const currentReport = ref(null)
 const currentExportReport = ref(null)
 const exporting = ref(false)
 const advancedFilterVisible = ref([])
+const activeDetailTab = ref('charts')
+
+// 图表ref
+const pieChartRef = ref(null)
+const gaugeChartRef = ref(null)
+const barChartRef = ref(null)
+
+// 图表实例
+let pieChartInstance = null
+let gaugeChartInstance = null
+let barChartInstance = null
 
 // 过滤表单
 const filterForm = reactive({
@@ -785,6 +969,304 @@ const handleSizeChange = (size) => {
   pagination.page = 1
   loadReportList()
 }
+
+// 初始化图表
+const initCharts = async () => {
+  await nextTick()
+  
+  if (!currentReport.value) return
+  
+  // 初始化饼图
+  initPieChart()
+  
+  // 初始化仪表盘
+  initGaugeChart()
+  
+  // 初始化柱状图
+  initBarChart()
+}
+
+// 饼图 - 测试用例分布
+const initPieChart = () => {
+  if (!pieChartRef.value) return
+  
+  if (pieChartInstance) {
+    pieChartInstance.dispose()
+  }
+  
+  pieChartInstance = echarts.init(pieChartRef.value)
+  
+  const option = {
+    tooltip: {
+      trigger: 'item',
+      formatter: '{a} <br/>{b}: {c} ({d}%)'
+    },
+    legend: {
+      orient: 'vertical',
+      right: 10,
+      top: 'center',
+      textStyle: {
+        fontSize: 14
+      }
+    },
+    series: [
+      {
+        name: '测试用例',
+        type: 'pie',
+        radius: ['40%', '70%'],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
+        label: {
+          show: true,
+          formatter: '{b}: {c}'
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 16,
+            fontWeight: 'bold'
+          }
+        },
+        labelLine: {
+          show: true
+        },
+        data: [
+          { 
+            value: currentReport.value.passedCases || 0, 
+            name: '通过', 
+            itemStyle: { color: '#67c23a' } 
+          },
+          { 
+            value: currentReport.value.failedCases || 0, 
+            name: '失败', 
+            itemStyle: { color: '#f56c6c' } 
+          },
+          { 
+            value: currentReport.value.brokenCases || 0, 
+            name: '异常', 
+            itemStyle: { color: '#e6a23c' } 
+          },
+          { 
+            value: currentReport.value.skippedCases || 0, 
+            name: '跳过', 
+            itemStyle: { color: '#909399' } 
+          }
+        ]
+      }
+    ]
+  }
+  
+  pieChartInstance.setOption(option)
+}
+
+// 仪表盘 - 成功率
+const initGaugeChart = () => {
+  if (!gaugeChartRef.value) return
+  
+  if (gaugeChartInstance) {
+    gaugeChartInstance.dispose()
+  }
+  
+  gaugeChartInstance = echarts.init(gaugeChartRef.value)
+  
+  const successRate = parseFloat(currentReport.value.successRate || 0)
+  
+  const option = {
+    series: [
+      {
+        type: 'gauge',
+        startAngle: 180,
+        endAngle: 0,
+        min: 0,
+        max: 100,
+        splitNumber: 10,
+        itemStyle: {
+          color: successRate >= 80 ? '#67c23a' : successRate >= 60 ? '#e6a23c' : '#f56c6c'
+        },
+        progress: {
+          show: true,
+          width: 30
+        },
+        pointer: {
+          show: false
+        },
+        axisLine: {
+          lineStyle: {
+            width: 30,
+            color: [[1, '#e5e5e5']]
+          }
+        },
+        axisTick: {
+          distance: -38,
+          splitNumber: 5,
+          lineStyle: {
+            width: 2,
+            color: '#999'
+          }
+        },
+        splitLine: {
+          distance: -45,
+          length: 14,
+          lineStyle: {
+            width: 3,
+            color: '#999'
+          }
+        },
+        axisLabel: {
+          distance: -20,
+          color: '#999',
+          fontSize: 14
+        },
+        anchor: {
+          show: false
+        },
+        title: {
+          show: false
+        },
+        detail: {
+          valueAnimation: true,
+          width: '100%',
+          lineHeight: 40,
+          borderRadius: 8,
+          offsetCenter: [0, '0%'],
+          fontSize: 50,
+          fontWeight: 'bold',
+          formatter: '{value}%',
+          color: 'inherit'
+        },
+        data: [
+          {
+            value: successRate
+          }
+        ]
+      }
+    ]
+  }
+  
+  gaugeChartInstance.setOption(option)
+}
+
+// 柱状图 - 测试结果统计
+const initBarChart = () => {
+  if (!barChartRef.value) return
+  
+  if (barChartInstance) {
+    barChartInstance.dispose()
+  }
+  
+  barChartInstance = echarts.init(barChartRef.value)
+  
+  const option = {
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: {
+        type: 'shadow'
+      }
+    },
+    grid: {
+      left: '3%',
+      right: '4%',
+      bottom: '3%',
+      containLabel: true
+    },
+    xAxis: {
+      type: 'category',
+      data: ['总用例数', '已执行', '通过', '失败', '异常', '跳过'],
+      axisLabel: {
+        fontSize: 14
+      }
+    },
+    yAxis: {
+      type: 'value',
+      axisLabel: {
+        fontSize: 14
+      }
+    },
+    series: [
+      {
+        name: '数量',
+        type: 'bar',
+        data: [
+          {
+            value: currentReport.value.totalCases || 0,
+            itemStyle: { color: '#409eff' }
+          },
+          {
+            value: currentReport.value.executedCases || 0,
+            itemStyle: { color: '#409eff' }
+          },
+          {
+            value: currentReport.value.passedCases || 0,
+            itemStyle: { color: '#67c23a' }
+          },
+          {
+            value: currentReport.value.failedCases || 0,
+            itemStyle: { color: '#f56c6c' }
+          },
+          {
+            value: currentReport.value.brokenCases || 0,
+            itemStyle: { color: '#e6a23c' }
+          },
+          {
+            value: currentReport.value.skippedCases || 0,
+            itemStyle: { color: '#909399' }
+          }
+        ],
+        label: {
+          show: true,
+          position: 'top',
+          fontSize: 14,
+          fontWeight: 'bold'
+        },
+        barWidth: '40%',
+        itemStyle: {
+          borderRadius: [8, 8, 0, 0]
+        }
+      }
+    ]
+  }
+  
+  barChartInstance.setOption(option)
+}
+
+// 监听详情对话框打开，初始化图表
+watch(detailDialogVisible, async (newVal) => {
+  if (newVal && currentReport.value) {
+    // 等待DOM渲染完成
+    await nextTick()
+    // 延迟一点确保tab渲染完成
+    setTimeout(() => {
+      initCharts()
+    }, 100)
+  }
+})
+
+// 监听标签页切换
+watch(activeDetailTab, async (newVal) => {
+  if (newVal === 'charts' && detailDialogVisible.value) {
+    await nextTick()
+    setTimeout(() => {
+      initCharts()
+    }, 100)
+  }
+})
+
+// 窗口大小改变时重新渲染图表
+window.addEventListener('resize', () => {
+  if (pieChartInstance) {
+    pieChartInstance.resize()
+  }
+  if (gaugeChartInstance) {
+    gaugeChartInstance.resize()
+  }
+  if (barChartInstance) {
+    barChartInstance.resize()
+  }
+})
 
 // 格式化函数
 const formatReportType = (type) => {
@@ -1113,8 +1595,289 @@ onMounted(() => {
   border-top: 1px solid #ebeef5;
 }
 
-/* 报告详情 */
+/* 报告详情对话框 */
+.report-detail-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
 .report-detail {
-  padding: 20px 0;
+  padding: 0;
+}
+
+/* 顶部概览卡片 */
+.detail-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.overview-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s;
+}
+
+.overview-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.card-icon {
+  font-size: 36px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.success-icon {
+  background: linear-gradient(135deg, #a8e6cf 0%, #67c23a 100%);
+}
+
+.danger-icon {
+  background: linear-gradient(135deg, #ffa8a8 0%, #f56c6c 100%);
+}
+
+.warning-icon {
+  background: linear-gradient(135deg, #ffe4a8 0%, #e6a23c 100%);
+}
+
+.info-icon {
+  background: linear-gradient(135deg, #a8d5ff 0%, #409eff 100%);
+}
+
+.primary-icon {
+  background: linear-gradient(135deg, #c6a8ff 0%, #9c27b0 100%);
+}
+
+.time-icon {
+  background: linear-gradient(135deg, #ffd4a8 0%, #ff9800 100%);
+}
+
+.card-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-label {
+  font-size: 13px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.card-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #303133;
+}
+
+.success-text {
+  color: #67c23a;
+}
+
+.danger-text {
+  color: #f56c6c;
+}
+
+.warning-text {
+  color: #e6a23c;
+}
+
+.primary-text {
+  color: #409eff;
+}
+
+.text-muted {
+  color: #909399;
+}
+
+/* 标签页样式 */
+.detail-tabs {
+  margin-top: 24px;
+}
+
+.detail-tabs :deep(.el-tabs__header) {
+  margin-bottom: 24px;
+}
+
+.detail-tabs :deep(.el-tabs__item) {
+  font-size: 15px;
+  padding: 0 24px;
+  height: 44px;
+  line-height: 44px;
+}
+
+/* 图表容器 */
+.charts-container {
+  background: #f8f9fa;
+  padding: 20px;
+  border-radius: 12px;
+}
+
+.chart-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.chart-row:last-child {
+  margin-bottom: 0;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.chart-half {
+  flex: 1;
+  min-width: 0;
+}
+
+.chart-full {
+  width: 100%;
+}
+
+.chart-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e4e7ed;
+}
+
+.chart-content {
+  width: 100%;
+  height: 350px;
+}
+
+/* 详细描述样式 */
+.detail-descriptions {
+  margin-top: 16px;
+}
+
+.detail-descriptions :deep(.el-descriptions__label) {
+  font-weight: 600;
+  color: #606266;
+}
+
+.detail-descriptions :deep(.el-descriptions__content) {
+  color: #303133;
+}
+
+/* 数据网格 */
+.data-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.data-card {
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s;
+}
+
+.data-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.data-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.data-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.data-card-count {
+  font-size: 28px;
+  font-weight: bold;
+}
+
+/* 汇总部分 */
+.summary-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  border: 1px solid #e4e7ed;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #409eff;
+}
+
+/* 对话框底部 */
+.dialog-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+/* 响应式布局 */
+@media (max-width: 1200px) {
+  .detail-overview {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .chart-row {
+    flex-direction: column;
+  }
+  
+  .data-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .detail-overview {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .data-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .detail-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .card-value {
+    font-size: 20px;
+  }
+  
+  .chart-content {
+    height: 250px;
+  }
 }
 </style>
