@@ -204,13 +204,14 @@
         stripe
         border
         @selection-change="handleSelectionChange"
-        style="width: 100%"
+        style="width: 100%; min-width: 1200px"
+        :default-sort="{ prop: 'startTime', order: 'descending' }"
       >
-        <el-table-column type="selection" width="55" />
+        <el-table-column type="selection" width="55" align="center" />
         
-        <el-table-column prop="reportId" label="报告ID" width="100" />
+        <el-table-column prop="reportId" label="报告ID" width="80" align="center" />
         
-        <el-table-column prop="reportName" label="报告名称" min-width="200">
+        <el-table-column prop="reportName" label="报告名称" min-width="250" show-overflow-tooltip>
           <template #default="{ row }">
             <div class="report-name-cell">
               <span class="report-name-text" @click="handleViewDetail(row)" style="cursor: pointer; color: #409eff">
@@ -223,7 +224,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="reportType" label="报告类型" width="120">
+        <el-table-column prop="reportType" label="报告类型" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="getReportTypeTag(row.reportType)" size="small">
               {{ formatReportType(row.reportType) }}
@@ -231,7 +232,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="environment" label="环境" width="120">
+        <el-table-column prop="environment" label="环境" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="getEnvironmentTag(row.environment)" size="small">
               {{ formatEnvironment(row.environment) }}
@@ -239,7 +240,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="reportStatus" label="状态" width="100">
+        <el-table-column prop="reportStatus" label="状态" width="90" align="center">
           <template #default="{ row }">
             <el-tag :type="getStatusTag(row.reportStatus)" size="small">
               {{ formatStatus(row.reportStatus) }}
@@ -247,17 +248,21 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="successRate" label="成功率" width="100">
+        <el-table-column prop="successRate" label="成功率" width="120" align="center">
           <template #default="{ row }">
-            <el-progress
-              :percentage="parseFloat(row.successRate || 0)"
-              :color="getSuccessRateColor(row.successRate)"
-              :stroke-width="8"
-            />
+            <div style="padding: 0 10px">
+              <el-progress
+                :percentage="parseFloat(row.successRate || 0)"
+                :color="getSuccessRateColor(row.successRate)"
+                :stroke-width="6"
+                :show-text="true"
+                :format="() => `${row.successRate}%`"
+              />
+            </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="测试统计" width="200">
+        <el-table-column label="测试统计" width="240">
           <template #default="{ row }">
             <div class="test-stats">
               <span class="stat-badge total">总数: {{ row.totalCases || 0 }}</span>
@@ -268,34 +273,35 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="startTime" label="开始时间" width="160">
+        <el-table-column prop="startTime" label="开始时间" width="160" align="center">
           <template #default="{ row }">
-            {{ formatDateTime(row.startTime) }}
+            <div style="line-height: 1.5; white-space: nowrap">
+              {{ formatDateTime(row.startTime) }}
+            </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="duration" label="耗时" width="100">
+        <el-table-column prop="duration" label="耗时" width="90" align="center">
           <template #default="{ row }">
-            {{ formatDuration(row.duration) }}
+            <div style="white-space: nowrap">
+              {{ formatDuration(row.duration) }}
+            </div>
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
-            <el-button-group>
-              <el-button size="small" type="primary" text @click="handleViewDetail(row)">
-                <el-icon><View /></el-icon>
+            <div class="action-buttons">
+              <el-button size="small" type="primary" link @click="handleViewDetail(row)" :icon="View">
                 查看
               </el-button>
-              <el-button size="small" type="success" text @click="handleExport(row)">
-                <el-icon><Download /></el-icon>
+              <el-button size="small" type="success" link @click="handleExport(row)" :icon="Download">
                 导出
               </el-button>
-              <el-button size="small" type="danger" text @click="handleDelete(row)">
-                <el-icon><Delete /></el-icon>
+              <el-button size="small" type="danger" link @click="handleDelete(row)" :icon="Delete">
                 删除
               </el-button>
-            </el-button-group>
+            </div>
           </template>
         </el-table-column>
 
@@ -896,6 +902,9 @@ onMounted(() => {
   padding: 20px;
   background: #f5f7fa;
   min-height: 100vh;
+  writing-mode: horizontal-tb;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 /* 顶部工具栏 */
@@ -972,49 +981,111 @@ onMounted(() => {
   padding: 20px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+}
+
+/* 确保表格文本正常横向显示 */
+.reports-list :deep(.el-table) {
+  writing-mode: horizontal-tb;
+  font-size: 14px;
+}
+
+.reports-list :deep(.el-table__header) {
+  font-weight: 600;
+  color: #303133;
+}
+
+.reports-list :deep(.el-table__cell) {
+  writing-mode: horizontal-tb;
+  word-break: normal;
+  white-space: normal;
+  padding: 12px 8px;
+}
+
+.reports-list :deep(.cell) {
+  writing-mode: horizontal-tb;
+  word-break: normal;
+  white-space: normal;
+  line-height: 1.6;
+  overflow: visible;
+}
+
+.reports-list :deep(.el-table__row) {
+  transition: background-color 0.2s;
+}
+
+.reports-list :deep(.el-table__row:hover) {
+  background-color: #f5f7fa;
 }
 
 .report-name-cell {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  writing-mode: horizontal-tb;
+  word-break: normal;
 }
 
 .report-name-text {
   font-weight: 500;
+  word-break: break-word;
+  white-space: normal;
+  line-height: 1.6;
+  max-width: 100%;
 }
 
 .test-stats {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
 }
 
 .stat-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
 .stat-badge.total {
   background: #f4f4f5;
-  color: #909399;
+  color: #606266;
+  border: 1px solid #e4e7ed;
 }
 
 .stat-badge.success {
   background: #f0f9ff;
   color: #67c23a;
+  border: 1px solid #c6e2ff;
 }
 
 .stat-badge.danger {
   background: #fef0f0;
   color: #f56c6c;
+  border: 1px solid #fde2e2;
 }
 
 .stat-badge.warning {
   background: #fdf6ec;
   color: #e6a23c;
+  border: 1px solid #f5dab1;
+}
+
+/* 操作按钮 */
+.action-buttons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 /* 批量操作 */
@@ -1038,6 +1109,8 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #ebeef5;
 }
 
 /* 报告详情 */
