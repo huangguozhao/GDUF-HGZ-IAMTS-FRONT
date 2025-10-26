@@ -358,7 +358,25 @@ const handleUserClick = async () => {
 .main-content {
   background: #f5f7fa;
   padding: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
   height: calc(100vh - 60px);
+}
+
+.main-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main-content::-webkit-scrollbar-thumb {
+  background: #dcdfe6;
+  border-radius: 4px;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #c0c4cc;
+}
+
+.main-content::-webkit-scrollbar-track {
+  background: #f5f7fa;
 }
 </style>
