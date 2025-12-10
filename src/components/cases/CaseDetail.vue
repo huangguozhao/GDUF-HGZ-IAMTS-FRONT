@@ -1341,29 +1341,43 @@ const loadExecutionHistory = async () => {
     if (response.code === 1 && response.data && response.data.items) {
       console.log('成功获取执行历史数据，条数:', response.data.items.length)
       // 转换数据格式
-      executionHistoryData.value = response.data.items.map(item => ({
-        id: item.record_id || item.recordId,
-        recordId: item.record_id || item.recordId,
-        status: mapExecutionStatus(item.status),
-        action: getExecutionTypeText(item.execution_type || item.executionType),
-        note: generateHistoryNote(item),
-        executed_time: formatTime(item.start_time || item.startTime),
-        startTime: item.start_time || item.startTime,
-        endTime: item.end_time || item.endTime,
-        executor: item.executor_info?.name || item.executorInfo?.name || '未知',
-        executorInfo: item.executor_info || item.executorInfo,
-        environment: item.environment,
-        duration: item.duration_seconds || item.durationSeconds,
-        durationSeconds: item.duration_seconds || item.durationSeconds,
-        totalCases: item.total_cases || item.totalCases,
-        passedCases: item.passed_cases || item.passedCases,
-        failedCases: item.failed_cases || item.failedCases,
-        skippedCases: item.skipped_cases || item.skippedCases,
-        successRate: item.success_rate || item.successRate,
-        executionType: item.execution_type || item.executionType,
-        reportUrl: item.report_url || item.reportUrl,
-        errorMessage: item.error_message || item.errorMessage
-      }))
+      executionHistoryData.value = response.data.items.map(item => {
+        // 根据实际执行结果判断状态
+        const failedCount = item.failed_cases || item.failedCases || 0
+        const totalCount = item.total_cases || item.totalCases || 0
+        const rawStatus = item.status
+        
+        // 计算实际状态
+        let actualStatus = mapExecutionStatus(rawStatus)
+        if (rawStatus === 'completed' && totalCount > 0) {
+          // 如果是完成状态，根据失败数判断是否真的通过
+          actualStatus = failedCount === 0 ? 'passed' : 'failed'
+        }
+        
+        return {
+          id: item.record_id || item.recordId,
+          recordId: item.record_id || item.recordId,
+          status: actualStatus,
+          action: getExecutionTypeText(item.execution_type || item.executionType),
+          note: generateHistoryNote(item),
+          executed_time: formatTime(item.start_time || item.startTime),
+          startTime: item.start_time || item.startTime,
+          endTime: item.end_time || item.endTime,
+          executor: item.executor_info?.name || item.executorInfo?.name || '未知',
+          executorInfo: item.executor_info || item.executorInfo,
+          environment: item.environment,
+          duration: item.duration_seconds || item.durationSeconds,
+          durationSeconds: item.duration_seconds || item.durationSeconds,
+          totalCases: item.total_cases || item.totalCases,
+          passedCases: item.passed_cases || item.passedCases,
+          failedCases: item.failed_cases || item.failedCases,
+          skippedCases: item.skipped_cases || item.skippedCases,
+          successRate: item.success_rate || item.successRate,
+          executionType: item.execution_type || item.executionType,
+          reportUrl: item.report_url || item.reportUrl,
+          errorMessage: item.error_message || item.errorMessage
+        }
+      })
       
       // 保存总记录数
       executionHistoryTotal.value = response.data.total || 0
@@ -1386,11 +1400,12 @@ const loadExecutionHistory = async () => {
 }
 
 /**
- * 映射执行状态
+ * 映射执行状态（基础映射）
+ * 注意：对于 'completed' 状态，调用方需要根据实际执行结果（失败数）判断是 passed 还是 failed
  */
 const mapExecutionStatus = (status) => {
   const statusMap = {
-    'completed': 'passed',
+    'completed': 'completed',  // 返回原始状态，由调用方根据执行结果判断
     'failed': 'failed',
     'running': 'running',
     'cancelled': 'cancelled'

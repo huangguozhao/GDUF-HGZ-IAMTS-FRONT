@@ -19,6 +19,21 @@ request.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
+    
+    // 🔍 详细的请求日志（用于调试）
+    if (config.method === 'put' || config.method === 'post') {
+      console.log('=== HTTP 请求详情 ===')
+      console.log('请求方法:', config.method.toUpperCase())
+      console.log('请求URL:', config.url)
+      console.log('完整URL:', config.baseURL + config.url)
+      console.log('请求头:', config.headers)
+      console.log('请求数据 (原始):', config.data)
+      if (typeof config.data === 'object') {
+        console.log('请求数据 (JSON字符串):', JSON.stringify(config.data, null, 2))
+      }
+      console.log('====================')
+    }
+    
     return config
   },
   error => {
@@ -30,6 +45,15 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    // 🔍 详细的响应日志（用于调试）
+    console.log('=== HTTP 响应详情 ===')
+    console.log('响应状态:', response.status, response.statusText)
+    console.log('响应URL:', response.config.url)
+    console.log('响应头:', response.headers)
+    console.log('响应数据类型:', typeof response.data)
+    console.log('响应数据 (原始):', response.data)
+    console.log('====================')
+    
     let data = response.data
     
     // 如果响应数据是字符串，尝试解析JSON
@@ -124,7 +148,27 @@ request.interceptors.response.use(
     return data
   },
   error => {
-    console.error('响应错误:', error)
+    // 🔍 详细的错误日志（用于调试）
+    console.error('=== HTTP 响应错误 ===')
+    console.error('错误对象:', error)
+    console.error('错误消息:', error.message)
+    console.error('错误代码:', error.code)
+    console.error('请求URL:', error.config?.url)
+    console.error('请求方法:', error.config?.method)
+    console.error('请求数据:', error.config?.data)
+    
+    if (error.response) {
+      console.error('响应状态码:', error.response.status)
+      console.error('响应状态文本:', error.response.statusText)
+      console.error('响应头:', error.response.headers)
+      console.error('响应数据:', error.response.data)
+    } else if (error.request) {
+      console.error('请求对象:', error.request)
+      console.error('未收到响应')
+    } else {
+      console.error('请求配置错误')
+    }
+    console.error('====================')
     
     // 处理超时错误
     if (error.code === 'ECONNABORTED' && error.message.includes('timeout')) {

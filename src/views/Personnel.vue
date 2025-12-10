@@ -21,10 +21,12 @@
             <div class="search-section">
               <el-input
                 v-model="searchKeyword"
-                placeholder="搜索用户..."
+                placeholder="按姓名搜索..."
                 class="search-input"
                 :prefix-icon="Search"
-                @input="handleSearch"
+                @keyup.enter="handleSearch"
+                clearable
+                @clear="handleSearch"
               />
               <el-dropdown @command="handleFilterCommand">
                 <el-button class="filter-btn">
@@ -35,9 +37,9 @@
                 <template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="all">全部状态</el-dropdown-item>
-                    <el-dropdown-item command="active">活跃</el-dropdown-item>
+                    <el-dropdown-item command="active">激活</el-dropdown-item>
                     <el-dropdown-item command="disabled">已禁用</el-dropdown-item>
-                    <el-dropdown-item command="pending">待激活</el-dropdown-item>
+                    <el-dropdown-item command="pending">待审核</el-dropdown-item>
                   </el-dropdown-menu>
                 </template>
               </el-dropdown>
@@ -67,7 +69,7 @@
             <el-table-column prop="role" label="角色" width="120">
               <template #default="scope">
                 <el-tag :type="getRoleType(scope.row.role)" size="small">
-                  {{ scope.row.role }}
+                  {{ scope.row.role || '暂无角色' }}
                 </el-tag>
               </template>
             </el-table-column>
@@ -96,7 +98,7 @@
                   编辑
                 </el-button>
                 <el-button 
-                  v-if="scope.row.status === 'active'"
+                  v-if="scope.row.status === '激活'"
                   link 
                   type="warning" 
                   :icon="CircleClose"
@@ -105,7 +107,7 @@
                   禁用
                 </el-button>
                 <el-button 
-                  v-else-if="scope.row.status === 'disabled'"
+                  v-else-if="scope.row.status === '已禁用'"
                   link 
                   type="success" 
                   :icon="Check"
@@ -114,7 +116,7 @@
                   启用
                 </el-button>
                 <el-button 
-                  v-else-if="scope.row.status === 'pending'"
+                  v-else-if="scope.row.status === '待审核'"
                   link 
                   type="success" 
                   :icon="Check"
@@ -213,8 +215,8 @@
         
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="createUserForm.status">
-            <el-radio label="active">活跃</el-radio>
-            <el-radio label="pending">待激活</el-radio>
+            <el-radio label="激活">激活</el-radio>
+            <el-radio label="待审核">待审核</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -258,9 +260,9 @@
         
         <el-form-item label="状态" prop="status">
           <el-radio-group v-model="editUserForm.status">
-            <el-radio label="active">活跃</el-radio>
-            <el-radio label="disabled">已禁用</el-radio>
-            <el-radio label="pending">待激活</el-radio>
+            <el-radio label="激活">激活</el-radio>
+            <el-radio label="已禁用">已禁用</el-radio>
+            <el-radio label="待审核">待审核</el-radio>
           </el-radio-group>
         </el-form-item>
       </el-form>
@@ -288,7 +290,8 @@ import {
   Check,
   Delete
 } from '@element-plus/icons-vue'
-import { getUserList, createUser, updateUser, deleteUser, toggleUserStatus } from '../api/personnel'
+import { getUserList } from '@/api/user'; // 修正导入路径
+// import { createUser, updateUser, deleteUser, toggleUserStatus } from '../api/personnel' // 暂时注释掉未使用的API
 
 // 当前标签页
 const activeTab = ref('users')
@@ -300,7 +303,7 @@ const searchKeyword = ref('')
 const pagination = reactive({
   currentPage: 1,
   pageSize: 6,
-  total: 24
+  total: 0 // 初始化为0
 })
 
 // 数据列表
@@ -316,7 +319,7 @@ const createUserForm = reactive({
   role: '',
   password: '',
   confirmPassword: '',
-  status: 'active'
+  status: '激活'
 })
 
 const createUserRules = {
@@ -380,79 +383,34 @@ const fetchUsers = async () => {
     const params = {
       page: pagination.currentPage,
       pageSize: pagination.pageSize,
-      keyword: searchKeyword.value
+      name: searchKeyword.value // 使用 name 字段进行模糊查询
     }
     
     const response = await getUserList(params)
-    userList.value = response.data || []
-    pagination.total = response.total || 0
+    // 根据后端的 ResponseVO 和 PaginationResultVO 结构来解析数据
+    if (response && response.data) {
+      userList.value = response.data.items.map(user => ({
+        id: user.userId,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatarUrl,
+        role: user.position, // 暂时使用 position 字段作为角色，如果后端有更合适的字段请替换
+        status: user.status,
+        createTime: user.createdAt ? new Date(user.createdAt).toLocaleString() : ''
+      }))
+      pagination.total = response.data.total || 0
+    } else {
+      userList.value = []
+      pagination.total = 0
+    }
   } catch (error) {
     console.error('获取用户列表失败:', error)
-    // 使用模拟数据
-    userList.value = getMockUserData()
+    ElMessage.error('获取用户列表失败，请检查网络或联系管理员')
+    userList.value = [] // 清空数据
+    pagination.total = 0
   } finally {
     loading.value = false
   }
-}
-
-// 模拟用户数据
-const getMockUserData = () => {
-  return [
-    {
-      id: 1,
-      name: '李明',
-      email: 'liming@example.com',
-      role: '管理员',
-      status: 'active',
-      createTime: '2023-12-05 14:30',
-      avatar: ''
-    },
-    {
-      id: 2,
-      name: '张华',
-      email: 'zhanghua@example.com',
-      role: '开发人员',
-      status: 'active',
-      createTime: '2024-01-12 09:45',
-      avatar: ''
-    },
-    {
-      id: 3,
-      name: '王芳',
-      email: 'wangfang@example.com',
-      role: '测试人员',
-      status: 'disabled',
-      createTime: '2023-11-20 11:15',
-      avatar: ''
-    },
-    {
-      id: 4,
-      name: '刘伟',
-      email: 'liuwei@example.com',
-      role: '开发人员',
-      status: 'active',
-      createTime: '2024-02-03 16:20',
-      avatar: ''
-    },
-    {
-      id: 5,
-      name: '赵敏',
-      email: 'zhaomin@example.com',
-      role: '测试人员',
-      status: 'pending',
-      createTime: '2024-02-25 10:05',
-      avatar: ''
-    },
-    {
-      id: 6,
-      name: '陈晓',
-      email: 'chenxiao@example.com',
-      role: '开发人员',
-      status: 'active',
-      createTime: '2023-12-28 15:40',
-      avatar: ''
-    }
-  ]
 }
 
 // 获取角色类型
@@ -468,21 +426,17 @@ const getRoleType = (role) => {
 // 获取状态类型
 const getStatusType = (status) => {
   const statusMap = {
-    'active': 'success',
-    'disabled': 'danger',
-    'pending': 'warning'
+    '激活': 'success',
+    '已禁用': 'danger',
+    '待审核': 'warning'
   }
   return statusMap[status] || 'info'
 }
 
 // 获取状态文本
 const getStatusText = (status) => {
-  const statusMap = {
-    'active': '活跃',
-    'disabled': '已禁用',
-    'pending': '待激活'
-  }
-  return statusMap[status] || status
+  // 假设后端直接返回中文状态，如果不是，需要在这里映射
+  return status || '未知状态'
 }
 
 // 搜索处理
@@ -501,29 +455,33 @@ const handleFilterCommand = (command) => {
 const showCreateUserDialog = () => {
   createUserDialogVisible.value = true
   // 重置表单
+  if (createUserFormRef.value) {
+    createUserFormRef.value.resetFields()
+  }
   Object.assign(createUserForm, {
     name: '',
     email: '',
     role: '',
     password: '',
     confirmPassword: '',
-    status: 'active'
+    status: '激活'
   })
 }
 
 // 创建用户
 const handleCreateUser = async () => {
-  try {
-    await createUserFormRef.value.validate()
+  // try {
+  //   await createUserFormRef.value.validate()
     
-    await createUser(createUserForm)
-    ElMessage.success('用户创建成功')
-    createUserDialogVisible.value = false
-    fetchUsers()
-  } catch (error) {
-    console.error('创建用户失败:', error)
-    ElMessage.error('创建用户失败，请稍后重试')
-  }
+  //   await createUser(createUserForm)
+  //   ElMessage.success('用户创建成功')
+  //   createUserDialogVisible.value = false
+  //   fetchUsers()
+  // } catch (error) {
+  //   console.error('创建用户失败:', error)
+  //   ElMessage.error('创建用户失败，请稍后重试')
+  // }
+  ElMessage.info('创建功能待实现');
 }
 
 // 编辑用户
@@ -540,94 +498,100 @@ const handleEditUser = (user) => {
 
 // 更新用户
 const handleUpdateUser = async () => {
-  try {
-    await editUserFormRef.value.validate()
+  // try {
+  //   await editUserFormRef.value.validate()
     
-    await updateUser(editUserForm.id, editUserForm)
-    ElMessage.success('用户更新成功')
-    editUserDialogVisible.value = false
-    fetchUsers()
-  } catch (error) {
-    console.error('更新用户失败:', error)
-    ElMessage.error('更新用户失败，请稍后重试')
-  }
+  //   await updateUser(editUserForm.id, editUserForm)
+  //   ElMessage.success('用户更新成功')
+  //   editUserDialogVisible.value = false
+  //   fetchUsers()
+  // } catch (error) {
+  //   console.error('更新用户失败:', error)
+  //   ElMessage.error('更新用户失败，请稍后重试')
+  // }
+  ElMessage.info('更新功能待实现');
 }
 
 // 禁用用户
 const handleDisableUser = async (user) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要禁用用户"${user.name}"吗？`,
-      '禁用确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+  // try {
+  //   await ElMessageBox.confirm(
+  //     `确定要禁用用户"${user.name}"吗？`,
+  //     '禁用确认',
+  //     {
+  //       confirmButtonText: '确定',
+  //       cancelButtonText: '取消',
+  //       type: 'warning'
+  //     }
+  //   )
     
-    await toggleUserStatus(user.id, false)
-    ElMessage.success('用户已禁用')
-    fetchUsers()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('禁用用户失败:', error)
-      ElMessage.error('禁用用户失败，请稍后重试')
-    }
-  }
+  //   await toggleUserStatus(user.id, false)
+  //   ElMessage.success('用户已禁用')
+  //   fetchUsers()
+  // } catch (error) {
+  //   if (error !== 'cancel') {
+  //     console.error('禁用用户失败:', error)
+  //     ElMessage.error('禁用用户失败，请稍后重试')
+  //   }
+  // }
+  ElMessage.info('禁用功能待实现');
 }
 
 // 启用用户
 const handleEnableUser = async (user) => {
-  try {
-    await toggleUserStatus(user.id, true)
-    ElMessage.success('用户已启用')
-    fetchUsers()
-  } catch (error) {
-    console.error('启用用户失败:', error)
-    ElMessage.error('启用用户失败，请稍后重试')
-  }
+  // try {
+  //   await toggleUserStatus(user.id, true)
+  //   ElMessage.success('用户已启用')
+  //   fetchUsers()
+  // } catch (error) {
+  //   console.error('启用用户失败:', error)
+  //   ElMessage.error('启用用户失败，请稍后重试')
+  // }
+  ElMessage.info('启用功能待实现');
 }
 
 // 激活用户
 const handleActivateUser = async (user) => {
-  try {
-    await toggleUserStatus(user.id, true)
-    ElMessage.success('用户已激活')
-    fetchUsers()
-  } catch (error) {
-    console.error('激活用户失败:', error)
-    ElMessage.error('激活用户失败，请稍后重试')
-  }
+  // try {
+  //   await toggleUserStatus(user.id, true)
+  //   ElMessage.success('用户已激活')
+  //   fetchUsers()
+  // } catch (error) {
+  //   console.error('激活用户失败:', error)
+  //   ElMessage.error('激活用户失败，请稍后重试')
+  // }
+  ElMessage.info('激活功能待实现');
 }
 
 // 删除用户
 const handleDeleteUser = async (user) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除用户"${user.name}"吗？此操作不可恢复！`,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
+  // try {
+  //   await ElMessageBox.confirm(
+  //     `确定要删除用户"${user.name}"吗？此操作不可恢复！`,
+  //     '删除确认',
+  //     {
+  //       confirmButtonText: '确定',
+  //       cancelButtonText: '取消',
+  //       type: 'warning'
+  //     }
+  //   )
     
-    await deleteUser(user.id)
-    ElMessage.success('用户删除成功')
-    fetchUsers()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除用户失败:', error)
-      ElMessage.error('删除用户失败，请稍后重试')
-    }
-  }
+  //   await deleteUser(user.id)
+  //   ElMessage.success('用户删除成功')
+  //   fetchUsers()
+  // } catch (error) {
+  //   if (error !== 'cancel') {
+  //     console.error('删除用户失败:', error)
+  //     ElMessage.error('删除用户失败，请稍后重试')
+  //   }
+  // }
+  ElMessage.info('删除功能待实现');
 }
 
 // 分页大小改变
 const handleSizeChange = (size) => {
   pagination.pageSize = size
+  pagination.currentPage = 1; // 回到第一页
   fetchUsers()
 }
 

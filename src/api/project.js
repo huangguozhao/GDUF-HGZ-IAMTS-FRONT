@@ -146,20 +146,26 @@ export function getApisByModule(moduleId) {
 // 创建接口
 export function createApi(moduleId, data) {
   const requestData = {
+    apiCode: data.api_code || data.apiCode || '',
     moduleId: moduleId,  // 使用驼峰命名
-    apiCode: data.api_code || data.apiCode,
     name: data.name,
     method: data.method,
     path: data.path,
-    baseUrl: data.base_url || data.baseUrl,
-    description: data.description,
-    precondition: data.precondition,
-    status: 'active',  // 显式设置为 active（数据库只支持 active/inactive/deprecated）
+    baseUrl: data.base_url || data.baseUrl || '',
     requestParameters: data.request_parameters || data.requestParameters,
+    pathParameters: data.path_parameters || data.pathParameters,
     requestHeaders: data.request_headers || data.requestHeaders,
     requestBody: data.request_body || data.requestBody,
     requestBodyType: data.request_body_type || data.requestBodyType || 'json',
-    tags: data.tags || []
+    responseBodyType: data.response_body_type || data.responseBodyType || '',
+    description: data.description || '',
+    status: data.status || 'active',  // 显式设置为 active（数据库只支持 active/inactive/deprecated）
+    version: data.version || '',
+    authType: data.auth_type || data.authType || '',
+    authConfig: data.auth_config || data.authConfig,
+    tags: data.tags || [],
+    examples: data.examples,
+    timeoutSeconds: data.timeout_seconds || data.timeoutSeconds || 30
   }
   
   console.log('=== createApi 函数 ===')
@@ -185,20 +191,26 @@ export function getApiById(apiId) {
 // 更新接口
 export function updateApi(apiId, data) {
   const requestData = {
+    apiCode: data.api_code || data.apiCode || '',
     moduleId: data.module_id || data.moduleId,
-    apiCode: data.api_code || data.apiCode,
     name: data.name,
     method: data.method,
     path: data.path,
-    baseUrl: data.base_url || data.baseUrl,
-    description: data.description,
-    precondition: data.precondition,
-    status: data.status || 'active',  // 默认为 active（数据库只支持 active/inactive/deprecated）
+    baseUrl: data.base_url || data.baseUrl || '',
     requestParameters: data.request_parameters || data.requestParameters,
+    pathParameters: data.path_parameters || data.pathParameters,
     requestHeaders: data.request_headers || data.requestHeaders,
     requestBody: data.request_body || data.requestBody,
-    requestBodyType: data.request_body_type || data.requestBodyType,
-    tags: data.tags || []
+    requestBodyType: data.request_body_type || data.requestBodyType || 'json',
+    responseBodyType: data.response_body_type || data.responseBodyType || '',
+    description: data.description || '',
+    status: data.status || 'active',  // 默认为 active（数据库只支持 active/inactive/deprecated）
+    version: data.version || '',
+    authType: data.auth_type || data.authType || '',
+    authConfig: data.auth_config || data.authConfig,
+    tags: data.tags || [],
+    examples: data.examples,
+    timeoutSeconds: data.timeout_seconds || data.timeoutSeconds || 30
   }
   
   console.log('=== updateApi 函数 ===')

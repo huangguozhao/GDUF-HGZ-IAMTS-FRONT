@@ -39,6 +39,7 @@ export function createTestCase(data) {
       caseCode: data.case_code,
       name: data.name,
       description: data.description,
+      testType: data.test_type || data.testType || 'functional',  // ✅ 添加测试类型，默认为功能测试
       priority: data.priority || 'P2',
       severity: data.severity || 'medium',
       tags: data.tags || [],
@@ -62,30 +63,117 @@ export function createTestCase(data) {
 // 更新测试用例
 export function updateTestCase(caseId, data) {
   // 注意：不包含 apiId，修改测试用例时 API 关联不能改变
+  // 只发送有实际值的字段，不使用默认值填充
+  
+  const requestData = {}
+  
+  // 字符串字段 - 只有存在时才添加
+  if (data.case_code || data.caseCode) {
+    requestData.caseCode = data.case_code || data.caseCode
+  }
+  if (data.name) {
+    requestData.name = data.name
+  }
+  if (data.description !== undefined && data.description !== null) {
+    requestData.description = data.description
+  }
+  if (data.test_type || data.testType) {
+    requestData.testType = data.test_type || data.testType
+  }
+  if (data.priority) {
+    requestData.priority = data.priority
+  }
+  if (data.severity) {
+    requestData.severity = data.severity
+  }
+  if (data.version !== undefined && data.version !== null) {
+    requestData.version = data.version
+  }
+  
+  // 数组字段 - 只有存在且为数组时才添加
+  const tags = data.tags
+  if (Array.isArray(tags)) {
+    requestData.tags = tags
+  }
+  
+  const preConditions = data.pre_conditions || data.preConditions
+  if (Array.isArray(preConditions)) {
+    requestData.preConditions = preConditions
+  }
+  
+  const testSteps = data.test_steps || data.testSteps
+  if (Array.isArray(testSteps)) {
+    requestData.testSteps = testSteps
+  }
+  
+  const assertions = data.assertions
+  if (Array.isArray(assertions)) {
+    requestData.assertions = assertions
+  }
+  
+  const extractors = data.extractors
+  if (Array.isArray(extractors)) {
+    requestData.extractors = extractors
+  }
+  
+  const validators = data.validators
+  if (Array.isArray(validators)) {
+    requestData.validators = validators
+  }
+  
+  // 对象字段 - 只有存在时才添加
+  const requestOverride = data.request_override || data.requestOverride
+  if (requestOverride && typeof requestOverride === 'object') {
+    requestData.requestOverride = requestOverride
+  }
+  
+  const expectedResponseSchema = data.expected_response_schema || data.expectedResponseSchema
+  if (expectedResponseSchema && typeof expectedResponseSchema === 'object') {
+    requestData.expectedResponseSchema = expectedResponseSchema
+  }
+  
+  // 数字字段 - 只有存在时才添加
+  const expectedHttpStatus = data.expected_http_status || data.expectedHttpStatus
+  if (expectedHttpStatus !== undefined && expectedHttpStatus !== null) {
+    requestData.expectedHttpStatus = Number(expectedHttpStatus)
+  }
+  
+  const templateId = data.template_id || data.templateId
+  if (templateId !== undefined && templateId !== null && templateId !== 0) {
+    requestData.templateId = Number(templateId)
+  }
+  
+  // 字符串字段（可能为空）
+  const expectedResponseBody = data.expected_response_body || data.expectedResponseBody
+  if (expectedResponseBody !== undefined && expectedResponseBody !== null) {
+    requestData.expectedResponseBody = expectedResponseBody
+  }
+  
+  // 布尔字段 - 只有明确定义时才添加
+  if (data.is_enabled !== undefined && data.is_enabled !== null) {
+    requestData.isEnabled = Boolean(data.is_enabled)
+  } else if (data.isEnabled !== undefined && data.isEnabled !== null) {
+    requestData.isEnabled = Boolean(data.isEnabled)
+  }
+  
+  if (data.is_template !== undefined && data.is_template !== null) {
+    requestData.isTemplate = Boolean(data.is_template)
+  } else if (data.isTemplate !== undefined && data.isTemplate !== null) {
+    requestData.isTemplate = Boolean(data.isTemplate)
+  }
+  
+  console.log('=== updateTestCase ===')
+  console.log('用例ID:', caseId)
+  console.log('原始数据:', data)
+  console.log('请求数据:', requestData)
+  console.log('请求数据 (JSON):', JSON.stringify(requestData, null, 2))
+  console.log('请求数据字段数:', Object.keys(requestData).length)
+  console.log('=====================')
+  
   return request({
     url: `/testcases/${caseId}`,
     method: 'put',
-    data: {
-      caseCode: data.case_code,
-      name: data.name,
-      description: data.description,
-      priority: data.priority,
-      severity: data.severity,
-      tags: data.tags,
-      preConditions: data.pre_conditions,
-      testSteps: data.test_steps,
-      requestOverride: data.request_override,
-      expectedHttpStatus: data.expected_http_status,
-      expectedResponseSchema: data.expected_response_schema,
-      expectedResponseBody: data.expected_response_body,
-      assertions: data.assertions,
-      extractors: data.extractors,
-      validators: data.validators,
-      isEnabled: data.is_enabled,
-      isTemplate: data.is_template,
-      templateId: data.template_id,
-      version: data.version
-    }
+    data: requestData
   })
 }
 

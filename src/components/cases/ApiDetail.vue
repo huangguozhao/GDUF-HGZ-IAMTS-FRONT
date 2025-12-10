@@ -1787,16 +1787,26 @@ const apiData = reactive({
   projectId: null,
   module: '',
   moduleId: null,
+  apiCode: '',
   name: '',
   path: '',
   method: 'GET',
+  baseUrl: '',
   description: '',
   precondition: '',
-  tags: [],
-  requestParameters: null,
-  requestHeaders: null,
-  requestBody: null,
-  requestBodyType: 'json'
+  tags: [],                     // 数组格式
+  requestParameters: [],        // 数组格式（查询参数）
+  pathParameters: [],           // 数组格式（路径参数）
+  requestHeaders: [],           // 数组格式（请求头）
+  requestBody: null,            // 可以是字符串或对象
+  requestBodyType: 'json',
+  responseBodyType: '',
+  status: 'active',
+  version: '',
+  authType: '',
+  authConfig: null,             // 对象格式
+  examples: [],                 // 数组格式（示例）
+  timeoutSeconds: 30
 })
 
 // 监听 props.api 变化，更新表单数据
@@ -1808,16 +1818,42 @@ watch(
       apiData.projectId = newApi.project_id || newApi.projectId
       apiData.module = newApi.module_name || newApi.moduleName || '-'
       apiData.moduleId = newApi.module_id || newApi.moduleId
+      apiData.apiCode = newApi.api_code || newApi.apiCode || ''
       apiData.name = newApi.name || ''
       apiData.path = newApi.path || newApi.url || ''
       apiData.method = newApi.method || 'GET'
+      apiData.baseUrl = newApi.base_url || newApi.baseUrl || ''
       apiData.description = newApi.description || ''
       apiData.precondition = newApi.precondition || newApi.pre_condition || ''
-      apiData.tags = newApi.tags || []
-      apiData.requestParameters = newApi.request_parameters || newApi.requestParameters
-      apiData.requestHeaders = newApi.request_headers || newApi.requestHeaders
+      
+      // 确保数组类型字段始终是数组格式
+      apiData.tags = Array.isArray(newApi.tags) ? newApi.tags : []
+      
+      // requestParameters: 可能是数组或对象，统一转为数组
+      const reqParams = newApi.request_parameters || newApi.requestParameters
+      apiData.requestParameters = Array.isArray(reqParams) ? reqParams : []
+      
+      // pathParameters: 确保是数组
+      const pathParams = newApi.path_parameters || newApi.pathParameters
+      apiData.pathParameters = Array.isArray(pathParams) ? pathParams : []
+      
+      // requestHeaders: 确保是数组
+      const reqHeaders = newApi.request_headers || newApi.requestHeaders
+      apiData.requestHeaders = Array.isArray(reqHeaders) ? reqHeaders : []
+      
+      // requestBody: 可以是字符串、对象或null
       apiData.requestBody = newApi.request_body || newApi.requestBody
       apiData.requestBodyType = newApi.request_body_type || newApi.requestBodyType || 'json'
+      apiData.responseBodyType = newApi.response_body_type || newApi.responseBodyType || ''
+      apiData.status = newApi.status || 'active'
+      apiData.version = newApi.version || ''
+      apiData.authType = newApi.auth_type || newApi.authType || ''
+      apiData.authConfig = newApi.auth_config || newApi.authConfig
+      
+      // examples: 确保是数组
+      apiData.examples = Array.isArray(newApi.examples) ? newApi.examples : []
+      
+      apiData.timeoutSeconds = newApi.timeout_seconds || newApi.timeoutSeconds || 30
     }
   },
   { immediate: true }
@@ -3643,35 +3679,115 @@ const handleSave = async () => {
       }
     }
     
-    // 构造请求数据
+    // 构造请求数据（字段顺序和命名与后端接口完全一致）
+    // 注意：确保数组类型字段使用正确的格式
+    
+    // 处理 requestBody：应该是字符串，不是数组
+    let requestBodyValue = ''
+    if (bodyType.value === 'raw') {
+      // raw 模式：使用原始文本
+      requestBodyValue = rawBody.value || ''
+    } else if (bodyParams.value && bodyParams.value.length > 0) {
+      // 如果有 body 参数，转换为 JSON 字符串
+      const bodyObj = {}
+      bodyParams.value.forEach(param => {
+        if (param.name) {
+          bodyObj[param.name] = param.value
+        }
+      })
+      requestBodyValue = JSON.stringify(bodyObj)
+    } else if (apiData.requestBody) {
+      // 使用原始的 requestBody
+      if (typeof apiData.requestBody === 'string') {
+        requestBodyValue = apiData.requestBody
+      } else if (typeof apiData.requestBody === 'object') {
+        requestBodyValue = JSON.stringify(apiData.requestBody)
+      }
+    }
+    
     const updateData = {
+      api_code: apiData.apiCode || '',
+      module_id: targetModuleId,
       name: apiData.name.trim(),
       method: apiData.method,
       path: apiData.path.trim(),
+      base_url: apiData.baseUrl || '',
+      // 使用编辑后的数组格式数据，确保格式正确
+      request_parameters: queryParams.value || [],
+      path_parameters: apiData.pathParameters || [],  // 如果有路径参数编辑器，应使用对应的 ref
+      request_headers: headerParams.value || [],
+      request_body: requestBodyValue,  // ✅ 确保是字符串
+      request_body_type: bodyType.value || 'json',
+      response_body_type: apiData.responseBodyType || '',
       description: apiData.description || '',
-      module_id: targetModuleId,
-      precondition: apiData.precondition || '',
-      tags: apiData.tags || [],
-      request_parameters: apiData.requestParameters,
-      request_headers: apiData.requestHeaders,
-      request_body: apiData.requestBody,
-      request_body_type: apiData.requestBodyType
+      status: apiData.status || 'active',
+      version: apiData.version || '',
+      auth_type: apiData.authType || '',
+      auth_config: apiData.authConfig,
+      tags: Array.isArray(apiData.tags) ? apiData.tags : [],
+      examples: Array.isArray(apiData.examples) ? apiData.examples : [],
+      timeout_seconds: apiData.timeoutSeconds || 30
     }
+    
+    // 🔍 详细调试日志
+    console.log('=== 接口保存调试信息 ===')
+    console.log('API ID:', apiId)
+    console.log('目标模块ID:', targetModuleId)
+    console.log('headerParams.value:', headerParams.value)
+    console.log('queryParams.value:', queryParams.value)
+    console.log('bodyParams.value:', bodyParams.value)
+    console.log('bodyType.value:', bodyType.value)
+    console.log('rawBody.value:', rawBody.value)
+    console.log('requestBodyValue (处理后):', requestBodyValue)
+    console.log('apiData.tags:', apiData.tags)
+    console.log('apiData.examples:', apiData.examples)
+    console.log('完整请求数据 (updateData):', JSON.stringify(updateData, null, 2))
+    console.log('请求数据类型检查:')
+    console.log('  - request_headers 是数组?', Array.isArray(updateData.request_headers))
+    console.log('  - request_parameters 是数组?', Array.isArray(updateData.request_parameters))
+    console.log('  - path_parameters 是数组?', Array.isArray(updateData.path_parameters))
+    console.log('  - request_body 是字符串?', typeof updateData.request_body === 'string')
+    console.log('  - tags 是数组?', Array.isArray(updateData.tags))
+    console.log('  - examples 是数组?', Array.isArray(updateData.examples))
+    console.log('========================')
     
     // 调用API更新接口
     const response = await updateApi(apiId, updateData)
     
+    console.log('=== 接口保存响应信息 ===')
+    console.log('响应状态码:', response.code)
+    console.log('响应消息:', response.msg)
+    console.log('响应数据:', response.data)
+    console.log('========================')
+    
     if (response.code === 1) {
-  ElMessage.success('保存成功')
+      ElMessage.success('保存成功')
       // 触发父组件刷新数据
       emit('refresh')
     } else {
+      console.error('=== 接口保存失败 ===')
+      console.error('失败原因:', response.msg)
+      console.error('完整响应:', response)
+      console.error('====================')
       ElMessage.error(response.msg || '保存失败')
     }
   } catch (error) {
-    console.error('保存接口失败:', error)
+    console.error('=== 接口保存异常 ===')
+    console.error('错误对象:', error)
+    console.error('错误消息:', error.message)
+    console.error('HTTP状态码:', error.response?.status)
+    console.error('响应头:', error.response?.headers)
+    console.error('响应数据:', error.response?.data)
+    console.error('请求配置:', error.config)
+    console.error('完整错误堆栈:', error.stack)
+    console.error('====================')
+    
     if (error.response?.data?.msg) {
       ElMessage.error(error.response.data.msg)
+    } else if (error.response?.data?.message) {
+      ElMessage.error(error.response.data.message)
+    } else if (error.message) {
+      ElMessage.error(`保存失败: ${error.message}`)
     } else {
       ElMessage.error('保存失败，请稍后重试')
     }
