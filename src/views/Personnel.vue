@@ -127,14 +127,17 @@ const fetchUsers = async () => {
 };
 
 const getStatusClass = (status) => {
-  const statusMap = {
-    '活跃': 'active',
-    '已禁用': 'disabled',
-    '待激活': 'pending',
-    '激活': 'active', //兼容后端可能返回的值
-    '待审核': 'pending' //兼容后端可能返回的值
-  };
-  return `status-tag--${statusMap[status] || 'default'}`;
+  const lowerCaseStatus = status.toLowerCase();
+  if (lowerCaseStatus.includes('disable') || lowerCaseStatus.includes('禁用')) {
+    return 'status-tag--disabled';
+  }
+  if (lowerCaseStatus.includes('active') || lowerCaseStatus.includes('激活') || lowerCaseStatus.includes('活跃')) {
+    return 'status-tag--active';
+  }
+  if (lowerCaseStatus.includes('pending') || lowerCaseStatus.includes('待')) {
+    return 'status-tag--pending';
+  }
+  return 'status-tag--default';
 };
 
 const handleSearch = () => {
@@ -282,21 +285,31 @@ onMounted(() => {
   border-radius: 12px;
   font-size: 12px;
   display: inline-block;
+  border: 1px solid transparent;
 }
 
 .status-tag--active {
-  background-color: #f6ffed;
-  color: #52c41a;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-color: #91d5ff;
 }
 
 .status-tag--disabled {
   background-color: #fff1f0;
   color: #f5222d;
+  border-color: #ffa39e;
 }
 
 .status-tag--pending {
   background-color: #fffbe6;
   color: #faad14;
+  border-color: #ffe58f;
+}
+
+.status-tag--default {
+  background-color: #f5f5f5;
+  color: #595959;
+  border-color: #d9d9d9;
 }
 
 .action-buttons {
