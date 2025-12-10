@@ -33,7 +33,12 @@
             <tr v-for="user in userList" :key="user.id">
               <td>
                 <div class="user-cell">
-                  <img :src="user.avatar || 'https://via.placeholder.com/32'" alt="avatar" class="user-avatar">
+                  <div class="avatar-container">
+                    <img v-if="user.avatar && !user.avatarError" :src="user.avatar" @error="user.avatarError = true" class="user-avatar" alt="avatar">
+                    <div v-else class="user-avatar-fallback">
+                      {{ getInitials(user.name) }}
+                    </div>
+                  </div>
                   <span>{{ user.name }}</span>
                 </div>
               </td>
@@ -111,6 +116,7 @@ const fetchUsers = async () => {
         role: user.position || '暂无角色',
         status: user.status,
         createTime: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
+        avatarError: false, // Add avatarError property
       }));
       pagination.total = response.data.total || 0;
     } else {
@@ -124,6 +130,12 @@ const fetchUsers = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const getInitials = (name) => {
+  if (!name) return '';
+  // Simple logic for initials, can be improved for complex names
+  return name.charAt(0).toUpperCase();
 };
 
 const getStatusClass = (status) => {
@@ -273,11 +285,26 @@ onMounted(() => {
   gap: 12px;
 }
 
-.user-avatar {
+.avatar-container,
+.user-avatar,
+.user-avatar-fallback {
   width: 32px;
   height: 32px;
   border-radius: 50%;
+}
+
+.user-avatar {
   object-fit: cover;
+}
+
+.user-avatar-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #1890ff;
+  color: #fff;
+  font-weight: 500;
+  font-size: 14px;
 }
 
 .status-tag {
