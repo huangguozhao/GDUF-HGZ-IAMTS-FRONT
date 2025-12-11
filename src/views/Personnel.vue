@@ -7,7 +7,7 @@
       </div>
 
       <div class="toolbar">
-        <button class="btn btn-primary">+ 创建新用户</button>
+        <button class="btn btn-primary" @click="openCreateUserModal">+ 创建新用户</button>
         <div class="toolbar-right">
           <div class="search-input-wrapper">
             <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
@@ -80,12 +80,68 @@
         </div>
       </div>
     </div>
+
+    <!-- Create User Modal -->
+    <div v-if="isCreateUserModalVisible" class="modal-overlay" @click.self="closeCreateUserModal">
+      <div class="modal-panel">
+        <h3 class="modal-title">创建新用户</h3>
+        <form class="modal-form" @submit.prevent="handleCreateUser">
+          <div class="form-group">
+            <label for="name">姓名</label>
+            <input type="text" id="name" v-model="createUserForm.name" required>
+          </div>
+          <div class="form-group">
+            <label for="email">邮箱</label>
+            <input type="email" id="email" v-model="createUserForm.email" required>
+          </div>
+          <div class="form-group">
+            <label for="password">密码</label>
+            <input type="password" id="password" v-model="createUserForm.password" required>
+          </div>
+          <div class="form-group">
+            <label for="phone">手机号</label>
+            <input type="text" id="phone" v-model="createUserForm.phone">
+          </div>
+          <div class="form-group">
+            <label for="position">职位</label>
+            <input type="text" id="position" v-model="createUserForm.position">
+          </div>
+          <div class="form-group">
+            <label for="employeeId">工号</label>
+            <input type="text" id="employeeId" v-model="createUserForm.employeeId">
+          </div>
+           <div class="form-group">
+            <label for="departmentId">部门ID</label>
+            <input type="number" id="departmentId" v-model.number="createUserForm.departmentId">
+          </div>
+          <div class="form-group">
+            <label for="avatarUrl">头像URL</label>
+            <input type="text" id="avatarUrl" v-model="createUserForm.avatarUrl">
+          </div>
+          <div class="form-group">
+            <label for="description">描述</label>
+            <textarea id="description" v-model="createUserForm.description"></textarea>
+          </div>
+          <div class="form-group">
+            <label>状态</label>
+            <div class="radio-group">
+              <label><input type="radio" v-model="createUserForm.status" value="active"> 激活</label>
+              <label><input type="radio" v-model="createUserForm.status" value="pending"> 待审核</label>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="closeCreateUserModal">取消</button>
+            <button type="submit" class="btn btn-primary">确定</button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { getUserList } from '@/api/user';
+import { getUserList, createUser } from '@/api/user';
 
 const searchKeyword = ref('');
 const pagination = reactive({
@@ -95,8 +151,57 @@ const pagination = reactive({
 });
 const userList = ref([]);
 const loading = ref(false);
+const isCreateUserModalVisible = ref(false);
+const createUserForm = reactive({
+  name: '',
+  email: '',
+  password: '',
+  phone: '',
+  avatarUrl: '',
+  departmentId: null,
+  employeeId: '',
+  position: '',
+  description: '',
+  status: 'active',
+});
 
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize));
+
+const openCreateUserModal = () => {
+  Object.assign(createUserForm, {
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    avatarUrl: '',
+    departmentId: null,
+    employeeId: '',
+    position: '',
+    description: '',
+    status: 'active',
+  });
+  isCreateUserModalVisible.value = true;
+};
+
+const closeCreateUserModal = () => {
+  isCreateUserModalVisible.value = false;
+};
+
+const handleCreateUser = async () => {
+  try {
+    if (!createUserForm.name || !createUserForm.email || !createUserForm.password) {
+      alert('姓名、邮箱和密码为必填项');
+      return;
+    }
+    await createUser(createUserForm);
+    alert('用户创建成功！');
+    closeCreateUserModal();
+    await fetchUsers();
+  } catch (error) {
+    console.error('创建用户失败:', error);
+    alert('创建用户失败，请稍后重试');
+  }
+};
 
 const fetchUsers = async () => {
   loading.value = true;
@@ -116,7 +221,7 @@ const fetchUsers = async () => {
         role: user.position || '暂无角色',
         status: user.status,
         createTime: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
-        avatarError: false, // Add avatarError property
+        avatarError: false,
       }));
       pagination.total = response.data.total || 0;
     } else {
@@ -134,7 +239,6 @@ const fetchUsers = async () => {
 
 const getInitials = (name) => {
   if (!name) return '';
-  // Simple logic for initials, can be improved for complex names
   return name.charAt(0).toUpperCase();
 };
 
@@ -228,6 +332,12 @@ onMounted(() => {
   background-color: #1890ff;
   color: #fff;
   border-color: #1890ff;
+}
+
+.btn-secondary {
+  background-color: #fff;
+  color: #595959;
+  border-color: #d9d9d9;
 }
 
 .btn-filter {
@@ -396,5 +506,71 @@ onMounted(() => {
 .pagination-btn:disabled {
   color: #bfbfbf;
   cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-panel {
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 24px;
+  width: 400px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.modal-title {
+  margin: 0 0 24px 0;
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.modal-form .form-group {
+  margin-bottom: 16px;
+}
+
+.modal-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #595959;
+}
+
+.modal-form input,
+.modal-form textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.modal-form textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.modal-form .radio-group {
+  display: flex;
+  gap: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
 }
 </style>

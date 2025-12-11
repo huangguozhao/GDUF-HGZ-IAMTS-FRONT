@@ -16,3 +16,14 @@ export function getUserList(params) {
   });
 }
 
+/**
+ * 创建新用户
+ * @param {object} data - 用户数据
+ */
+export function createUser(data) {
+  return request({
+    url: '/users',
+    method: 'post',
+    data,
+  });
+}
