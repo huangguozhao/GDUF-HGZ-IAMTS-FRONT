@@ -86,47 +86,49 @@
       <div class="modal-panel">
         <h3 class="modal-title">创建新用户</h3>
         <form class="modal-form" @submit.prevent="handleCreateUser">
-          <div class="form-group">
-            <label for="name">姓名</label>
-            <input type="text" id="name" v-model="createUserForm.name" required>
-          </div>
-          <div class="form-group">
-            <label for="email">邮箱</label>
-            <input type="email" id="email" v-model="createUserForm.email" required>
-          </div>
-          <div class="form-group">
-            <label for="password">密码</label>
-            <input type="password" id="password" v-model="createUserForm.password" required>
-          </div>
-          <div class="form-group">
-            <label for="phone">手机号</label>
-            <input type="text" id="phone" v-model="createUserForm.phone">
-          </div>
-          <div class="form-group">
-            <label for="position">职位</label>
-            <input type="text" id="position" v-model="createUserForm.position">
-          </div>
-          <div class="form-group">
-            <label for="employeeId">工号</label>
-            <input type="text" id="employeeId" v-model="createUserForm.employeeId">
-          </div>
-           <div class="form-group">
-            <label for="departmentId">部门ID</label>
-            <input type="number" id="departmentId" v-model.number="createUserForm.departmentId">
-          </div>
-          <div class="form-group">
-            <label for="avatarUrl">头像URL</label>
-            <input type="text" id="avatarUrl" v-model="createUserForm.avatarUrl">
-          </div>
-          <div class="form-group">
-            <label for="description">描述</label>
-            <textarea id="description" v-model="createUserForm.description"></textarea>
-          </div>
-          <div class="form-group">
-            <label>状态</label>
-            <div class="radio-group">
-              <label><input type="radio" v-model="createUserForm.status" value="active"> 激活</label>
-              <label><input type="radio" v-model="createUserForm.status" value="pending"> 待审核</label>
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="name">姓名</label>
+              <input type="text" id="name" v-model="createUserForm.name" required>
+            </div>
+            <div class="form-group">
+              <label for="email">邮箱</label>
+              <input type="email" id="email" v-model="createUserForm.email" required>
+            </div>
+            <div class="form-group">
+              <label for="password">密码</label>
+              <input type="password" id="password" v-model="createUserForm.password" required>
+            </div>
+            <div class="form-group">
+              <label for="phone">手机号</label>
+              <input type="text" id="phone" v-model="createUserForm.phone">
+            </div>
+            <div class="form-group">
+              <label for="position">职位</label>
+              <input type="text" id="position" v-model="createUserForm.position">
+            </div>
+            <div class="form-group">
+              <label for="employeeId">工号</label>
+              <input type="text" id="employeeId" v-model="createUserForm.employeeId">
+            </div>
+            <div class="form-group">
+              <label for="departmentId">部门ID</label>
+              <input type="number" id="departmentId" v-model.number="createUserForm.departmentId">
+            </div>
+            <div class="form-group">
+              <label for="avatarUrl">头像URL</label>
+              <input type="text" id="avatarUrl" v-model="createUserForm.avatarUrl">
+            </div>
+            <div class="form-group form-group--full-width">
+              <label for="description">描述</label>
+              <textarea id="description" v-model="createUserForm.description"></textarea>
+            </div>
+            <div class="form-group form-group--full-width">
+              <label>状态</label>
+              <div class="radio-group">
+                <label><input type="radio" v-model="createUserForm.status" value="active"> 激活</label>
+                <label><input type="radio" v-model="createUserForm.status" value="pending"> 待审核</label>
+              </div>
             </div>
           </div>
           <div class="modal-actions">
@@ -526,7 +528,7 @@ onMounted(() => {
   background-color: #fff;
   border-radius: 4px;
   padding: 24px;
-  width: 400px;
+  width: 600px; /* Increased width */
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
@@ -536,8 +538,18 @@ onMounted(() => {
   font-weight: 500;
 }
 
+.modal-form .form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 24px; /* row-gap column-gap */
+}
+
 .modal-form .form-group {
-  margin-bottom: 16px;
+  margin-bottom: 0; /* Remove margin as gap is used */
+}
+
+.modal-form .form-group--full-width {
+  grid-column: 1 / -1; /* Span across both columns */
 }
 
 .modal-form label {
@@ -565,6 +577,7 @@ onMounted(() => {
 .modal-form .radio-group {
   display: flex;
   gap: 16px;
+  align-items: center;
 }
 
 .modal-actions {
