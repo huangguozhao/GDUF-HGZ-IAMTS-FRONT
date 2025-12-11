@@ -132,8 +132,10 @@
             </div>
           </div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="closeCreateUserModal">取消</button>
-            <button type="submit" class="btn btn-primary">确定</button>
+            <button type="button" class="btn btn-secondary" @click="closeCreateUserModal" :disabled="isSubmitting">取消</button>
+            <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+              {{ isSubmitting ? '提交中...' : '确定' }}
+            </button>
           </div>
         </form>
       </div>
@@ -154,6 +156,7 @@ const pagination = reactive({
 const userList = ref([]);
 const loading = ref(false);
 const isCreateUserModalVisible = ref(false);
+const isSubmitting = ref(false);
 const createUserForm = reactive({
   name: '',
   email: '',
@@ -190,11 +193,13 @@ const closeCreateUserModal = () => {
 };
 
 const handleCreateUser = async () => {
+  if (!createUserForm.name || !createUserForm.email || !createUserForm.password) {
+    alert('姓名、邮箱和密码为必填项');
+    return;
+  }
+
+  isSubmitting.value = true;
   try {
-    if (!createUserForm.name || !createUserForm.email || !createUserForm.password) {
-      alert('姓名、邮箱和密码为必填项');
-      return;
-    }
     await createUser(createUserForm);
     alert('用户创建成功！');
     closeCreateUserModal();
@@ -202,6 +207,8 @@ const handleCreateUser = async () => {
   } catch (error) {
     console.error('创建用户失败:', error);
     alert('创建用户失败，请稍后重试');
+  } finally {
+    isSubmitting.value = false;
   }
 };
 
@@ -328,6 +335,12 @@ onMounted(() => {
   font-size: 14px;
   cursor: pointer;
   border: 1px solid #d9d9d9;
+  transition: opacity 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .btn-primary {
