@@ -190,7 +190,9 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeEditUserModal">取消</button>
-            <button type="submit" class="btn btn-primary">更新</button>
+            <button type="submit" class="btn btn-primary" :disabled="isUpdating">
+              {{ isUpdating ? '更新中...' : '更新' }}
+            </button>
           </div>
         </form>
       </div>
@@ -201,7 +203,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { getUserList, createUser } from '@/api/user';
+import { getUserList, createUser, updateUser } from '@/api/user';
 
 const searchKeyword = ref('');
 const pagination = reactive({
@@ -213,6 +215,7 @@ const userList = ref([]);
 const loading = ref(false);
 const isCreateUserModalVisible = ref(false);
 const isSubmitting = ref(false);
+const isUpdating = ref(false);
 const createUserForm = reactive({
   name: '',
   email: '',
@@ -286,8 +289,19 @@ const handleCreateUser = async () => {
 
 // Edit User Functions
 const openEditUserModal = (user) => {
-  // Note: We are mapping frontend role back to backend position for consistency
-  Object.assign(editUserForm, { ...user, position: user.role });
+  // Use backend position if available; fall back to displayed role text
+  Object.assign(editUserForm, {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    phone: user.phone,
+    avatarUrl: user.avatarUrl,
+    departmentId: user.departmentId,
+    employeeId: user.employeeId,
+    position: user.position ?? user.role,
+    description: user.description,
+    status: user.status,
+  });
   isEditUserModalVisible.value = true;
 };
 
@@ -295,10 +309,35 @@ const closeEditUserModal = () => {
   isEditUserModalVisible.value = false;
 };
 
-const handleUpdateUser = () => {
-  console.log('Updating user with data:', editUserForm);
-  // API call to update user will be implemented later
-  closeEditUserModal();
+const handleUpdateUser = async () => {
+  if (!editUserForm.name || !editUserForm.email) {
+    alert('姓名和邮箱为必填项');
+    return;
+  }
+
+  isUpdating.value = true;
+  try {
+    await updateUser(editUserForm.id, {
+      name: editUserForm.name,
+      email: editUserForm.email,
+      phone: editUserForm.phone,
+      avatarUrl: editUserForm.avatarUrl,
+      departmentId: editUserForm.departmentId,
+      employeeId: editUserForm.employeeId,
+      position: editUserForm.position,
+      description: editUserForm.description,
+      status: editUserForm.status,
+      roleIds: [], // placeholder; UI暂未支持选择角色
+    });
+    alert('用户信息更新成功！');
+    closeEditUserModal();
+    await fetchUsers();
+  } catch (error) {
+    console.error('更新用户失败:', error);
+    alert('更新用户失败，请稍后重试');
+  } finally {
+    isUpdating.value = false;
+  }
 };
 
 

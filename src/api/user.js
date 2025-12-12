@@ -27,3 +27,16 @@ export function createUser(data) {
     data,
   });
 }
+
+/**
+ * 更新用户信息
+ * @param {number} userId - 用户ID
+ * @param {object} data - 用户数据
+ */
+export function updateUser(userId, data) {
+  return request({
+    url: `/users/${userId}`,
+    method: 'put',
+    data,
+  });
+}
