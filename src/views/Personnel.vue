@@ -349,10 +349,10 @@ const handleUpdateUser = async () => {
 const getNextStatus = (currentStatus) => {
   if (!currentStatus) return 'active';
   const lower = currentStatus.toLowerCase();
-  if (lower.includes('active') || lower.includes('激活') || lower.includes('活跃')) {
-    return 'disabled';
-  }
-  // pending 或 disabled 统一切回 active
+  if (lower.includes('active')) return 'inactive';
+  if (lower.includes('inactive')) return 'active';
+  // pending 切换为 active
+  if (lower.includes('pending')) return 'active';
   return 'active';
 };
 
@@ -421,13 +421,13 @@ const getInitials = (name) => {
 const getStatusClass = (status) => {
   if (!status) return 'status-tag--default';
   const lowerCaseStatus = status.toLowerCase();
-  if (lowerCaseStatus.includes('disable') || lowerCaseStatus.includes('禁用')) {
+  if (lowerCaseStatus.includes('inactive')) {
     return 'status-tag--disabled';
   }
-  if (lowerCaseStatus.includes('active') || lowerCaseStatus.includes('激活') || lowerCaseStatus.includes('活跃')) {
+  if (lowerCaseStatus.includes('active')) {
     return 'status-tag--active';
   }
-  if (lowerCaseStatus.includes('pending') || lowerCaseStatus.includes('待')) {
+  if (lowerCaseStatus.includes('pending')) {
     return 'status-tag--pending';
   }
   return 'status-tag--default';
