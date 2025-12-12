@@ -347,12 +347,12 @@ const handleUpdateUser = async () => {
 };
 
 const getNextStatus = (currentStatus) => {
+  // 循环切换：active -> pending -> inactive -> active
   if (!currentStatus) return 'active';
   const lower = currentStatus.toLowerCase();
-  if (lower.includes('active')) return 'inactive';
+  if (lower.includes('active')) return 'pending';
+  if (lower.includes('pending')) return 'inactive';
   if (lower.includes('inactive')) return 'active';
-  // pending 切换为 active
-  if (lower.includes('pending')) return 'active';
   return 'active';
 };
 
