@@ -40,3 +40,16 @@ export function updateUser(userId, data) {
     data,
   });
 }
+
+/**
+ * 更新用户状态
+ * @param {number} userId - 用户ID
+ * @param {object} data - 状态数据 { status }
+ */
+export function updateUserStatus(userId, data) {
+  return request({
+    url: `/users/${userId}/status`,
+    method: 'put',
+    data,
+  });
+}

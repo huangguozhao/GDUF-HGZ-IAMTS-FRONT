@@ -208,7 +208,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { getUserList, createUser, updateUser } from '@/api/user';
+import { getUserList, createUser, updateUser, updateUserStatus } from '@/api/user';
 
 const searchKeyword = ref('');
 const pagination = reactive({
@@ -361,7 +361,7 @@ const handleToggleStatus = async (user) => {
   const nextStatus = getNextStatus(user.status);
   statusChangingIds.value.add(user.id);
   try {
-    await updateUser(user.id, { status: nextStatus });
+    await updateUserStatus(user.id, { status: nextStatus });
     user.status = nextStatus; // 本地同步，避免全量刷新
   } catch (error) {
     console.error('更新用户状态失败:', error);
