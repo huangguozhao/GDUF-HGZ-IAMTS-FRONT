@@ -53,7 +53,12 @@
                   <button class="action-btn" title="编辑" @click="openEditUserModal(user)">
                     <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32zm-622.3-84c2 0 4-.2 6-.5L431 712.3l109.9 110c2.6 2.6 6 4 9.5 4s6.9-1.3 9.5-4l45.2-45.2a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-18.4 18.4-93-93.1 18.4-18.4a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-45.2 45.2a13.2 13.2 0 0 0-4 9.5c0 3.5 1.3 6.9 4 9.5L381.2 752l-167.5-39.4c-3.6-.9-7.3.4-9.8 3.4L159 759.3a13.2 13.2 0 0 0-3.3 10.3c.1 3.9 2.1 7.5 5.2 9.8l45.1 33.1c2.1 1.5 4.7 2.3 7.3 2.3zM764.4 251.9l-252.1 252.1a13.2 13.2 0 0 0-3.7 9.4l-6.4 86.8c-.9 12.2 8.5 22.4 20.6 21.5l86.8-6.4a13.2 13.2 0 0 0 9.4-3.7l252.1-252.1c4.6-4.6 4.6-12.1 0-16.8l-69.8-69.8c-4.6-4.6-12.1-4.6-16.8 0z"></path></svg>
                   </button>
-                  <button class="action-btn" title="更改状态">
+                  <button
+                    class="action-btn"
+                    :title="statusChangingIds.has(user.id) ? '状态更新中' : '更改状态'"
+                    @click="handleToggleStatus(user)"
+                    :disabled="statusChangingIds.has(user.id)"
+                  >
                      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.8 536.3-203-203a30.1 30.1 0 0 0-42.5 42.5l224.2 224.2a30.1 30.1 0 0 0 42.5 0l424.2-424.2a30.1 30.1 0 1 0-42.5-42.5L456.2 600.3z"></path></svg>
                   </button>
                   <button class="action-btn" title="删除">
@@ -216,6 +221,7 @@ const loading = ref(false);
 const isCreateUserModalVisible = ref(false);
 const isSubmitting = ref(false);
 const isUpdating = ref(false);
+const statusChangingIds = ref(new Set());
 const createUserForm = reactive({
   name: '',
   email: '',
@@ -337,6 +343,31 @@ const handleUpdateUser = async () => {
     alert('更新用户失败，请稍后重试');
   } finally {
     isUpdating.value = false;
+  }
+};
+
+const getNextStatus = (currentStatus) => {
+  if (!currentStatus) return 'active';
+  const lower = currentStatus.toLowerCase();
+  if (lower.includes('active') || lower.includes('激活') || lower.includes('活跃')) {
+    return 'disabled';
+  }
+  // pending 或 disabled 统一切回 active
+  return 'active';
+};
+
+const handleToggleStatus = async (user) => {
+  if (!user?.id || statusChangingIds.value.has(user.id)) return;
+  const nextStatus = getNextStatus(user.status);
+  statusChangingIds.value.add(user.id);
+  try {
+    await updateUser(user.id, { status: nextStatus });
+    user.status = nextStatus; // 本地同步，避免全量刷新
+  } catch (error) {
+    console.error('更新用户状态失败:', error);
+    alert('更新用户状态失败，请稍后重试');
+  } finally {
+    statusChangingIds.value.delete(user.id);
   }
 };
 
