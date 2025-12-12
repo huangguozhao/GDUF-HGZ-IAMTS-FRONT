@@ -50,7 +50,7 @@
               <td>{{ user.createTime }}</td>
               <td>
                 <div class="action-buttons">
-                  <button class="action-btn" title="编辑">
+                  <button class="action-btn" title="编辑" @click="openEditUserModal(user)">
                     <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32zm-622.3-84c2 0 4-.2 6-.5L431 712.3l109.9 110c2.6 2.6 6 4 9.5 4s6.9-1.3 9.5-4l45.2-45.2a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-18.4 18.4-93-93.1 18.4-18.4a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-45.2 45.2a13.2 13.2 0 0 0-4 9.5c0 3.5 1.3 6.9 4 9.5L381.2 752l-167.5-39.4c-3.6-.9-7.3.4-9.8 3.4L159 759.3a13.2 13.2 0 0 0-3.3 10.3c.1 3.9 2.1 7.5 5.2 9.8l45.1 33.1c2.1 1.5 4.7 2.3 7.3 2.3zM764.4 251.9l-252.1 252.1a13.2 13.2 0 0 0-3.7 9.4l-6.4 86.8c-.9 12.2 8.5 22.4 20.6 21.5l86.8-6.4a13.2 13.2 0 0 0 9.4-3.7l252.1-252.1c4.6-4.6 4.6-12.1 0-16.8l-69.8-69.8c-4.6-4.6-12.1-4.6-16.8 0z"></path></svg>
                   </button>
                   <button class="action-btn" title="更改状态">
@@ -140,6 +140,62 @@
         </form>
       </div>
     </div>
+
+    <!-- Edit User Modal -->
+    <div v-if="isEditUserModalVisible" class="modal-overlay" @click.self="closeEditUserModal">
+      <div class="modal-panel">
+        <h3 class="modal-title">编辑用户</h3>
+        <form class="modal-form" @submit.prevent="handleUpdateUser">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="edit-name">姓名</label>
+              <input type="text" id="edit-name" v-model="editUserForm.name" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-email">邮箱</label>
+              <input type="email" id="edit-email" v-model="editUserForm.email" required>
+            </div>
+            <div class="form-group">
+              <label for="edit-phone">手机号</label>
+              <input type="text" id="edit-phone" v-model="editUserForm.phone">
+            </div>
+            <div class="form-group">
+              <label for="edit-position">职位</label>
+              <input type="text" id="edit-position" v-model="editUserForm.position">
+            </div>
+            <div class="form-group">
+              <label for="edit-employeeId">工号</label>
+              <input type="text" id="edit-employeeId" v-model="editUserForm.employeeId">
+            </div>
+            <div class="form-group">
+              <label for="edit-departmentId">部门ID</label>
+              <input type="number" id="edit-departmentId" v-model.number="editUserForm.departmentId">
+            </div>
+            <div class="form-group form-group--full-width">
+              <label for="edit-avatarUrl">头像URL</label>
+              <input type="text" id="edit-avatarUrl" v-model="editUserForm.avatarUrl">
+            </div>
+            <div class="form-group form-group--full-width">
+              <label for="edit-description">描述</label>
+              <textarea id="edit-description" v-model="editUserForm.description"></textarea>
+            </div>
+            <div class="form-group form-group--full-width">
+              <label>状态</label>
+              <div class="radio-group">
+                <label><input type="radio" v-model="editUserForm.status" value="active"> 激活</label>
+                <label><input type="radio" v-model="editUserForm.status" value="pending"> 待审核</label>
+                <label><input type="radio" v-model="editUserForm.status" value="disabled"> 禁用</label>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="closeEditUserModal">取消</button>
+            <button type="submit" class="btn btn-primary">更新</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -170,8 +226,24 @@ const createUserForm = reactive({
   status: 'active',
 });
 
+// Edit User Modal State
+const isEditUserModalVisible = ref(false);
+const editUserForm = reactive({
+  id: null,
+  name: '',
+  email: '',
+  phone: '',
+  avatarUrl: '',
+  departmentId: null,
+  employeeId: '',
+  position: '',
+  description: '',
+  status: '',
+});
+
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize));
 
+// Create User Functions
 const openCreateUserModal = () => {
   Object.assign(createUserForm, {
     name: '',
@@ -212,6 +284,24 @@ const handleCreateUser = async () => {
   }
 };
 
+// Edit User Functions
+const openEditUserModal = (user) => {
+  // Note: We are mapping frontend role back to backend position for consistency
+  Object.assign(editUserForm, { ...user, position: user.role });
+  isEditUserModalVisible.value = true;
+};
+
+const closeEditUserModal = () => {
+  isEditUserModalVisible.value = false;
+};
+
+const handleUpdateUser = () => {
+  console.log('Updating user with data:', editUserForm);
+  // API call to update user will be implemented later
+  closeEditUserModal();
+};
+
+
 const fetchUsers = async () => {
   loading.value = true;
   try {
@@ -227,10 +317,17 @@ const fetchUsers = async () => {
         name: user.name,
         email: user.email,
         avatar: user.avatarUrl,
-        role: user.position || '暂无角色',
+        role: user.position || '暂无角色', // Frontend display role
         status: user.status,
         createTime: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
         avatarError: false,
+        // Keep all original backend fields for editing
+        phone: user.phone,
+        avatarUrl: user.avatarUrl,
+        departmentId: user.departmentId,
+        employeeId: user.employeeId,
+        position: user.position,
+        description: user.description,
       }));
       pagination.total = response.data.total || 0;
     } else {
@@ -252,6 +349,7 @@ const getInitials = (name) => {
 };
 
 const getStatusClass = (status) => {
+  if (!status) return 'status-tag--default';
   const lowerCaseStatus = status.toLowerCase();
   if (lowerCaseStatus.includes('disable') || lowerCaseStatus.includes('禁用')) {
     return 'status-tag--disabled';
