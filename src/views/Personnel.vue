@@ -144,7 +144,7 @@
           </div>
         </form>
       </div>
-    </div>
+                </div>
 
     <!-- Edit User Modal -->
     <div v-if="isEditUserModalVisible" class="modal-overlay" @click.self="closeEditUserModal">
@@ -200,9 +200,13 @@
             </button>
           </div>
         </form>
-      </div>
-    </div>
+        </div>
+        </div>
 
+    <!-- Toast -->
+    <div v-if="toast.visible" class="toast">
+      {{ toast.message }}
+        </div>
   </div>
 </template>
 
@@ -222,6 +226,10 @@ const isCreateUserModalVisible = ref(false);
 const isSubmitting = ref(false);
 const isUpdating = ref(false);
 const statusChangingIds = ref(new Set());
+const toast = reactive({
+  visible: false,
+  message: '',
+});
 const createUserForm = reactive({
   name: '',
   email: '',
@@ -363,12 +371,21 @@ const handleToggleStatus = async (user) => {
   try {
     await updateUserStatus(user.id, { status: nextStatus });
     user.status = nextStatus; // 本地同步，避免全量刷新
+    showToast('状态更新成功');
   } catch (error) {
     console.error('更新用户状态失败:', error);
-    alert('更新用户状态失败，请稍后重试');
+    showToast('状态更新失败，请稍后重试');
   } finally {
     statusChangingIds.value.delete(user.id);
   }
+};
+
+const showToast = (message, duration = 2000) => {
+  toast.message = message;
+  toast.visible = true;
+  setTimeout(() => {
+    toast.visible = false;
+  }, duration);
 };
 
 
@@ -442,7 +459,7 @@ const handlePageChange = (page) => {
   if (page > 0 && page <= totalPages.value) {
     pagination.currentPage = page;
     fetchUsers();
-  }
+}
 };
 
 onMounted(() => {
@@ -766,5 +783,18 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 12px;
   margin-top: 24px;
+}
+
+.toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  z-index: 1100;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
 }
 </style>
