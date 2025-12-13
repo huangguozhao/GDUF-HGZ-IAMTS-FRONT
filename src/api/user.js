@@ -53,3 +53,14 @@ export function updateUserStatus(userId, data) {
     data,
   });
 }
+
+/**
+ * 删除用户
+ * @param {number} userId - 用户ID
+ */
+export function deleteUser(userId) {
+  return request({
+    url: `/users/${userId}`,
+    method: 'delete',
+  });
+}

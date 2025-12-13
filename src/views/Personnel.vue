@@ -61,8 +61,13 @@
                   >
                      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.8 536.3-203-203a30.1 30.1 0 0 0-42.5 42.5l224.2 224.2a30.1 30.1 0 0 0 42.5 0l424.2-424.2a30.1 30.1 0 1 0-42.5-42.5L456.2 600.3z"></path></svg>
                   </button>
-                  <button class="action-btn" title="删除">
-                    <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v-32h-8c-4.4 0-8 3.6-8 8v8H376v-8c0-4.4-3.6-8-8-8h-8v32zM464 288h112c4.4 0 8-3.6 8-8v-48H456v48c0 4.4 3.6 8 8 8zm328 0h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4-3.6 8-8 8h-8zm-472-48H112v48c0 4.4 3.6 8 8 8h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8 8 8zm184 560h256c4.4 0 8-3.6 8-8V448H448v400c0 4.4 3.6 8 8 8zm-112-400v400c0 4.4 3.6 8 8 8h80V448H336zm496-400H192c-17.7 0-32 14.3-32 32v64h736v-64c0-17.7-14.3-32-32-32z"></path></svg>
+                  <button 
+                    class="action-btn" 
+                    :title="deletingIds.has(user.id) ? '删除中...' : '删除'"
+                    @click="handleDeleteUser(user)"
+                    :disabled="deletingIds.has(user.id)"
+                  >
+                    <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v-32h-8c-4.4 0-8 3.6-8 8v8H376v-8c0-4.4-3.6-8-8-8h-8v32zM464 288h112c4.4 0 8-3.6 8-8v-48H456v48c0 4.4 3.6 8 8 8zm328 0h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8-8 8h-8zm-472-48H112v48c0 4.4 3.6 8 8 8h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8 8 8zm184 560h256c4.4 0 8-3.6 8-8V448H448v400c0 4.4 3.6 8 8 8zm-112-400v400c0 4.4 3.6 8 8 8h80V448H336zm496-400H192c-17.7 0-32 14.3-32 32v64h736v-64c0-17.7-14.3-32-32-32z"></path></svg>
                   </button>
                 </div>
               </td>
@@ -212,7 +217,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
-import { getUserList, createUser, updateUser, updateUserStatus } from '@/api/user';
+import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 
 const searchKeyword = ref('');
 const pagination = reactive({
@@ -226,6 +231,7 @@ const isCreateUserModalVisible = ref(false);
 const isSubmitting = ref(false);
 const isUpdating = ref(false);
 const statusChangingIds = ref(new Set());
+const deletingIds = ref(new Set());
 const toast = reactive({
   visible: false,
   message: '',
@@ -386,6 +392,31 @@ const showToast = (message, duration = 2000) => {
   setTimeout(() => {
     toast.visible = false;
   }, duration);
+};
+
+const handleDeleteUser = async (user) => {
+  if (!user?.id || deletingIds.value.has(user.id)) return;
+  
+  // 确认删除
+  if (!confirm(`确定要删除用户 "${user.name}" 吗？此操作不可恢复。`)) {
+    return;
+  }
+  
+  deletingIds.value.add(user.id);
+  try {
+    await deleteUser(user.id);
+    showToast('用户删除成功');
+    // 如果当前页删除后没有数据了，且不是第一页，则跳转到上一页
+    if (userList.value.length === 1 && pagination.currentPage > 1) {
+      pagination.currentPage--;
+    }
+    await fetchUsers();
+  } catch (error) {
+    console.error('删除用户失败:', error);
+    showToast('删除用户失败，请稍后重试');
+  } finally {
+    deletingIds.value.delete(user.id);
+  }
 };
 
 
@@ -664,8 +695,13 @@ onMounted(() => {
   height: 16px;
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled) {
   color: #1890ff;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .loading-placeholder {
