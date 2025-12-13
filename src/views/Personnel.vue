@@ -4,7 +4,7 @@
       <div class="tabs">
         <button class="tab-button active">用户管理</button>
         <button class="tab-button">项目分配</button>
-      </div>
+    </div>
 
       <div class="toolbar">
         <button class="btn btn-primary" @click="openCreateUserModal">+ 创建新用户</button>
@@ -12,10 +12,10 @@
           <div class="search-input-wrapper">
             <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
             <input type="text" class="search-input" placeholder="搜索用户..." v-model="searchKeyword" @keyup.enter="handleSearch">
+            </div>
+          <button class="btn btn-filter" @click="openFilterModal">筛选条件</button>
           </div>
-          <button class="btn btn-filter">筛选条件</button>
-        </div>
-      </div>
+                </div>
 
       <div class="table-wrapper">
         <table class="user-table">
@@ -87,9 +87,9 @@
             @click="handlePageChange(page)" 
             :class="['pagination-btn', { active: page === pagination.currentPage }]">{{ page }}</button>
           <button class="pagination-btn" @click="handlePageChange(pagination.currentPage + 1)" :disabled="pagination.currentPage >= totalPages">下一页</button>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
     <!-- Create User Modal -->
     <div v-if="isCreateUserModalVisible" class="modal-overlay" @click.self="closeCreateUserModal">
@@ -100,11 +100,11 @@
             <div class="form-group">
               <label for="name">姓名</label>
               <input type="text" id="name" v-model="createUserForm.name" required>
-            </div>
+          </div>
             <div class="form-group">
               <label for="email">邮箱</label>
               <input type="email" id="email" v-model="createUserForm.email" required>
-            </div>
+        </div>
             <div class="form-group">
               <label for="password">密码</label>
               <input type="password" id="password" v-model="createUserForm.password" required>
@@ -208,6 +208,43 @@
         </div>
         </div>
 
+    <!-- Filter Modal -->
+    <div v-if="isFilterModalVisible" class="modal-overlay" @click.self="closeFilterModal">
+      <div class="modal-panel filter-modal">
+        <h3 class="modal-title">筛选条件</h3>
+        <form class="modal-form" @submit.prevent="handleApplyFilter">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="filter-status">状态</label>
+              <select id="filter-status" v-model="filterForm.status">
+                <option value="">全部</option>
+                <option value="active">激活</option>
+                <option value="pending">待审核</option>
+                <option value="inactive">禁用</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="filter-position">角色/职位</label>
+              <input type="text" id="filter-position" v-model="filterForm.position" placeholder="请输入角色/职位">
+            </div>
+            <div class="form-group">
+              <label for="filter-startDate">创建时间（开始）</label>
+              <input type="date" id="filter-startDate" v-model="filterForm.startDate">
+            </div>
+            <div class="form-group">
+              <label for="filter-endDate">创建时间（结束）</label>
+              <input type="date" id="filter-endDate" v-model="filterForm.endDate">
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="handleResetFilter">重置</button>
+            <button type="button" class="btn btn-secondary" @click="closeFilterModal">取消</button>
+            <button type="submit" class="btn btn-primary">确定</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Toast -->
     <div v-if="toast.visible" class="toast">
       {{ toast.message }}
@@ -264,14 +301,23 @@ const editUserForm = reactive({
   status: '',
 });
 
+// Filter Modal State
+const isFilterModalVisible = ref(false);
+const filterForm = reactive({
+  status: '',
+  position: '',
+  startDate: '',
+  endDate: '',
+});
+
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize));
 
 // Create User Functions
 const openCreateUserModal = () => {
   Object.assign(createUserForm, {
-    name: '',
-    email: '',
-    password: '',
+  name: '',
+  email: '',
+  password: '',
     phone: '',
     avatarUrl: '',
     departmentId: null,
@@ -426,8 +472,14 @@ const fetchUsers = async () => {
     const params = {
       page: pagination.currentPage,
       pageSize: pagination.pageSize,
-      name: searchKeyword.value,
+      name: searchKeyword.value || undefined,
+      status: filterForm.status || undefined,
+      position: filterForm.position || undefined,
+      startDate: filterForm.startDate || undefined,
+      endDate: filterForm.endDate || undefined,
     };
+    // Remove undefined values
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
     const response = await getUserList(params);
     if (response && response.data) {
       userList.value = response.data.items.map(user => ({
@@ -491,6 +543,30 @@ const handlePageChange = (page) => {
     pagination.currentPage = page;
     fetchUsers();
 }
+};
+
+// Filter Functions
+const openFilterModal = () => {
+  isFilterModalVisible.value = true;
+};
+
+const closeFilterModal = () => {
+  isFilterModalVisible.value = false;
+};
+
+const handleResetFilter = () => {
+  Object.assign(filterForm, {
+    status: '',
+    position: '',
+    startDate: '',
+    endDate: '',
+  });
+};
+
+const handleApplyFilter = () => {
+  pagination.currentPage = 1;
+  closeFilterModal();
+  fetchUsers();
 };
 
 onMounted(() => {
@@ -806,6 +882,21 @@ onMounted(() => {
 .modal-form textarea {
   resize: vertical;
   min-height: 60px;
+}
+
+.modal-form select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background-color: #fff;
+  cursor: pointer;
+}
+
+.filter-modal {
+  width: 500px;
 }
 
 .modal-form .radio-group {
