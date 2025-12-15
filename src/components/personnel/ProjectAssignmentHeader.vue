@@ -1,7 +1,7 @@
 <template>
   <div class="assignment-header">
     <div class="header-left">
-      <h2 class="header-title">用户认证服务</h2>
+      <h2 class="header-title">{{ title }}</h2>
       <p class="header-subtitle">{{ memberCount }}名团队成员</p>
     </div>
     <button class="btn-add-member" @click="handleAddMember">
@@ -15,6 +15,7 @@
 
 <script setup>
 const props = defineProps({
+  title: { type: String, default: '' },
   memberCount: {
     type: Number,
     default: 0,

@@ -1,7 +1,7 @@
 <template>
   <div class="pagination-wrapper">
     <div class="pagination-info">
-      显示 1-{{ itemsPerPage }} 条，共 {{ total }} 条
+      显示 {{ rangeStart }}-{{ rangeEnd }} 条，共 {{ total }} 条
     </div>
     <div class="pagination-controls">
       <button 
@@ -11,17 +11,7 @@
       >
         上一页
       </button>
-      <div class="page-numbers">
-        <button 
-          v-for="page in visiblePages" 
-          :key="page"
-          class="page-number"
-          :class="{ active: page === currentPage }"
-          @click="goToPage(page)"
-        >
-          {{ page }}
-        </button>
-      </div>
+      <div class="page-number current">{{ currentPage }}</div>
       <button 
         class="page-btn next-btn" 
         @click="goToNextPage"

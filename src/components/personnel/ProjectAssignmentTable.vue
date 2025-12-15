@@ -79,7 +79,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['role-change', 'delete']);
+const emit = defineEmits(['role-change', 'remove-member']);
 
 const isRoleChanging = (userId) => {
   return props.roleChangingIds.has(userId);
@@ -97,7 +97,7 @@ const handleRoleChange = (user, event) => {
 };
 
 const handleDelete = (user) => {
-  emit('delete', user);
+  emit('remove-member', user);
 };
 </script>
 

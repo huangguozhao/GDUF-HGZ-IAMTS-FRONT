@@ -18,18 +18,12 @@
         </button>
       </div>
 
-      <div class="toolbar" :class="{ 'toolbar-projects': activeTab === 'projects' }">
-        <div v-if="activeTab === 'users'" class="toolbar-left">
+      <div v-if="activeTab === 'users'" class="toolbar">
+        <div class="toolbar-left">
           <button class="btn btn-primary" @click="openCreateUserModal">+ 创建新用户</button>
         </div>
-        <div v-else class="toolbar-left">
-          <div class="search-input-wrapper">
-            <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
-            <input type="text" class="search-input" placeholder="搜索项目..." v-model="searchKeyword" @keyup.enter="handleSearch">
-          </div>
-        </div>
         <div class="toolbar-right">
-          <div v-if="activeTab === 'users'" class="search-input-wrapper">
+          <div class="search-input-wrapper">
             <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
             <input type="text" class="search-input" placeholder="搜索用户..." v-model="searchKeyword" @keyup.enter="handleSearch">
           </div>
@@ -55,11 +49,9 @@
         :userList="userList"
         :loading="loading"
         :pagination="pagination"
-        :assignmentLoadingIds="assignmentLoadingIds"
-        @open-assign-modal="openAssignModal"
-        @page-change="handlePageChange"
+        :projectOptions="projectOptions"
         @role-change="handleRoleChange"
-        @delete="handleDeleteUser"
+        @remove-member="handleRemoveMember"
       />
     </div>
 
@@ -404,6 +396,28 @@ const handleRoleChange = async (user, newRole) => {
     console.error('更新用户角色失败:', error);
     user.role = oldRole;
     showToast('角色更新失败');
+  }
+};
+
+const handleRemoveMember = async ({ user, projectId }) => {
+  if (!user?.id || !projectId) return;
+  const prev = Array.isArray(user.assignedProjectIds) ? [...user.assignedProjectIds] : [];
+  const next = prev.filter(id => id !== projectId);
+  assignmentLoadingIds.value.add(user.id);
+  // 乐观更新
+  user.assignedProjectIds = next;
+  user.assignedProjects = next.map(id => projectOptions.value.find(p => p.id === id)?.name).filter(Boolean);
+  try {
+    await updateUserProjects(user.id, next);
+    showToast('已从项目移除该成员');
+  } catch (e) {
+    // 回滚
+    user.assignedProjectIds = prev;
+    user.assignedProjects = prev.map(id => projectOptions.value.find(p => p.id === id)?.name).filter(Boolean);
+    console.error('从项目移除成员失败:', e);
+    showToast('移除失败');
+  } finally {
+    assignmentLoadingIds.value.delete(user.id);
   }
 };
 
