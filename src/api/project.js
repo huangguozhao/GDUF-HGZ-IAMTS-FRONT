@@ -232,3 +232,70 @@ export function deleteApi(apiId) {
   })
 }
 
+// ========== 项目成员相关 API ==========
+
+/**
+ * 获取项目成员列表
+ * @param {number} projectId - 项目ID
+ * @param {object} params - 查询参数
+ * @param {number} [params.page=1] - 页码
+ * @param {number} [params.pageSize=10] - 每页数量
+ */
+export function getProjectMembers(projectId, params = {}) {
+  return request({
+    url: `/projects/${projectId}/members`,
+    method: 'get',
+    params: {
+      page: params.page || 1,
+      pageSize: params.pageSize || 10
+    }
+  })
+}
+
+/**
+ * 添加项目成员
+ * @param {number} projectId - 项目ID
+ * @param {object} data - 成员数据
+ * @param {number} data.userId - 用户ID
+ * @param {string} data.role - 角色
+ */
+export function addProjectMember(projectId, data) {
+  return request({
+    url: `/projects/${projectId}/members`,
+    method: 'post',
+    data: {
+      userId: data.userId,
+      role: data.role
+    }
+  })
+}
+
+/**
+ * 更新项目成员角色
+ * @param {number} projectId - 项目ID
+ * @param {number} userId - 用户ID
+ * @param {object} data - 更新数据
+ * @param {string} data.role - 新角色
+ */
+export function updateProjectMemberRole(projectId, userId, data) {
+  return request({
+    url: `/projects/${projectId}/members/${userId}`,
+    method: 'put',
+    data: {
+      role: data.role
+    }
+  })
+}
+
+/**
+ * 删除项目成员
+ * @param {number} projectId - 项目ID
+ * @param {number} userId - 用户ID
+ */
+export function removeProjectMember(projectId, userId) {
+  return request({
+    url: `/projects/${projectId}/members/${userId}`,
+    method: 'delete'
+  })
+}
+

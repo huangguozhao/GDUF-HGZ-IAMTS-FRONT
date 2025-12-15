@@ -2,8 +2,21 @@
   <div class="personnel-page">
     <div class="personnel-content">
       <div class="tabs">
-        <button class="tab-button active">用户管理</button>
-        <button class="tab-button">项目分配</button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'users' }" 
+          @click="switchTab('users')"
+        >
+          用户管理
+        </button>
+        <button 
+          class="tab-button" 
+          :class="{ active: activeTab === 'projects' }" 
+          @click="switchTab('projects')"
+        >
+          项目分配
+        </button>
+      </div>
     </div>
 
       <div class="toolbar">
@@ -17,79 +30,187 @@
           </div>
                 </div>
 
-      <div class="table-wrapper">
-        <table class="user-table">
-          <thead>
-            <tr>
-              <th>姓名</th>
-              <th>邮箱</th>
-              <th>角色</th>
-              <th>状态</th>
-              <th>创建时间</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody v-if="!loading">
-            <tr v-for="user in userList" :key="user.id">
-              <td>
-                <div class="user-cell">
-                  <div class="avatar-container">
-                    <img v-if="user.avatar && !user.avatarError" :src="user.avatar" @error="user.avatarError = true" class="user-avatar" alt="avatar">
-                    <div v-else class="user-avatar-fallback">
-                      {{ getInitials(user.name) }}
+      <div v-if="activeTab === 'users'" class="tab-pane">
+        <div class="table-wrapper">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody v-if="!loading">
+              <tr v-for="user in userList" :key="user.id">
+                <td>
+                  <div class="user-cell">
+                    <div class="avatar-container">
+                      <img v-if="user.avatar && !user.avatarError" :src="user.avatar" @error="user.avatarError = true" class="user-avatar" alt="avatar">
+                      <div v-else class="user-avatar-fallback">
+                        {{ getInitials(user.name) }}
+                      </div>
                     </div>
+                    <span>{{ user.name }}</span>
                   </div>
-                  <span>{{ user.name }}</span>
-                </div>
-              </td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.role }}</td>
-              <td>
-                <span :class="['status-tag', getStatusClass(user.status)]">{{ user.status }}</span>
-              </td>
-              <td>{{ user.createTime }}</td>
-              <td>
-                <div class="action-buttons">
-                  <button class="action-btn" title="编辑" @click="openEditUserModal(user)">
-                    <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32zm-622.3-84c2 0 4-.2 6-.5L431 712.3l109.9 110c2.6 2.6 6 4 9.5 4s6.9-1.3 9.5-4l45.2-45.2a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-18.4 18.4-93-93.1 18.4-18.4a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-45.2 45.2a13.2 13.2 0 0 0-4 9.5c0 3.5 1.3 6.9 4 9.5L381.2 752l-167.5-39.4c-3.6-.9-7.3.4-9.8 3.4L159 759.3a13.2 13.2 0 0 0-3.3 10.3c.1 3.9 2.1 7.5 5.2 9.8l45.1 33.1c2.1 1.5 4.7 2.3 7.3 2.3zM764.4 251.9l-252.1 252.1a13.2 13.2 0 0 0-3.7 9.4l-6.4 86.8c-.9 12.2 8.5 22.4 20.6 21.5l86.8-6.4a13.2 13.2 0 0 0 9.4-3.7l252.1-252.1c4.6-4.6 4.6-12.1 0-16.8l-69.8-69.8c-4.6-4.6-12.1-4.6-16.8 0z"></path></svg>
-                  </button>
-                  <button
-                    class="action-btn"
-                    :title="statusChangingIds.has(user.id) ? '状态更新中' : '更改状态'"
-                    @click="handleToggleStatus(user)"
-                    :disabled="statusChangingIds.has(user.id)"
-                  >
-                     <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.8 536.3-203-203a30.1 30.1 0 0 0-42.5 42.5l224.2 224.2a30.1 30.1 0 0 0 42.5 0l424.2-424.2a30.1 30.1 0 1 0-42.5-42.5L456.2 600.3z"></path></svg>
-                  </button>
-                  <button 
-                    class="action-btn" 
-                    :title="deletingIds.has(user.id) ? '删除中...' : '删除'"
-                    @click="handleDeleteUser(user)"
-                    :disabled="deletingIds.has(user.id)"
-                  >
-                    <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v-32h-8c-4.4 0-8 3.6-8 8v8H376v-8c0-4.4-3.6-8-8-8h-8v32zM464 288h112c4.4 0 8-3.6 8-8v-48H456v48c0 4.4 3.6 8 8 8zm328 0h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8-8 8h-8zm-472-48H112v48c0 4.4 3.6 8 8 8h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8 8 8zm184 560h256c4.4 0 8-3.6 8-8V448H448v400c0 4.4 3.6 8 8 8zm-112-400v400c0 4.4 3.6 8 8 8h80V448H336zm496-400H192c-17.7 0-32 14.3-32 32v64h736v-64c0-17.7-14.3-32-32-32z"></path></svg>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-if="loading" class="loading-placeholder">正在加载...</div>
-      </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td>
+                  <span :class="['status-tag', getStatusClass(user.status)]">{{ user.status }}</span>
+                </td>
+                <td>{{ user.createTime }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="action-btn" title="编辑" @click="openEditUserModal(user)">
+                      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32zm-622.3-84c2 0 4-.2 6-.5L431 712.3l109.9 110c2.6 2.6 6 4 9.5 4s6.9-1.3 9.5-4l45.2-45.2a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-18.4 18.4-93-93.1 18.4-18.4a13.2 13.2 0 0 0 0-18.7l-25.9-25.9a13.2 13.2 0 0 0-18.7 0l-45.2 45.2a13.2 13.2 0 0 0-4 9.5c0 3.5 1.3 6.9 4 9.5L381.2 752l-167.5-39.4c-3.6-.9-7.3.4-9.8 3.4L159 759.3a13.2 13.2 0 0 0-3.3 10.3c.1 3.9 2.1 7.5 5.2 9.8l45.1 33.1c2.1 1.5 4.7 2.3 7.3 2.3zM764.4 251.9l-252.1 252.1a13.2 13.2 0 0 0-3.7 9.4l-6.4 86.8c-.9 12.2 8.5 22.4 20.6 21.5l86.8-6.4a13.2 13.2 0 0 0 9.4-3.7l252.1-252.1c4.6-4.6 4.6-12.1 0-16.8l-69.8-69.8c-4.6-4.6-12.1-4.6-16.8 0z"></path></svg>
+                    </button>
+                    <button
+                      class="action-btn"
+                      :title="statusChangingIds.has(user.id) ? '状态更新中' : '更改状态'"
+                      @click="handleToggleStatus(user)"
+                      :disabled="statusChangingIds.has(user.id)"
+                    >
+                       <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M512 64a448 448 0 1 1 0 896 448 448 0 0 1 0-896zm-55.8 536.3-203-203a30.1 30.1 0 0 0-42.5 42.5l224.2 224.2a30.1 30.1 0 0 0 42.5 0l424.2-424.2a30.1 30.1 0 1 0-42.5-42.5L456.2 600.3z"></path></svg>
+                    </button>
+                    <button 
+                      class="action-btn" 
+                      :title="deletingIds.has(user.id) ? '删除中...' : '删除'"
+                      @click="handleDeleteUser(user)"
+                      :disabled="deletingIds.has(user.id)"
+                    >
+                      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v-32h-8c-4.4 0-8 3.6-8 8v8H376v-8c0-4.4-3.6-8-8-8h-8v32zM464 288h112c4.4 0 8-3.6 8-8v-48H456v48c0 4.4 3.6 8 8 8zm328 0h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8-8 8h-8zm-472-48H112v48c0 4.4 3.6 8 8 8h-8c4.4 0 8-3.6 8-8v-48h104v48c0 4.4 3.6 8 8 8zm184 560h256c4.4 0 8-3.6 8-8V448H448v400c0 4.4 3.6 8 8 8zm-112-400v400c0 4.4 3.6 8 8 8h80V448H336zm496-400H192c-17.7 0-32 14.3-32 32v64h736v-64c0-17.7-14.3-32-32-32z"></path></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="loading" class="loading-placeholder">正在加载...</div>
+        </div>
 
-      <div class="pagination">
-        <span class="pagination-summary">显示 {{ (pagination.currentPage - 1) * pagination.pageSize + 1 }}-{{ Math.min(pagination.currentPage * pagination.pageSize, pagination.total) }} 条, 共 {{ pagination.total }} 条</span>
-        <div class="pagination-controls">
-          <button class="pagination-btn" @click="handlePageChange(pagination.currentPage - 1)" :disabled="pagination.currentPage <= 1">上一页</button>
-          <button 
-            v-for="page in totalPages" 
-            :key="page" 
-            @click="handlePageChange(page)" 
-            :class="['pagination-btn', { active: page === pagination.currentPage }]">{{ page }}</button>
-          <button class="pagination-btn" @click="handlePageChange(pagination.currentPage + 1)" :disabled="pagination.currentPage >= totalPages">下一页</button>
+        <div class="pagination">
+          <span class="pagination-summary">显示 {{ (pagination.currentPage - 1) * pagination.pageSize + 1 }}-{{ Math.min(pagination.currentPage * pagination.pageSize, pagination.total) }} 条, 共 {{ pagination.total }} 条</span>
+          <div class="pagination-controls">
+            <button class="pagination-btn" @click="handlePageChange(pagination.currentPage - 1)" :disabled="pagination.currentPage <= 1">上一页</button>
+            <button 
+              v-for="page in totalPages" 
+              :key="page" 
+              @click="handlePageChange(page)" 
+              :class="['pagination-btn', { active: page === pagination.currentPage }]">{{ page }}</button>
+            <button class="pagination-btn" @click="handlePageChange(pagination.currentPage + 1)" :disabled="pagination.currentPage >= totalPages">下一页</button>
+              </div>
             </div>
           </div>
+
+      <div v-else class="tab-pane project-assignment">
+        <div class="table-wrapper">
+          <table class="user-table">
+            <thead>
+              <tr>
+                <th>姓名</th>
+                <th>邮箱</th>
+                <th>角色</th>
+                <th>状态</th>
+                <th>已分配项目</th>
+                <th>创建时间</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody v-if="!loading">
+              <tr v-for="user in userList" :key="user.id">
+                <td>
+                  <div class="user-cell">
+                    <div class="avatar-container">
+                      <img v-if="user.avatar && !user.avatarError" :src="user.avatar" @error="user.avatarError = true" class="user-avatar" alt="avatar">
+                      <div v-else class="user-avatar-fallback">
+                        {{ getInitials(user.name) }}
+                      </div>
+                    </div>
+                    <span>{{ user.name }}</span>
+                  </div>
+                </td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td>
+                  <span :class="['status-tag', getStatusClass(user.status)]">{{ user.status }}</span>
+                </td>
+                <td>
+                  <div class="project-tags">
+                    <span 
+                      v-if="user.assignedProjects && user.assignedProjects.length"
+                      v-for="projectName in user.assignedProjects"
+                      :key="projectName"
+                      class="project-tag"
+                    >
+                      {{ projectName }}
+                    </span>
+                    <span v-else class="project-tag project-tag--empty">未分配</span>
+                  </div>
+                </td>
+                <td>{{ user.createTime }}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button 
+                      class="action-btn" 
+                      title="分配项目" 
+                      @click="openAssignModal(user)" 
+                      :disabled="assignmentLoadingIds.has(user.id)"
+                    >
+                      <svg viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M480 128h64v768h-64zM128 480h768v64H128z"></path></svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-if="loading" class="loading-placeholder">正在加载...</div>
         </div>
+
+        <div class="pagination">
+          <span class="pagination-summary">显示 {{ (pagination.currentPage - 1) * pagination.pageSize + 1 }}-{{ Math.min(pagination.currentPage * pagination.pageSize, pagination.total) }} 条, 共 {{ pagination.total }} 条</span>
+          <div class="pagination-controls">
+            <button class="pagination-btn" @click="handlePageChange(pagination.currentPage - 1)" :disabled="pagination.currentPage <= 1">上一页</button>
+            <button 
+              v-for="page in totalPages" 
+              :key="page" 
+              @click="handlePageChange(page)" 
+              :class="['pagination-btn', { active: page === pagination.currentPage }]">{{ page }}</button>
+            <button class="pagination-btn" @click="handlePageChange(pagination.currentPage + 1)" :disabled="pagination.currentPage >= totalPages">下一页</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- Assign Projects Modal -->
+    <div v-if="isAssignModalVisible" class="modal-overlay" @click.self="closeAssignModal">
+      <div class="modal-panel">
+        <h3 class="modal-title">项目分配 - {{ assignForm.userName }}</h3>
+        <div v-if="assignModalLoading" class="loading-placeholder">加载项目数据...</div>
+        <form v-else class="modal-form" @submit.prevent="handleAssignProjects">
+          <div class="form-grid">
+            <div class="form-group form-group--full-width">
+              <label>选择项目</label>
+              <div v-if="projectOptionsLoading" class="loading-placeholder">项目列表加载中...</div>
+              <div v-else class="project-checkbox-list">
+                <label v-for="project in projectOptions" :key="project.id" class="checkbox-item">
+                  <input type="checkbox" :value="project.id" v-model="assignForm.projectIds">
+                  <span>{{ project.name }}</span>
+                </label>
+                <div v-if="!projectOptions.length" class="empty-placeholder">暂无项目数据</div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="btn btn-secondary" @click="closeAssignModal" :disabled="assignModalSubmitting">取消</button>
+            <button type="submit" class="btn btn-primary" :disabled="assignModalSubmitting">
+              {{ assignModalSubmitting ? '保存中...' : '保存' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <!-- Create User Modal -->
     <div v-if="isCreateUserModalVisible" class="modal-overlay" @click.self="closeCreateUserModal">
@@ -255,8 +376,11 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
+import { getUserProjects, updateUserProjects } from '@/api/personnel';
+import { getProjects } from '@/api/project';
 
 const searchKeyword = ref('');
+const activeTab = ref('users');
 const pagination = reactive({
   currentPage: 1,
   pageSize: 6,
@@ -269,10 +393,13 @@ const isSubmitting = ref(false);
 const isUpdating = ref(false);
 const statusChangingIds = ref(new Set());
 const deletingIds = ref(new Set());
+const assignmentLoadingIds = ref(new Set());
 const toast = reactive({
   visible: false,
   message: '',
 });
+const projectOptions = ref([]);
+const projectOptionsLoading = ref(false);
 const createUserForm = reactive({
   name: '',
   email: '',
@@ -284,6 +411,14 @@ const createUserForm = reactive({
   position: '',
   description: '',
   status: 'active',
+});
+const isAssignModalVisible = ref(false);
+const assignModalLoading = ref(false);
+const assignModalSubmitting = ref(false);
+const assignForm = reactive({
+  userId: null,
+  userName: '',
+  projectIds: [],
 });
 
 // Edit User Modal State
@@ -311,6 +446,64 @@ const filterForm = reactive({
 });
 
 const totalPages = computed(() => Math.ceil(pagination.total / pagination.pageSize));
+
+const normalizeProjectList = (payload = []) => {
+  const source =
+    (payload && Array.isArray(payload.items) && payload.items) ||
+    (payload && Array.isArray(payload.data) && payload.data) ||
+    (Array.isArray(payload) ? payload : []);
+
+  return source
+    .map((item) => ({
+      id: item?.id ?? item?.projectId ?? item?.project_id,
+      name: item?.name ?? item?.projectName ?? item?.project_name ?? item?.code ?? '未命名项目',
+    }))
+    .filter((item) => item.id);
+};
+
+const fetchProjectOptions = async () => {
+  if (projectOptions.value.length || projectOptionsLoading.value) return;
+  projectOptionsLoading.value = true;
+  try {
+    const response = await getProjects({ page: 1, pageSize: 200 });
+    projectOptions.value = normalizeProjectList(response?.data);
+  } catch (error) {
+    console.error('获取项目列表失败:', error);
+    showToast('获取项目列表失败，请稍后重试');
+  } finally {
+    projectOptionsLoading.value = false;
+  }
+};
+
+const hydrateUserProjects = async (users) => {
+  if (!users || !users.length) return;
+  const tasks = users.map(async (user) => {
+    if (!user?.id) return;
+    assignmentLoadingIds.value.add(user.id);
+    try {
+      const response = await getUserProjects(user.id);
+      const projects = normalizeProjectList(response?.data);
+      user.assignedProjectIds = projects.map((item) => item.id);
+      user.assignedProjects = projects.map((item) => item.name).filter(Boolean);
+    } catch (error) {
+      console.error('获取用户项目失败:', error);
+    } finally {
+      assignmentLoadingIds.value.delete(user.id);
+    }
+  });
+  await Promise.all(tasks);
+};
+
+const switchTab = async (tab) => {
+  if (activeTab.value === tab) return;
+  activeTab.value = tab;
+  if (tab === 'projects') {
+    await fetchProjectOptions();
+    await fetchUsers({ withProjects: true });
+  } else {
+    await fetchUsers({ withProjects: false });
+  }
+};
 
 // Create User Functions
 const openCreateUserModal = () => {
@@ -466,7 +659,8 @@ const handleDeleteUser = async (user) => {
 };
 
 
-const fetchUsers = async () => {
+const fetchUsers = async (options = {}) => {
+  const withProjects = options.withProjects ?? activeTab.value === 'projects';
   loading.value = true;
   try {
     const params = {
@@ -481,28 +675,32 @@ const fetchUsers = async () => {
     // Remove undefined values
     Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
     const response = await getUserList(params);
-    if (response && response.data) {
-      userList.value = response.data.items.map(user => ({
-        id: user.userId,
-        name: user.name,
-        email: user.email,
-        avatar: user.avatarUrl,
-        role: user.position || '暂无角色', // Frontend display role
-        status: user.status,
-        createTime: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
-        avatarError: false,
-        // Keep all original backend fields for editing
-        phone: user.phone,
-        avatarUrl: user.avatarUrl,
-        departmentId: user.departmentId,
-        employeeId: user.employeeId,
-        position: user.position,
-        description: user.description,
-      }));
-      pagination.total = response.data.total || 0;
-    } else {
-      userList.value = [];
-      pagination.total = 0;
+    const list =
+      (response && response.data && response.data.items) ||
+      (response && Array.isArray(response.data) && response.data) ||
+      [];
+    userList.value = list.map(user => ({
+      id: user.userId,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatarUrl,
+      role: user.position || '暂无角色', // Frontend display role
+      status: user.status,
+      createTime: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '',
+      avatarError: false,
+      assignedProjectIds: [],
+      assignedProjects: [],
+      // Keep all original backend fields for editing
+      phone: user.phone,
+      avatarUrl: user.avatarUrl,
+      departmentId: user.departmentId,
+      employeeId: user.employeeId,
+      position: user.position,
+      description: user.description,
+    }));
+    pagination.total = (response && response.data && response.data.total) || 0;
+    if (withProjects) {
+      await hydrateUserProjects(userList.value);
     }
   } catch (error) {
     console.error('获取用户列表失败:', error);
@@ -510,6 +708,57 @@ const fetchUsers = async () => {
     pagination.total = 0;
   } finally {
     loading.value = false;
+  }
+};
+
+const openAssignModal = async (user) => {
+  if (!user?.id) return;
+  assignForm.userId = user.id;
+  assignForm.userName = user.name || '';
+  assignForm.projectIds = user.assignedProjectIds ? [...user.assignedProjectIds] : [];
+  isAssignModalVisible.value = true;
+  assignModalLoading.value = true;
+  try {
+    await fetchProjectOptions();
+    const response = await getUserProjects(user.id);
+    const projects = normalizeProjectList(response?.data);
+    assignForm.projectIds = projects.map((item) => item.id);
+    user.assignedProjectIds = [...assignForm.projectIds];
+    user.assignedProjects = projects.map((item) => item.name).filter(Boolean);
+  } catch (error) {
+    console.error('加载用户项目失败:', error);
+    showToast('加载用户项目失败，请稍后重试');
+  } finally {
+    assignModalLoading.value = false;
+  }
+};
+
+const closeAssignModal = () => {
+  isAssignModalVisible.value = false;
+  assignForm.userId = null;
+  assignForm.userName = '';
+  assignForm.projectIds = [];
+};
+
+const handleAssignProjects = async () => {
+  if (!assignForm.userId) return;
+  assignModalSubmitting.value = true;
+  try {
+    await updateUserProjects(assignForm.userId, assignForm.projectIds);
+    const target = userList.value.find((item) => item.id === assignForm.userId);
+    if (target) {
+      target.assignedProjectIds = [...assignForm.projectIds];
+      target.assignedProjects = assignForm.projectIds
+        .map((projectId) => projectOptions.value.find((p) => p.id === projectId)?.name)
+        .filter(Boolean);
+    }
+    showToast('项目分配更新成功');
+    closeAssignModal();
+  } catch (error) {
+    console.error('更新用户项目失败:', error);
+    showToast('更新用户项目失败，请稍后重试');
+  } finally {
+    assignModalSubmitting.value = false;
   }
 };
 
@@ -780,6 +1029,35 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
+.tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.project-tags {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.project-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background-color: #e6f7ff;
+  color: #1890ff;
+  border-radius: 12px;
+  border: 1px solid #91d5ff;
+  font-size: 12px;
+}
+
+.project-tag--empty {
+  background-color: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #8c8c8c;
+}
+
 .loading-placeholder {
   text-align: center;
   padding: 40px;
@@ -818,6 +1096,27 @@ onMounted(() => {
 .pagination-btn:disabled {
   color: #bfbfbf;
   cursor: not-allowed;
+}
+
+.project-checkbox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #262626;
+}
+
+.empty-placeholder {
+  color: #8c8c8c;
+  font-size: 14px;
 }
 
 /* Modal Styles */
