@@ -18,10 +18,18 @@
         </button>
       </div>
 
-      <div class="toolbar">
-        <button class="btn btn-primary" @click="openCreateUserModal">+ 创建新用户</button>
-        <div class="toolbar-right">
+      <div class="toolbar" :class="{ 'toolbar-projects': activeTab === 'projects' }">
+        <div v-if="activeTab === 'users'" class="toolbar-left">
+          <button class="btn btn-primary" @click="openCreateUserModal">+ 创建新用户</button>
+        </div>
+        <div v-else class="toolbar-left">
           <div class="search-input-wrapper">
+            <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
+            <input type="text" class="search-input" placeholder="搜索项目..." v-model="searchKeyword" @keyup.enter="handleSearch">
+          </div>
+        </div>
+        <div class="toolbar-right">
+          <div v-if="activeTab === 'users'" class="search-input-wrapper">
             <svg class="search-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M909.6 854.1 646.1 590.6a360.6 360.6 0 1 0-23.5 23.5l263.5 263.5a16.9 16.9 0 0 0 23.5 0l23.5-23.5a16.9 16.9 0 0 0 0-23.5zM413.5 755.1a320.6 320.6 0 1 1 0-641.2 320.6 320.6 0 0 1 0 641.2z"></path></svg>
             <input type="text" class="search-input" placeholder="搜索用户..." v-model="searchKeyword" @keyup.enter="handleSearch">
           </div>
@@ -50,6 +58,8 @@
         :assignmentLoadingIds="assignmentLoadingIds"
         @open-assign-modal="openAssignModal"
         @page-change="handlePageChange"
+        @role-change="handleRoleChange"
+        @delete="handleDeleteUser"
       />
     </div>
 
@@ -383,6 +393,20 @@ const handleDeleteUser = async (user) => {
   }
 };
 
+const handleRoleChange = async (user, newRole) => {
+  if (!user?.id) return;
+  const oldRole = user.role;
+  user.role = newRole;
+  try {
+    await updateUser(user.id, { position: newRole });
+    showToast('角色更新成功');
+  } catch (error) {
+    console.error('更新用户角色失败:', error);
+    user.role = oldRole;
+    showToast('角色更新失败');
+  }
+};
+
 onMounted(fetchUsers);
 </script>
 
@@ -393,7 +417,9 @@ onMounted(fetchUsers);
 .tab-button.active { color: #1890ff; border-bottom: 2px solid #1890ff; font-weight: 500; }
 .personnel-content { background-color: #fff; border-radius: 4px; padding: 24px; }
 .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+.toolbar-left { display: flex; align-items: center; gap: 16px; }
 .toolbar-right { display: flex; align-items: center; gap: 16px; }
+.toolbar-projects { margin-bottom: 0; }
 .btn { border-radius: 4px; padding: 8px 15px; font-size: 14px; cursor: pointer; border: 1px solid #d9d9d9; transition: opacity 0.2s; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-primary { background-color: #1890ff; color: #fff; border-color: #1890ff; }
