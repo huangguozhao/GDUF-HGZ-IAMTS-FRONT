@@ -133,14 +133,28 @@ export const updateUserPermissions = (id, permissions) => {
 }
 
 /**
- * 获取用户项目分配
- * @param {string} id - 用户ID
+ * 分页获取用户项目列表
+ * @param {string|number} id - 用户ID
+ * @param {Object} params - 查询参数
+ * @param {string} [params.status] - 成员状态 (active, inactive, removed)
+ * @param {string} [params.projectRole] - 项目角色 (owner, manager, developer, tester, viewer)
+ * @param {number} [params.page] - 页码
+ * @param {number} [params.pageSize] - 每页数量
  * @returns {Promise}
  */
-export const getUserProjects = (id) => {
+export const getUserProjects = (id, params = {}) => {
+  const { pageSize, projectRole, ...rest } = params || {};
+  // 后端参数为 page_size / project_role，这里做一次命名转换
+  const query = {
+    ...rest,
+    ...(typeof pageSize === 'number' ? { page_size: pageSize } : {}),
+    ...(projectRole ? { project_role: projectRole } : {}),
+  };
+
   return request({
     url: `/users/${id}/projects`,
-    method: 'get'
+    method: 'get',
+    params: query,
   })
 }
 

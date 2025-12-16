@@ -235,20 +235,50 @@ export function deleteApi(apiId) {
 // ========== 项目成员相关 API ==========
 
 /**
- * 获取项目成员列表
+ * 分页获取项目成员列表
+ * 对应后端 GET /projects/{projectId}/members 接口
+ *
  * @param {number} projectId - 项目ID
  * @param {object} params - 查询参数
+ * @param {string} [params.status] - 成员状态过滤
+ * @param {string} [params.permissionLevel] - 权限级别过滤
+ * @param {string} [params.projectRole] - 项目角色过滤
+ * @param {string} [params.searchKeyword] - 关键字搜索
+ * @param {string} [params.sortBy] - 排序字段
+ * @param {string} [params.sortOrder] - 排序顺序
  * @param {number} [params.page=1] - 页码
  * @param {number} [params.pageSize=10] - 每页数量
  */
 export function getProjectMembers(projectId, params = {}) {
+  const {
+    status,
+    permissionLevel,
+    projectRole,
+    searchKeyword,
+    sortBy,
+    sortOrder,
+    page = 1,
+    pageSize = 10,
+    ...rest
+  } = params || {};
+
+  // 将前端驼峰命名参数转换为后端下划线命名
+  const query = {
+    status,
+    permission_level: permissionLevel,
+    project_role: projectRole,
+    search_keyword: searchKeyword,
+    sort_by: sortBy,
+    sort_order: sortOrder,
+    page,
+    page_size: pageSize,
+    ...rest,
+  };
+
   return request({
     url: `/projects/${projectId}/members`,
     method: 'get',
-    params: {
-      page: params.page || 1,
-      pageSize: params.pageSize || 10
-    }
+    params: query,
   })
 }
 

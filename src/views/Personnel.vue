@@ -138,11 +138,25 @@ const assignModalSubmitting = ref(false);
 const filterForm = reactive({ status: '', position: '', startDate: '', endDate: '' });
 
 const normalizeProjectList = (payload = []) => {
+  // 兼容多种后端返回结构：
+  // - 纯数组
+  // - { items: [] }
+  // - { data: [] }
+  // - { list: [] } / { records: [] }
   const source =
     (payload && Array.isArray(payload.items) && payload.items) ||
+    (payload && Array.isArray(payload.list) && payload.list) ||
+    (payload && Array.isArray(payload.records) && payload.records) ||
     (payload && Array.isArray(payload.data) && payload.data) ||
     (Array.isArray(payload) ? payload : []);
-  return source.map(item => ({ id: item?.id ?? item?.projectId, name: item?.name ?? item?.projectName })).filter(item => item.id);
+
+  return source
+    .map(item => {
+      const projectId = item?.id ?? item?.projectId ?? item?.projectInfo?.projectId;
+      const projectName = item?.name ?? item?.projectName ?? item?.projectInfo?.name;
+      return { id: projectId, name: projectName };
+    })
+    .filter(item => item.id);
 };
 
 const fetchProjectOptions = async () => {
@@ -165,7 +179,7 @@ const hydrateUserProjects = async (users) => {
     if (!user?.id) return;
     assignmentLoadingIds.value.add(user.id);
     try {
-      const response = await getUserProjects(user.id);
+      const response = await getUserProjects(user.id, { page: 1, pageSize: 20 });
       const projects = normalizeProjectList(response?.data);
       user.assignedProjectIds = projects.map((item) => item.id);
       user.assignedProjects = projects.map((item) => item.name).filter(Boolean);
@@ -297,7 +311,7 @@ const openAssignModal = async (user) => {
   assignModalLoading.value = true;
   try {
     await fetchProjectOptions();
-    const response = await getUserProjects(user.id);
+    const response = await getUserProjects(user.id, { page: 1, pageSize: 20 });
     const projects = normalizeProjectList(response?.data);
     user.assignedProjectIds = projects.map((item) => item.id);
   } catch (error) {
