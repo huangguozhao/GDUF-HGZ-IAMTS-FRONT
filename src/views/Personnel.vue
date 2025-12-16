@@ -100,7 +100,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 import { getUserProjects, updateUserProjects } from '@/api/personnel';
-import { getProjects } from '@/api/project';
+// 任务分配区域暂时使用本地模拟项目数据，不从后端拉项目列表
 
 import UserManagementTab from '@/components/personnel/UserManagementTab.vue';
 import ProjectAssignmentTab from '@/components/personnel/ProjectAssignmentTab.vue';
@@ -120,7 +120,12 @@ const statusChangingIds = ref(new Set());
 const deletingIds = ref(new Set());
 const assignmentLoadingIds = ref(new Set());
 const toast = reactive({ visible: false, message: '' });
-const projectOptions = ref([]);
+// 项目列表：当前任务分配模块先使用本地死数据
+const projectOptions = ref([
+  { id: 1, name: 'Web 管理后台' },
+  { id: 2, name: '移动端 App' },
+  { id: 3, name: '接口自动化平台' },
+]);
 const projectOptionsLoading = ref(false);
 const currentUser = ref(null);
 
@@ -137,63 +142,7 @@ const assignModalSubmitting = ref(false);
 // Filter state
 const filterForm = reactive({ status: '', position: '', startDate: '', endDate: '' });
 
-const normalizeProjectList = (payload = []) => {
-  // 兼容多种后端返回结构：
-  // - 纯数组
-  // - { items: [] }
-  // - { data: [] }
-  // - { list: [] } / { records: [] }
-  const source =
-    (payload && Array.isArray(payload.items) && payload.items) ||
-    (payload && Array.isArray(payload.list) && payload.list) ||
-    (payload && Array.isArray(payload.records) && payload.records) ||
-    (payload && Array.isArray(payload.data) && payload.data) ||
-    (Array.isArray(payload) ? payload : []);
-
-  return source
-    .map(item => {
-      const projectId = item?.id ?? item?.projectId ?? item?.projectInfo?.projectId;
-      const projectName = item?.name ?? item?.projectName ?? item?.projectInfo?.name;
-      return { id: projectId, name: projectName };
-    })
-    .filter(item => item.id);
-};
-
-const fetchProjectOptions = async () => {
-  if (projectOptions.value.length || projectOptionsLoading.value) return;
-  projectOptionsLoading.value = true;
-  try {
-    const response = await getProjects({ page: 1, pageSize: 200 });
-    projectOptions.value = normalizeProjectList(response?.data);
-  } catch (error) {
-    console.error('获取项目列表失败:', error);
-    showToast('获取项目列表失败');
-  } finally {
-    projectOptionsLoading.value = false;
-  }
-};
-
-const hydrateUserProjects = async (users) => {
-  if (!users || !users.length) return;
-  const tasks = users.map(async (user) => {
-    if (!user?.id) return;
-    assignmentLoadingIds.value.add(user.id);
-    try {
-      const response = await getUserProjects(user.id, { page: 1, pageSize: 20 });
-      const projects = normalizeProjectList(response?.data);
-      user.assignedProjectIds = projects.map((item) => item.id);
-      user.assignedProjects = projects.map((item) => item.name).filter(Boolean);
-    } catch (error) {
-      console.error('获取用户项目失败:', error);
-    } finally {
-      assignmentLoadingIds.value.delete(user.id);
-    }
-  });
-  await Promise.all(tasks);
-};
-
 const fetchUsers = async () => {
-  const withProjects = activeTab.value === 'projects';
   loading.value = true;
   try {
     const params = {
@@ -224,9 +173,6 @@ const fetchUsers = async () => {
       description: user.description,
     }));
     pagination.total = response?.data?.total || 0;
-    if (withProjects) {
-      await hydrateUserProjects(userList.value);
-    }
   } catch (error) {
     console.error('获取用户列表失败:', error);
     userList.value = [];
@@ -240,9 +186,6 @@ const switchTab = async (tab) => {
   if (activeTab.value === tab) return;
   activeTab.value = tab;
   pagination.currentPage = 1;
-  if (tab === 'projects') {
-    await fetchProjectOptions();
-  }
   await fetchUsers();
 };
 
@@ -308,18 +251,8 @@ const handleUpdateUser = async (userId, userData) => {
 const openAssignModal = async (user) => {
   currentUser.value = user;
   isAssignModalVisible.value = true;
-  assignModalLoading.value = true;
-  try {
-    await fetchProjectOptions();
-    const response = await getUserProjects(user.id, { page: 1, pageSize: 20 });
-    const projects = normalizeProjectList(response?.data);
-    user.assignedProjectIds = projects.map((item) => item.id);
-  } catch (error) {
-    console.error('加载用户项目失败:', error);
-    showToast('加载用户项目失败');
-  } finally {
-    assignModalLoading.value = false;
-  }
+  // 当前阶段任务分配模块使用本地数据，不再从后端加载项目与用户项目关系
+  assignModalLoading.value = false;
 };
 const closeAssignModal = () => { isAssignModalVisible.value = false; currentUser.value = null; };
 const handleAssignProjects = async (projectIds) => {
