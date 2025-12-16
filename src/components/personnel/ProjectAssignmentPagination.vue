@@ -47,27 +47,13 @@ const totalPages = computed(() => {
   return Math.ceil(props.total / props.pageSize) || 1;
 });
 
-const itemsPerPage = computed(() => {
-  const start = (props.currentPage - 1) * props.pageSize + 1;
-  const end = Math.min(props.currentPage * props.pageSize, props.total);
-  return end - start + 1;
+const rangeStart = computed(() => {
+  if (props.total === 0) return 0;
+  return (props.currentPage - 1) * props.pageSize + 1;
 });
-
-const visiblePages = computed(() => {
-  const pages = [];
-  const maxVisible = 5;
-  let startPage = Math.max(1, props.currentPage - 2);
-  let endPage = Math.min(totalPages.value, startPage + maxVisible - 1);
-  
-  if (endPage - startPage < maxVisible - 1) {
-    startPage = Math.max(1, endPage - maxVisible + 1);
-  }
-  
-  for (let i = startPage; i <= endPage; i++) {
-    pages.push(i);
-  }
-  
-  return pages;
+const rangeEnd = computed(() => {
+  if (props.total === 0) return 0;
+  return Math.min(props.currentPage * props.pageSize, props.total);
 });
 
 const goToPreviousPage = () => {

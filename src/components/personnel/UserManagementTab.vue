@@ -23,8 +23,14 @@
           <tr v-for="user in userList" :key="user.id">
             <td>
               <div class="user-info">
-                <img v-if="user.avatar" :src="user.avatar" :alt="user.name" class="avatar" @error="user.avatarError = true" />
-                <div v-else class="avatar-placeholder">{{ user.name.charAt(0) }}</div>
+                <img 
+                  v-if="user.avatar && !user.avatarError" 
+                  :src="user.avatar" 
+                  :alt="user.name" 
+                  class="avatar" 
+                  @error="user.avatarError = true" 
+                />
+                <div v-else class="avatar-placeholder">{{ getNameInitials(user.name) }}</div>
                 <span>{{ user.name }}</span>
               </div>
             </td>
@@ -113,6 +119,30 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['edit', 'toggle-status', 'delete', 'page-change']);
+
+/**
+ * 获取用户名的简写
+ * - 中文名：取最后两个字符（不足两位则全取）
+ * - 含空格的英文名：取首尾单词首字母并转大写，如 "Li Ming" -> "LM"
+ * - 其他情况：取第一个字符并转大写
+ */
+const getNameInitials = (name) => {
+  const raw = (name || '').trim();
+  if (!raw) return '';
+
+  // 如果包含英文字符，按英文名规则处理
+  if (/[a-zA-Z]/.test(raw)) {
+    const parts = raw.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) {
+      return parts[0].charAt(0).toUpperCase();
+    }
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+
+  // 主要针对中文名：取后两位
+  if (raw.length <= 2) return raw;
+  return raw.slice(-2);
+};
 
 const formatStatus = (status) => {
   const statusMap = {
