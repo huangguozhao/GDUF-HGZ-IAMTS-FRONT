@@ -12,14 +12,31 @@ export function getProjectTree() {
   })
 }
 
-// 获取项目列表（简单列表）
+// 获取项目列表（分页 + 筛选），对应后端 GET /projects
 export function getProjects(params = {}) {
+  const {
+    name,
+    creatorId,
+    includeDeleted,
+    sortBy,
+    sortOrder,
+    page = 1,
+    pageSize = 10,
+    ...rest
+  } = params || {};
+
   return request({
     url: '/projects',
     method: 'get',
     params: {
-      page: params.page || 1,
-      page_size: params.pageSize || 100
+      name,
+      creator_id: creatorId,
+      include_deleted: includeDeleted,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      page,
+      page_size: pageSize,
+      ...rest,
     }
   })
 }

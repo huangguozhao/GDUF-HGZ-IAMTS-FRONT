@@ -100,7 +100,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 import { getUserProjects, updateUserProjects } from '@/api/personnel';
-// 任务分配区域暂时使用本地模拟项目数据，不从后端拉项目列表
+import { getProjects } from '@/api/project';
 
 import UserManagementTab from '@/components/personnel/UserManagementTab.vue';
 import ProjectAssignmentTab from '@/components/personnel/ProjectAssignmentTab.vue';
@@ -120,12 +120,8 @@ const statusChangingIds = ref(new Set());
 const deletingIds = ref(new Set());
 const assignmentLoadingIds = ref(new Set());
 const toast = reactive({ visible: false, message: '' });
-// 项目列表：当前任务分配模块先使用本地死数据
-const projectOptions = ref([
-  { id: 1, name: 'Web 管理后台' },
-  { id: 2, name: '移动端 App' },
-  { id: 3, name: '接口自动化平台' },
-]);
+// 项目列表：从 /projects 分页接口获取
+const projectOptions = ref([]);
 const projectOptionsLoading = ref(false);
 const currentUser = ref(null);
 
@@ -141,6 +137,42 @@ const assignModalSubmitting = ref(false);
 
 // Filter state
 const filterForm = reactive({ status: '', position: '', startDate: '', endDate: '' });
+
+// ===== 项目列表：对接后端 /projects 分页接口 =====
+const normalizeProjectList = (payload = {}) => {
+  // 后端 ProjectPageResultDTO: { total, items, page, pageSize }
+  const items =
+    (payload && Array.isArray(payload.items) && payload.items) ||
+    (Array.isArray(payload) ? payload : []);
+
+  return items
+    .map((p) => ({
+      id: p.id ?? p.projectId,
+      name: p.name,
+      description: p.description,
+    }))
+    .filter(item => item.id);
+};
+
+const fetchProjectOptions = async () => {
+  projectOptionsLoading.value = true;
+  try {
+    const resp = await getProjects({
+      page: 1,
+      pageSize: 20,
+      includeDeleted: false,
+      sortBy: 'created_at',
+      sortOrder: 'desc',
+    });
+    projectOptions.value = normalizeProjectList(resp?.data);
+  } catch (e) {
+    console.error('获取项目列表失败:', e);
+    projectOptions.value = [];
+    showToast('获取项目列表失败');
+  } finally {
+    projectOptionsLoading.value = false;
+  }
+};
 
 const fetchUsers = async () => {
   loading.value = true;
@@ -186,6 +218,11 @@ const switchTab = async (tab) => {
   if (activeTab.value === tab) return;
   activeTab.value = tab;
   pagination.currentPage = 1;
+
+  if (tab === 'projects') {
+    await fetchProjectOptions();
+  }
+
   await fetchUsers();
 };
 
@@ -251,8 +288,16 @@ const handleUpdateUser = async (userId, userData) => {
 const openAssignModal = async (user) => {
   currentUser.value = user;
   isAssignModalVisible.value = true;
-  // 当前阶段任务分配模块使用本地数据，不再从后端加载项目与用户项目关系
-  assignModalLoading.value = false;
+  assignModalLoading.value = true;
+  try {
+    // 确保项目列表已加载
+    if (!projectOptions.value.length) {
+      await fetchProjectOptions();
+    }
+    // 如后续需要，这里可以再补充按用户加载项目关系的逻辑
+  } finally {
+    assignModalLoading.value = false;
+  }
 };
 const closeAssignModal = () => { isAssignModalVisible.value = false; currentUser.value = null; };
 const handleAssignProjects = async (projectIds) => {
