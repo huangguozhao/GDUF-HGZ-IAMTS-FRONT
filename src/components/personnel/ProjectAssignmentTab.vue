@@ -40,13 +40,14 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
+import { getProjectMembers } from '@/api/project';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
 import ProjectList from './ProjectList.vue';
 
 const props = defineProps({
-  // 原有 props 保留以兼容父组件，但当前任务分配区域仅使用本地模拟数据展示
+  // 保留原有 props 以兼容父组件，项目成员列表由本组件通过项目成员分页接口加载
   userList: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
   pagination: { type: Object, default: () => ({ currentPage: 1, pageSize: 8, total: 0 }) },
@@ -64,66 +65,77 @@ const currentPage = ref(1);
 
 const selectedProjectId = ref(null);
 
-// ==========================
-//  本地模拟项目 & 成员数据
-// ==========================
-const mockProjects = [
-  { id: 1, name: 'Web 管理后台', description: '用于管理系统用户、权限和项目配置的后台系统' },
-  { id: 2, name: '移动端 App', description: '面向业务人员的移动端任务管理应用' },
-  { id: 3, name: '接口自动化平台', description: '统一管理接口文档、用例与自动化测试的平台' },
-];
-
-const mockMembersByProject = {
-  1: [
-    { id: 101, name: '张伟', email: 'zhang.wei@example.com', role: '项目管理员', createTime: '2025/01/10' },
-    { id: 102, name: '李明', email: 'li.ming@example.com', role: '开发人员', createTime: '2025/01/15' },
-    { id: 103, name: '王芳', email: 'wang.fang@example.com', role: '测试人员', createTime: '2025/01/20' },
-    { id: 104, name: '赵敏', email: 'zhao.min@example.com', role: '只读成员', createTime: '2025/02/02' },
-  ],
-  2: [
-    { id: 201, name: '陈强', email: 'chen.qiang@example.com', role: '项目管理员', createTime: '2025/01/05' },
-    { id: 202, name: '刘洋', email: 'liu.yang@example.com', role: '开发人员', createTime: '2025/01/12' },
-  ],
-  3: [
-    { id: 301, name: '孙丽', email: 'sun.li@example.com', role: '测试人员', createTime: '2025/02/01' },
-    { id: 302, name: '周杰', email: 'zhou.jie@example.com', role: '开发人员', createTime: '2025/02/08' },
-    { id: 303, name: '韩梅', email: 'han.mei@example.com', role: '只读成员', createTime: '2025/02/10' },
-  ],
-};
-
-// 左侧项目列表：优先使用父组件传入的项目列表，否则使用本地 mock
+// 左侧项目列表：直接使用父组件传入的项目列表
 const displayProjects = computed(() => {
   if (props.projectOptions && props.projectOptions.length) {
     return props.projectOptions;
   }
-  return mockProjects;
+  return [];
 });
 
-// 根据选中项目和分页信息，从本地 mock 中切片出当前页成员
-const allMembersOfSelectedProject = computed(() => {
-  if (!selectedProjectId.value) return [];
-  return mockMembersByProject[selectedProjectId.value] || [];
-});
-
-const membersTotal = computed(() => allMembersOfSelectedProject.value.length);
-
-const members = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value;
-  const end = start + pageSize.value;
-  return allMembersOfSelectedProject.value.slice(start, end);
-});
-
-// 左侧项目卡片上的“成员数量”展示
-const membersCountMap = computed(() => {
-  const map = {};
-  for (const [pid, list] of Object.entries(mockMembersByProject)) {
-    map[pid] = Array.isArray(list) ? list.length : 0;
-  }
-  return map;
-});
-
-// 任务分配区域不再请求后端，这里始终为 false，仅保留 loading UI 结构
+// 项目成员数据（从后端分页加载）
+const members = ref([]);
+const membersTotal = ref(0);
 const membersLoading = ref(false);
+// 记录每个项目的成员数量，用于左侧项目卡片展示
+const membersCountMap = ref({});
+
+// 统一转换 ProjectMembersPageResultDTO 中的成员数据到前端表格结构
+const normalizeProjectMembers = (payload = {}) => {
+  const list =
+    (payload && Array.isArray(payload.items) && payload.items) ||
+    (payload && Array.isArray(payload.list) && payload.list) ||
+    (payload && Array.isArray(payload.records) && payload.records) ||
+    (payload && Array.isArray(payload.data) && payload.data) ||
+    (Array.isArray(payload) ? payload : []);
+
+  const total =
+    payload?.total ??
+    payload?.totalCount ??
+    payload?.totalElements ??
+    payload?.count ??
+    list.length;
+
+  const mapped = list.map((item) => ({
+    id: item.userId ?? item.memberId ?? item.id,
+    name: item.userName ?? item.name ?? item.nickname ?? '未知用户',
+    email: item.email ?? item.userEmail ?? '',
+    avatar: item.avatarUrl ?? item.avatar ?? '',
+    role: item.projectRole || item.role || '成员',
+    createTime: item.joinTime ? new Date(item.joinTime).toLocaleDateString() : '',
+    avatarError: false,
+  }));
+
+  return { list: mapped, total };
+};
+
+const loadProjectMembers = async () => {
+  if (!selectedProjectId.value) {
+    members.value = [];
+    membersTotal.value = 0;
+    return;
+  }
+  membersLoading.value = true;
+  try {
+    const resp = await getProjectMembers(selectedProjectId.value, {
+      page: currentPage.value,
+      pageSize: pageSize.value,
+    });
+    const { list, total } = normalizeProjectMembers(resp?.data);
+    members.value = list;
+    membersTotal.value = total;
+    membersCountMap.value = {
+      ...(membersCountMap.value || {}),
+      [selectedProjectId.value]: total,
+    };
+  } catch (e) {
+    console.error('获取项目成员失败:', e);
+    members.value = [];
+    membersTotal.value = 0;
+  } finally {
+    membersLoading.value = false;
+  }
+};
 
 const currentProjectName = computed(() => {
   const p = (displayProjects.value || []).find(p => (p.id ?? p.projectId) === selectedProjectId.value);
@@ -133,6 +145,7 @@ const currentProjectName = computed(() => {
 const handleSelectProject = (pid) => {
   selectedProjectId.value = pid;
   currentPage.value = 1;
+  loadProjectMembers();
 };
 
 const handleAddMember = () => {
@@ -152,6 +165,7 @@ const handleRemoveMember = (user) => {
 const handleLocalPageChange = (page) => {
   if (page >= 1) {
     currentPage.value = page;
+    loadProjectMembers();
   }
 };
 
@@ -160,6 +174,8 @@ watch(
   (list) => {
     if (!selectedProjectId.value && list && list.length) {
       selectedProjectId.value = list[0].id ?? list[0].projectId;
+      currentPage.value = 1;
+      loadProjectMembers();
     }
   },
   { immediate: true }
