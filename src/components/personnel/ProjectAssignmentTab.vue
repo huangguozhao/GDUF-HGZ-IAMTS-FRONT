@@ -96,15 +96,18 @@ const normalizeProjectMembers = (payload = {}) => {
     payload?.count ??
     list.length;
 
-  const mapped = list.map((item) => ({
-    id: item.userId ?? item.memberId ?? item.id,
-    name: item.userName ?? item.name ?? item.nickname ?? '未知用户',
-    email: item.email ?? item.userEmail ?? '',
-    avatar: item.avatarUrl ?? item.avatar ?? '',
-    role: item.projectRole || item.role || '成员',
-    createTime: item.joinTime ? new Date(item.joinTime).toLocaleDateString() : '',
-    avatarError: false,
-  }));
+  const mapped = list.map((item) => {
+    const user = item.userInfo || {};
+    return {
+      id: item.userId ?? item.memberId ?? item.id,
+      name: user.name || item.userName || item.name || '未知用户',
+      email: user.email || item.email || '',
+      avatar: user.avatarUrl || item.avatarUrl || item.avatar || '',
+      role: user.position || item.projectRole || item.role || '成员',
+      createTime: item.joinTime ? new Date(item.joinTime).toLocaleDateString() : '',
+      avatarError: false,
+    };
+  });
 
   return { list: mapped, total };
 };
