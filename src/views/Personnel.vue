@@ -391,7 +391,18 @@ const handleRoleChange = async (user, newRole) => {
   }
 };
 
-const handleRemoveMember = async ({ user, projectId }) => {
+const handleRemoveMember = async ({ user, projectId, success, error }) => {
+  // 如果是项目分配页面传来的移除结果（包含 success 字段），直接显示提示
+  if (typeof success === 'boolean') {
+    if (success) {
+      showToast('用户已从项目中成功移除');
+    } else {
+      showToast(error?.message || '移除项目成员失败');
+    }
+    return;
+  }
+
+  // 原有的用户管理页面逻辑（从用户的项目列表中移除项目）
   if (!user?.id || !projectId) return;
   const prev = Array.isArray(user.assignedProjectIds) ? [...user.assignedProjectIds] : [];
   const next = prev.filter(id => id !== projectId);

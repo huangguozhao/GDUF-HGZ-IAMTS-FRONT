@@ -41,6 +41,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { getProjectMembers } from '@/api/project';
+import { removeUserFromProject } from '@/api/personnel';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
@@ -160,9 +161,44 @@ const handleRoleChange = (user, newRole) => {
   emit('role-change', user, newRole);
 };
 
-const handleRemoveMember = (user) => {
-  if (!selectedProjectId.value) return;
-  emit('remove-member', { user, projectId: selectedProjectId.value });
+const handleRemoveMember = async (user) => {
+  if (!user?.id || !selectedProjectId.value) return;
+  
+  // 确认移除
+  if (!confirm(`确定要从项目中移除成员 "${user.name}" 吗？`)) {
+    return;
+  }
+
+  // 如果正在删除中，直接返回
+  if (deletingIds.value.has(user.id)) return;
+
+  deletingIds.value.add(user.id);
+  try {
+    await removeUserFromProject(user.id, selectedProjectId.value);
+    
+    // 移除成功后重新加载项目成员列表
+    await loadProjectMembers();
+    
+    // 如果当前页没有成员了，且不是第一页，则跳转到上一页
+    if (members.value.length === 0 && currentPage.value > 1) {
+      currentPage.value--;
+      await loadProjectMembers();
+    }
+    
+    // 更新成员数量统计
+    if (membersCountMap.value[selectedProjectId.value] > 0) {
+      membersCountMap.value[selectedProjectId.value]--;
+    }
+    
+    // 通知父组件显示成功提示
+    emit('remove-member', { user, projectId: selectedProjectId.value, success: true });
+  } catch (error) {
+    console.error('移除项目成员失败:', error);
+    // 通知父组件显示错误提示
+    emit('remove-member', { user, projectId: selectedProjectId.value, success: false, error });
+  } finally {
+    deletingIds.value.delete(user.id);
+  }
 };
 
 const handleLocalPageChange = (page) => {

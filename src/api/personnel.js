@@ -173,6 +173,19 @@ export const updateUserProjects = (id, projectIds) => {
 }
 
 /**
+ * 移除用户项目分配（软删除）
+ * @param {number} userId - 用户ID
+ * @param {number} projectId - 项目ID
+ * @returns {Promise}
+ */
+export const removeUserFromProject = (userId, projectId) => {
+  return request({
+    url: `/users/${userId}/projects/${projectId}`,
+    method: 'delete'
+  })
+}
+
+/**
  * 批量操作用户
  * @param {Object} data - 操作数据
  * @param {Array} data.userIds - 用户ID列表
