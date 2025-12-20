@@ -35,17 +35,27 @@
         </div>
       </div>
     </div>
+
+    <!-- Add Member Modal -->
+    <AddProjectMemberModal
+      :visible="isAddMemberModalVisible"
+      :is-submitting="isAddingMember"
+      :selected-user-ids="currentMemberIds"
+      @close="closeAddMemberModal"
+      @submit="handleAddMemberSubmit"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { getProjectMembers } from '@/api/project';
+import { getProjectMembers, addProjectMember } from '@/api/project';
 import { removeUserFromProject, updateUserProject } from '@/api/personnel';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
 import ProjectList from './ProjectList.vue';
+import AddProjectMemberModal from './AddProjectMemberModal.vue';
 
 const props = defineProps({
   // 保留原有 props 以兼容父组件，项目成员列表由本组件通过项目成员分页接口加载
@@ -56,10 +66,55 @@ const props = defineProps({
   projectOptions: { type: Array, default: () => [] },
 });
 
-const emit = defineEmits(['role-change', 'remove-member']);
+const emit = defineEmits(['role-change', 'remove-member', 'add-member']);
 
 const roleChangingIds = ref(new Set());
 const deletingIds = ref(new Set());
+
+// 添加成员相关状态
+const isAddMemberModalVisible = ref(false);
+const isAddingMember = ref(false);
+const allMemberIds = ref(new Set()); // 存储当前项目的所有成员ID
+
+// 获取当前项目的所有成员ID（用于过滤搜索结果）
+const fetchAllMemberIds = async () => {
+  if (!selectedProjectId.value) {
+    allMemberIds.value.clear();
+    return;
+  }
+  
+  const memberIdsSet = new Set();
+  let page = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const memberResponse = await getProjectMembers(selectedProjectId.value, {
+        page,
+        pageSize: 100,
+      });
+      const memberList = normalizeProjectMembers(memberResponse?.data).list;
+      memberList.forEach(member => {
+        memberIdsSet.add(member.id);
+      });
+      
+      const total = memberResponse?.data?.total || 0;
+      const currentTotal = page * 100;
+      hasMore = currentTotal < total;
+      page++;
+    }
+    
+    allMemberIds.value = memberIdsSet;
+  } catch (error) {
+    console.error('获取项目成员ID失败:', error);
+    allMemberIds.value.clear();
+  }
+};
+
+// 当前项目的成员ID列表（用于过滤搜索结果）
+const currentMemberIds = computed(() => {
+  return Array.from(allMemberIds.value);
+});
 
 const pageSize = computed(() => props.pagination.pageSize || 8);
 const currentPage = ref(1);
@@ -175,11 +230,73 @@ const handleSelectProject = (pid) => {
   selectedProjectId.value = pid;
   currentPage.value = 1;
   loadProjectMembers();
+  // 同时更新所有成员ID列表
+  fetchAllMemberIds();
 };
 
-const handleAddMember = () => {
-  // 预留：可在此发出事件由父级弹出添加成员到项目的弹窗
-  // emit('add-member', selectedProjectId.value);
+const handleAddMember = async () => {
+  if (!selectedProjectId.value) return;
+  // 获取所有成员ID用于过滤
+  await fetchAllMemberIds();
+  isAddMemberModalVisible.value = true;
+};
+
+const closeAddMemberModal = () => {
+  isAddMemberModalVisible.value = false;
+};
+
+const handleAddMemberSubmit = async ({ members }) => {
+  if (!selectedProjectId.value || !members || members.length === 0) return;
+  
+  isAddingMember.value = true;
+  let successCount = 0;
+  let failCount = 0;
+  
+  try {
+    // 批量添加成员
+    const promises = members.map(member =>
+      addProjectMember(selectedProjectId.value, {
+        userId: member.userId,
+        role: member.projectRole,
+      }).catch(error => {
+        console.error(`添加用户 ${member.userId} 失败:`, error);
+        failCount++;
+        return null;
+      })
+    );
+    
+    await Promise.all(promises);
+    successCount = members.length - failCount;
+    
+    // 添加成功后关闭弹窗并重新加载成员列表
+    closeAddMemberModal();
+    await loadProjectMembers();
+    // 更新所有成员ID列表
+    await fetchAllMemberIds();
+    
+    // 更新成员数量统计
+    if (membersCountMap.value[selectedProjectId.value] !== undefined) {
+      membersCountMap.value[selectedProjectId.value] += successCount;
+    }
+    
+    // 通知父组件显示成功提示
+    if (failCount === 0) {
+      emit('add-member', { success: true, count: successCount });
+    } else {
+      emit('add-member', { 
+        success: true, 
+        count: successCount, 
+        failCount,
+        message: `成功添加 ${successCount} 名成员，${failCount} 名成员添加失败`
+      });
+    }
+  } catch (error) {
+    console.error('批量添加项目成员失败:', error);
+    // 通知父组件显示错误提示
+    emit('add-member', { success: false, error });
+  } finally {
+    isAddingMember.value = false;
+  }
 };
 
 const handleRoleChange = async (user, newRole) => {
@@ -233,6 +350,8 @@ const handleRemoveMember = async (user) => {
     
     // 移除成功后重新加载项目成员列表
     await loadProjectMembers();
+    // 更新所有成员ID列表
+    await fetchAllMemberIds();
     
     // 如果当前页没有成员了，且不是第一页，则跳转到上一页
     if (members.value.length === 0 && currentPage.value > 1) {
@@ -270,6 +389,7 @@ watch(
       selectedProjectId.value = list[0].id ?? list[0].projectId;
       currentPage.value = 1;
       loadProjectMembers();
+      fetchAllMemberIds();
     }
   },
   { immediate: true }

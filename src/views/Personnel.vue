@@ -52,6 +52,7 @@
         :projectOptions="projectOptions"
         @role-change="handleRoleChange"
         @remove-member="handleRemoveMember"
+        @add-member="handleAddMemberToProject"
       />
     </div>
 
@@ -399,6 +400,18 @@ const handleRoleChange = async ({ user, newRole, success, error }) => {
     console.error('更新用户角色失败:', error);
     user.role = oldRole;
     showToast('角色更新失败');
+  }
+};
+
+const handleAddMemberToProject = ({ success, error, count, failCount, message }) => {
+  if (success) {
+    if (message) {
+      showToast(message);
+    } else {
+      showToast(`成功添加 ${count || 0} 名项目成员`);
+    }
+  } else {
+    showToast(error?.message || '添加项目成员失败');
   }
 };
 

@@ -64,3 +64,18 @@ export function deleteUser(userId) {
     method: 'delete',
   });
 }
+
+/**
+ * 根据用户名或邮箱模糊查询用户
+ * @param {string} keyword - 搜索关键词（用户名或邮箱）
+ * @returns {Promise}
+ */
+export function searchUsers(keyword) {
+  return request({
+    url: '/users/search',
+    method: 'get',
+    params: {
+      keyword: keyword || undefined,
+    },
+  });
+}
