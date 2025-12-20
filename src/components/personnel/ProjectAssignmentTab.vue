@@ -17,6 +17,21 @@
         />
 
         <div v-if="membersLoading" class="loading">加载中...</div>
+        <div v-else-if="membersTotal === 0" class="empty-state">
+          <div class="empty-content">
+            <svg class="empty-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+              <path fill="currentColor" d="M512 544c141.4 0 256-114.6 256-256S653.4 32 512 32 256 146.6 256 288s114.6 256 256 256zm0 64C353.1 608 64 688.5 64 848v96h896v-96c0-159.5-289.1-240-448-240z"/>
+            </svg>
+            <p class="empty-title">该项目暂无成员</p>
+            <p class="empty-description">点击右上角"添加成员"按钮，为项目添加团队成员</p>
+            <button class="empty-action-btn" @click="handleAddMember">
+              <svg class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+                <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm192 472H520v184h-16V536H312v-16h192V328h16v192h184v16z"></path>
+              </svg>
+              添加成员
+            </button>
+          </div>
+        </div>
         <div v-else>
           <ProjectAssignmentTable
             :user-list="members"
@@ -400,5 +415,62 @@ watch(
 .project-assignment-tab { width: 100%; }
 .two-cols { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
 .loading { text-align: center; padding: 40px; color: #8c8c8c; }
+
+.empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  padding: 60px 20px;
+}
+
+.empty-content {
+  text-align: center;
+  max-width: 400px;
+}
+
+.empty-icon {
+  width: 80px;
+  height: 80px;
+  color: #d9d9d9;
+  margin: 0 auto 24px;
+}
+
+.empty-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #262626;
+  margin: 0 0 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin: 0 0 24px;
+  line-height: 1.5;
+}
+
+.empty-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #1890ff;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.empty-action-btn:hover {
+  background-color: #40a9ff;
+}
+
+.empty-action-btn .icon {
+  width: 16px;
+  height: 16px;
+}
 </style>
 
