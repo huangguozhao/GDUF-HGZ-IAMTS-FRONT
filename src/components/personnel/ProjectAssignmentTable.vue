@@ -34,6 +34,7 @@
                 @change="handleRoleChange(user, $event)"
                 :disabled="isRoleChanging(user.id)"
               >
+                <option value="项目负责人">项目负责人</option>
                 <option value="项目管理员">项目管理员</option>
                 <option value="开发人员">开发人员</option>
                 <option value="测试人员">测试人员</option>

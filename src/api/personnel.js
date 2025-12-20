@@ -186,6 +186,24 @@ export const removeUserFromProject = (userId, projectId) => {
 }
 
 /**
+ * 更新用户项目成员信息
+ * @param {number} userId - 用户ID
+ * @param {number} projectId - 项目ID
+ * @param {Object} data - 更新数据
+ * @param {string} [data.projectRole] - 项目角色 (owner, manager, developer, tester, viewer)
+ * @param {string} [data.permissionLevel] - 权限级别 (read, write, admin)
+ * @param {string} [data.status] - 状态 (active, inactive, removed)
+ * @returns {Promise}
+ */
+export const updateUserProject = (userId, projectId, data) => {
+  return request({
+    url: `/users/${userId}/projects/${projectId}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
  * 批量操作用户
  * @param {Object} data - 操作数据
  * @param {Array} data.userIds - 用户ID列表

@@ -41,7 +41,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue';
 import { getProjectMembers } from '@/api/project';
-import { removeUserFromProject } from '@/api/personnel';
+import { removeUserFromProject, updateUserProject } from '@/api/personnel';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
@@ -81,6 +81,30 @@ const membersLoading = ref(false);
 // 记录每个项目的成员数量，用于左侧项目卡片展示
 const membersCountMap = ref({});
 
+// 将后端返回的英文项目角色转换为中文显示
+const translateProjectRole = (projectRole) => {
+  const roleMap = {
+    'owner': '项目负责人',
+    'manager': '项目管理员',
+    'developer': '开发人员',
+    'tester': '测试人员',
+    'viewer': '只读成员',
+  };
+  return roleMap[projectRole?.toLowerCase()] || projectRole || '成员';
+};
+
+// 将中文角色转换回英文项目角色
+const translateRoleToEnglish = (chineseRole) => {
+  const roleMap = {
+    '项目负责人': 'owner',
+    '项目管理员': 'manager',
+    '开发人员': 'developer',
+    '测试人员': 'tester',
+    '只读成员': 'viewer',
+  };
+  return roleMap[chineseRole] || chineseRole;
+};
+
 // 统一转换 ProjectMembersPageResultDTO 中的成员数据到前端表格结构
 const normalizeProjectMembers = (payload = {}) => {
   const list =
@@ -104,7 +128,8 @@ const normalizeProjectMembers = (payload = {}) => {
       name: user.name || item.userName || item.name || '未知用户',
       email: user.email || item.email || '',
       avatar: user.avatarUrl || item.avatarUrl || item.avatar || '',
-      role: user.position || item.projectRole || item.role || '成员',
+      // 优先使用项目角色（projectRole），并转换为中文显示
+      role: translateProjectRole(item.projectRole) || user.position || item.role || '成员',
       createTime: item.joinTime ? new Date(item.joinTime).toLocaleDateString() : '',
       avatarError: false,
     };
@@ -157,8 +182,38 @@ const handleAddMember = () => {
   // emit('add-member', selectedProjectId.value);
 };
 
-const handleRoleChange = (user, newRole) => {
-  emit('role-change', user, newRole);
+const handleRoleChange = async (user, newRole) => {
+  if (!user?.id || !selectedProjectId.value) return;
+  
+  // 如果正在更新中，直接返回
+  if (roleChangingIds.value.has(user.id)) return;
+
+  const oldRole = user.role;
+  const newProjectRole = translateRoleToEnglish(newRole);
+  
+  // 乐观更新：先更新 UI
+  user.role = newRole;
+  roleChangingIds.value.add(user.id);
+
+  try {
+    await updateUserProject(user.id, selectedProjectId.value, {
+      projectRole: newProjectRole,
+    });
+    
+    // 更新成功后重新加载项目成员列表以确保数据同步
+    await loadProjectMembers();
+    
+    // 通知父组件显示成功提示
+    emit('role-change', { user, newRole, success: true });
+  } catch (error) {
+    console.error('更新项目成员角色失败:', error);
+    // 回滚 UI
+    user.role = oldRole;
+    // 通知父组件显示错误提示
+    emit('role-change', { user, newRole, success: false, error });
+  } finally {
+    roleChangingIds.value.delete(user.id);
+  }
 };
 
 const handleRemoveMember = async (user) => {

@@ -377,7 +377,18 @@ const handleDeleteUser = async (user) => {
   }
 };
 
-const handleRoleChange = async (user, newRole) => {
+const handleRoleChange = async ({ user, newRole, success, error }) => {
+  // 如果是项目分配页面传来的角色更新结果（包含 success 字段），直接显示提示
+  if (typeof success === 'boolean') {
+    if (success) {
+      showToast('用户项目成员信息更新成功');
+    } else {
+      showToast(error?.message || '更新项目成员角色失败');
+    }
+    return;
+  }
+
+  // 原有的用户管理页面逻辑（更新用户职位）
   if (!user?.id) return;
   const oldRole = user.role;
   user.role = newRole;
