@@ -1,74 +1,61 @@
 <template>
   <div class="json-viewer">
-    <JsonNode :value="value" :path="''" :level="0" />
+    <json-node :value="value" :level="0" />
   </div>
 </template>
 
-<script setup>
-import { defineProps, ref, computed } from 'vue'
-
-const props = defineProps({
-  value: { type: [Object, Array, String, Number, Boolean, null], required: true },
-})
-
-// Recursive node component
+<script>
 const JsonNode = {
   name: 'JsonNode',
   props: {
     value: { required: true },
-    path: { type: String, required: true },
-    level: { type: Number, required: true }
+    level: { type: Number, default: 0 }
   },
-  setup(props) {
-    const collapsed = ref(props.level >= 1) // collapse child nodes by default
-    const isObject = computed(() => props.value && typeof props.value === 'object' && !Array.isArray(props.value))
-    const isArray = computed(() => Array.isArray(props.value))
-    const toggle = () => { collapsed.value = !collapsed.value }
-    return { collapsed, isObject, isArray, toggle }
+  data() {
+    return { collapsed: this.level >= 1 }
   },
-  render() {
-    const h = arguments[0]
-    const { value, level, isObject, isArray, collapsed, toggle } = this
-    const indentStyle = { paddingLeft: `${level * 12}px` }
-
-    if (isObject) {
-      const keys = Object.keys(value)
-      return h('div', { class: 'json-node' }, [
-        h('div', { class: 'json-node-line', style: indentStyle }, [
-          h('button', { class: 'json-toggle', onClick: toggle, 'aria-expanded': !collapsed }, collapsed ? '+' : '−'),
-          h('span', { class: 'json-brace' }, '{ }'),
-          h('span', { class: 'json-meta' }, ` ${keys.length} keys`)
-        ]),
-        !collapsed && h('div', { class: 'json-children' }, keys.map(k =>
-          h('div', { class: 'json-pair', style: { paddingLeft: `${(level+1)*12}px` } }, [
-            h('span', { class: 'json-key' }, `${k}: `),
-            h(JsonNode, { value: value[k], path: this.path ? `${this.path}.${k}` : k, level: level + 1 })
-          ])
-        ))
-      ])
-    } else if (isArray) {
-      return h('div', { class: 'json-node' }, [
-        h('div', { class: 'json-node-line', style: indentStyle }, [
-          h('button', { class: 'json-toggle', onClick: toggle, 'aria-expanded': !collapsed }, collapsed ? '+' : '−'),
-          h('span', { class: 'json-brace' }, '[ ]'),
-          h('span', { class: 'json-meta' }, ` ${value.length} items`)
-        ]),
-        !collapsed && h('div', { class: 'json-children' }, value.map((item, idx) =>
-          h('div', { class: 'json-item', style: { paddingLeft: `${(level+1)*12}px` } }, [
-            h('span', { class: 'json-index' }, `${idx}: `),
-            h(JsonNode, { value: item, path: `${this.path}[${idx}]`, level: level + 1 })
-          ])
-        ))
-      ])
-    } else {
-      // primitive
-      const display = value === null ? 'null' : String(value)
-      const typeClass = typeof value === 'number' ? 'json-number' : typeof value === 'boolean' ? 'json-boolean' : 'json-string'
-      return h('span', { class: ['json-primitive', typeClass], style: indentStyle }, display)
+  computed: {
+    isObject() { return this.value && typeof this.value === 'object' && !Array.isArray(this.value) },
+    isArray() { return Array.isArray(this.value) },
+    display() { return this.value === null ? 'null' : String(this.value) },
+    typeClass() {
+      return typeof this.value === 'number' ? 'json-number' : typeof this.value === 'boolean' ? 'json-boolean' : 'json-string'
     }
-  }
+  },
+  methods: {
+    toggle() { this.collapsed = !this.collapsed }
+  },
+  template: `
+    <div class="json-node">
+      <div class="json-node-line" :style="{ paddingLeft: level * 12 + 'px' }">
+        <button class="json-toggle" @click="toggle" :aria-expanded="!collapsed">{{ collapsed ? '+' : '−' }}</button>
+        <span v-if="isObject" class="json-brace">{ }</span>
+        <span v-else-if="isArray" class="json-brace">[ ]</span>
+        <span v-if="isObject" class="json-meta"> {{ Object.keys(value).length }} keys</span>
+        <span v-else-if="isArray" class="json-meta"> {{ value.length }} items</span>
+      </div>
+      <div v-if="isObject && !collapsed" class="json-children">
+        <div v-for="(v,k) in value" :key="k" class="json-pair">
+          <span class="json-key" :style="{ paddingLeft: (level+1)*12 + 'px' }">{{ k }}: </span>
+          <json-node :value="v" :level="level+1" />
+        </div>
+      </div>
+      <div v-else-if="isArray && !collapsed" class="json-children">
+        <div v-for="(item, idx) in value" :key="idx" class="json-item">
+          <span class="json-index" :style="{ paddingLeft: (level+1)*12 + 'px' }">{{ idx }}: </span>
+          <json-node :value="item" :level="level+1" />
+        </div>
+      </div>
+      <span v-if="!isObject && !isArray" :class="['json-primitive', typeClass]" :style="{ paddingLeft: level*12 + 'px' }">{{ display }}</span>
+    </div>
+  `
 }
 
+export default {
+  name: 'JsonViewer',
+  props: { value: { required: true } },
+  components: { JsonNode }
+}
 </script>
 
 <style scoped>
