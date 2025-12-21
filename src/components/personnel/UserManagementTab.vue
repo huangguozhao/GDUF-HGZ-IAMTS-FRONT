@@ -20,8 +20,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="user in userList" :key="user.id">
-            <td>
+          <tr v-for="user in userList" :key="user.id" class="user-row" role="row" tabindex="0">
+            <td data-label="用户名">
               <div class="user-info">
                 <img 
                   v-if="user.avatar && !user.avatarError" 
@@ -34,34 +34,39 @@
                 <span>{{ user.name }}</span>
               </div>
             </td>
-            <td>{{ user.email }}</td>
-            <td>{{ user.phone || '-' }}</td>
-            <td>{{ user.role }}</td>
-            <td>
+            <td data-label="邮箱">{{ user.email }}</td>
+            <td data-label="电话">{{ user.phone || '-' }}</td>
+            <td data-label="职位">{{ user.role }}</td>
+            <td data-label="状态">
               <span :class="['status-badge', `status-${user.status?.toLowerCase()}`]">
                 {{ formatStatus(user.status) }}
               </span>
             </td>
-            <td>{{ user.createTime }}</td>
-            <td class="actions">
-              <button class="action-btn edit-btn" @click="handleEdit(user)" title="编辑">
-                编辑
+            <td data-label="创建时间">{{ user.createTime }}</td>
+            <td class="actions" data-label="操作" role="cell">
+              <button class="action-btn icon-btn edit-btn" @click="handleEdit(user)" title="编辑" aria-label="编辑">
+                ✏️
+                <span class="btn-text">编辑</span>
               </button>
               <button 
-                class="action-btn status-btn" 
+                class="action-btn icon-btn status-btn" 
                 @click="handleToggleStatus(user)"
                 :disabled="statusChangingIds.has(user.id)"
                 title="切换状态"
+                aria-label="切换状态"
               >
-                {{ statusChangingIds.has(user.id) ? '更新中...' : '切换状态' }}
+                🔁
+                <span class="btn-text">{{ statusChangingIds.has(user.id) ? '更新中...' : '切换' }}</span>
               </button>
               <button 
-                class="action-btn delete-btn" 
+                class="action-btn icon-btn delete-btn" 
                 @click="handleDelete(user)"
                 :disabled="deletingIds.has(user.id)"
                 title="删除"
+                aria-label="删除"
               >
-                {{ deletingIds.has(user.id) ? '删除中...' : '删除' }}
+                🗑️
+                <span class="btn-text">{{ deletingIds.has(user.id) ? '删除中...' : '删除' }}</span>
               </button>
             </td>
           </tr>
@@ -311,6 +316,40 @@ const goToNextPage = () => {
 .status-btn {
   color: #faad14;
   border-color: #faad14;
+}
+
+/* icon style for action buttons (compact) */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 13px;
+  background: #fff;
+}
+.icon-btn .btn-text {
+  display: inline-block;
+}
+
+/* row hover and focus */
+.user-row {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.user-row:hover, .user-row:focus {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(15,23,42,0.06);
+}
+
+/* Responsive: stacked card view on small screens */
+@media (max-width: 768px) {
+  .user-table thead { display: none; }
+  .user-table, .user-table tbody, .user-table tr, .user-table td { display: block; width: 100%; }
+  .user-table tr { margin-bottom: 12px; border-radius: 10px; background: #fff; box-shadow: 0 6px 18px rgba(15,23,42,0.04); padding: 12px; }
+  .user-table td { padding: 8px 0; border: none; display: flex; justify-content: space-between; align-items: center; }
+  .user-table td[data-label]::before { content: attr(data-label); color: #8c8c8c; margin-right: 8px; font-size: 12px; }
+  .actions { justify-content: flex-end; }
+  .icon-btn .btn-text { display: none; } /* hide text on very small screens */
 }
 
 .pagination {
