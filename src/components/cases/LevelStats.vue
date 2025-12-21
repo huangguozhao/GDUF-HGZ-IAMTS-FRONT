@@ -54,7 +54,6 @@
           <div class="stat-label">通过</div>
           <div class="stat-value">{{ getPassedCount() }}</div>
         </div>
-        <div class="stat-chart" ref="passedChart" aria-hidden="true"></div>
       </div>
 
       <div class="stat-card error">
@@ -63,7 +62,6 @@
           <div class="stat-label">失败</div>
           <div class="stat-value">{{ getFailedCount() }}</div>
         </div>
-        <div class="stat-chart" ref="failedChart" aria-hidden="true"></div>
       </div>
 
       <div class="stat-card warning">

@@ -6,6 +6,12 @@
         <h2 class="api-title">{{ api?.name || '未知接口' }}</h2>
         <div class="api-info-line">
           <span class="api-path">{{ api?.path || api?.url || '-' }}</span>
+          <button class="copy-path-btn" @click.stop="copyApiPath" :title="'复制路径'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
+              <path d="M16 1H4a2 2 0 0 0-2 2v12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="8" y="5" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+          </button>
         <span class="method-tag" :class="'method-' + (api?.method || '').toLowerCase()">
           {{ api?.method || '-' }}
         </span>
@@ -38,6 +44,10 @@
         </div>
       </div>
       <div class="header-right">
+        <div class="detail-actions">
+          <el-button size="small" type="primary" @click="executeDialogVisible = true">调试</el-button>
+          <el-button size="small" @click="$emit('refresh')">刷新</el-button>
+        </div>
         <div class="creator-info" v-if="api?.creatorInfo || api?.creator_info">
           <el-avatar :size="32" :src="getCreatorAvatar()" class="creator-avatar">
             {{ getCreatorName()?.charAt(0) || '?' }}
@@ -1739,6 +1749,32 @@ import {
 import { getModulesByProject, updateApi, getProjects, deleteApi } from '@/api/project'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+
+// 复制路径到剪贴板
+const copyApiPath = async () => {
+  const text = api?.path || api?.url || ''
+  if (!text) {
+    ElMessage.warning('路径为空，无法复制')
+    return
+  }
+  try {
+    if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      // 兼容回退
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    ElMessage.success('已复制路径到剪贴板')
+  } catch (err) {
+    console.error('复制失败', err)
+    ElMessage.error('复制失败')
+  }
+}
 
 const props = defineProps({
   api: {
@@ -4023,10 +4059,12 @@ onMounted(() => {
 }
 
 .method-tag {
-  padding: 4px 12px;
-  border-radius: 4px;
+  padding: 6px 14px;
+  border-radius: 12px;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
+  background: #ecf5ff;
+  color: #409eff;
 }
 
 .status-tag {
@@ -4066,6 +4104,23 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 16px;
   font-size: 13px;
+}
+
+.copy-path-btn {
+  margin-left: 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-secondary, #7b888e);
+  display: inline-flex;
+  align-items: center;
+}
+.copy-path-btn:hover { color: var(--color-brand, #409eff); }
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .meta-item {
