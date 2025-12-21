@@ -92,42 +92,58 @@
           <div class="col col-actions">操作</div>
         </div>
 
-        <div class="table-body">
-          <div 
-            v-for="child in children" 
-            :key="child.id"
-            class="table-row"
-            @click="handleSelectChild(child)"
-          >
-            <div class="col col-name">
-              <span class="child-icon">{{ level === 'project' ? '📂' : '🔌' }}</span>
-              {{ child.name }}
-            </div>
-            <div class="col col-count" v-if="level === 'project'">
-              {{ child.apis?.length || 0 }}
-            </div>
-            <div class="col col-count">
-              {{ getChildCaseCount(child) }}
-            </div>
-            <div class="col col-status">
-              <div class="progress-bar">
-                <div class="progress-fill" :style="{ width: getPassRate(child) + '%' }"></div>
-              </div>
-              <span class="progress-text">{{ getPassRate(child) }}%</span>
-            </div>
-            <div class="col col-time">
-              {{ getLastExecutedTime(child) }}
-            </div>
-            <div class="col col-actions" @click.stop>
-              <el-button size="small" text @click="$emit('edit-child', child)">编辑</el-button>
-              <el-button size="small" text type="danger" @click="$emit('delete-child', child)">删除</el-button>
-            </div>
+    <div class="table-body">
+      <!-- 虚拟滚动容器：使用 RecycleScroller 渲染大量子项 -->
+      <RecycleScroller
+        v-if="children && children.length > 0"
+        :items="children"
+        :item-size="64"
+        class="virtual-list"
+        key-field="id"
+        v-slot="{ item: child, index }"
+      >
+        <div
+          :key="child.id"
+          class="table-row"
+          role="button"
+          :aria-label="`跳转到 ${child.name}`"
+          @click="handleSelectChild(child)"
+        >
+          <div class="col col-name">
+            <span class="child-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <path d="M3 7C3 5.89543 3.89543 5 5 5H9L11 7H19C20.1046 7 21 7.89543 21 9V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" fill="#FFD666"/>
+                <path d="M9 5L11 7H19C20.1046 7 21 7.89543 21 9V9V9" stroke="#F0A000" stroke-width="0" />
+              </svg>
+            </span>
+            <span class="child-name">{{ child.name }}</span>
           </div>
-
-          <div v-if="children.length === 0" class="empty-row">
-            暂无数据
+          <div class="col col-count" v-if="level === 'project'">
+            {{ child.apis?.length || 0 }}
+          </div>
+          <div class="col col-count">
+            {{ getChildCaseCount(child) }}
+          </div>
+          <div class="col col-status" role="progressbar" :aria-valuenow="getPassRate(child)" :aria-valuemin="0" :aria-valuemax="100">
+            <div class="progress-bar">
+              <div class="progress-fill" :style="{ width: getPassRate(child) + '%' }"></div>
+            </div>
+            <span class="progress-text">{{ getPassRate(child) }}%</span>
+          </div>
+          <div class="col col-time">
+            {{ getLastExecutedTime(child) }}
+          </div>
+          <div class="col col-actions" @click.stop>
+            <el-button size="small" text @click="$emit('edit-child', child)">编辑</el-button>
+            <el-button size="small" text type="danger" @click="$emit('delete-child', child)">删除</el-button>
           </div>
         </div>
+      </RecycleScroller>
+
+      <div v-else class="empty-row">
+        暂无数据
+      </div>
+    </div>
       </div>
     </div>
   </div>
@@ -135,6 +151,8 @@
 
 <script setup>
 import { computed, ref, onMounted, watch } from 'vue'
+import { RecycleScroller } from 'vue-virtual-scroller'
+import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import { Setting, Edit, Delete } from '@element-plus/icons-vue'
 import { getProjectStatistics, getModuleStatistics } from '@/api/project'
 import { ElMessage } from 'element-plus'
@@ -505,7 +523,7 @@ const handleSelectChild = (child) => {
 
 .stat-card {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--color-article, #ffffffcc);
   border-radius: 8px;
   display: flex;
   align-items: center;
@@ -519,7 +537,7 @@ const handleSelectChild = (child) => {
 }
 
 .stat-card.success {
-  background: #f0f9ff;
+  background: #e6f4ff; /* 轻薄蓝背景 */
   border: 1px solid #b3d8ff;
 }
 
@@ -550,7 +568,7 @@ const handleSelectChild = (child) => {
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: #303133;
+  color: var(--color-primary, #303133);
 }
 
 /* 列表表格 */
@@ -631,7 +649,7 @@ const handleSelectChild = (child) => {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(to right, #67c23a, #85ce61);
+  background: linear-gradient(to right, #409eff, #7fbfff);
   transition: width 0.3s;
 }
 
