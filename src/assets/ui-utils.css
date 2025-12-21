@@ -6,13 +6,17 @@
 
 /* 基础毛玻璃卡片 */
 .glass-card {
-  background: rgba(255, 255, 255, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
+  /* 更贴近设计规范的毛玻璃：半透明 + 轻模糊 + 明显内发光 + 大圆角 */
+  background: rgba(255, 255, 255, 0.4);           /* 40% 透明度 */
+  backdrop-filter: blur(4px);                     /* 4px 模糊 */
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.2);     /* 更轻的半透明边框 */
   box-shadow: 
-    0 8px 32px rgba(0, 0, 0, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 40px 50px -32px rgba(0, 0, 0, 0.05),        /* 外层柔和阴影 */
+    inset 0 0 20px rgba(255, 255, 255, 0.25);     /* 关键内发光 */
+  border-radius: 40px;                            /* 设计统一圆角 */
+  transition: transform 0.3s cubic-bezier(0.4,0,0.2,1), box-shadow 0.3s;
+  will-change: transform;
 }
 
 /* 轻量级毛玻璃（用于输入框等） */

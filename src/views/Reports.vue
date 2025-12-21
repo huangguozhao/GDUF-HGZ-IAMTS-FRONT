@@ -351,53 +351,13 @@
       <div v-if="currentReport" class="report-detail">
         <!-- 顶部概览卡片 -->
         <div class="detail-overview">
-          <div class="overview-card">
-            <div class="card-icon success-icon">✅</div>
-            <div class="card-content">
-              <div class="card-label">通过用例</div>
-              <div class="card-value success-text">{{ currentReport.passedCases || 0 }}</div>
-            </div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="card-icon danger-icon">❌</div>
-            <div class="card-content">
-              <div class="card-label">失败用例</div>
-              <div class="card-value danger-text">{{ currentReport.failedCases || 0 }}</div>
-            </div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="card-icon warning-icon">⚠️</div>
-            <div class="card-content">
-              <div class="card-label">跳过用例</div>
-              <div class="card-value warning-text">{{ currentReport.skippedCases || 0 }}</div>
-            </div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="card-icon info-icon">📊</div>
-            <div class="card-content">
-              <div class="card-label">总用例数</div>
-              <div class="card-value">{{ currentReport.totalCases || 0 }}</div>
-            </div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="card-icon primary-icon">🎯</div>
-            <div class="card-content">
-              <div class="card-label">成功率</div>
-              <div class="card-value primary-text">{{ currentReport.successRate }}%</div>
-            </div>
-          </div>
-          
-          <div class="overview-card">
-            <div class="card-icon time-icon">⏱️</div>
-            <div class="card-content">
-              <div class="card-label">执行耗时</div>
-              <div class="card-value">{{ formatDuration(currentReport.duration) }}</div>
-            </div>
-          </div>
+          <!-- 使用封装后的 StatsCard 组件，视觉与交互保持一致 -->
+          <StatsCard label="通过用例" :value="currentReport.passedCases || 0" icon="✅" variant="success" />
+          <StatsCard label="失败用例" :value="currentReport.failedCases || 0" icon="❌" variant="danger" />
+          <StatsCard label="跳过用例" :value="currentReport.skippedCases || 0" icon="⚠️" variant="warning" />
+          <StatsCard label="总用例数" :value="currentReport.totalCases || 0" icon="📊" variant="info" />
+          <StatsCard label="成功率" :value="`${currentReport.successRate}%`" icon="🎯" variant="primary" />
+          <StatsCard label="执行耗时" :value="formatDuration(currentReport.duration)" icon="⏱️" />
         </div>
 
         <!-- 标签页内容 -->
@@ -406,20 +366,21 @@
           <el-tab-pane label="📊 数据可视化" name="charts">
             <div class="charts-container">
               <div class="chart-row">
-                <div class="chart-card chart-half">
-                  <div class="chart-title">测试用例分布</div>
-                  <div ref="pieChartRef" class="chart-content"></div>
+                <div class="chart-half">
+                  <ChartCard title="测试用例分布">
+                    <div ref="pieChartRef" class="chart-content"></div>
+                  </ChartCard>
                 </div>
-                <div class="chart-card chart-half">
-                  <div class="chart-title">成功率仪表盘</div>
-                  <div ref="gaugeChartRef" class="chart-content"></div>
+                <div class="chart-half">
+                  <ChartCard title="成功率仪表盘">
+                    <div ref="gaugeChartRef" class="chart-content"></div>
+                  </ChartCard>
                 </div>
               </div>
               <div class="chart-row">
-                <div class="chart-card chart-full">
-                  <div class="chart-title">测试结果统计</div>
+                <ChartCard title="测试结果统计" class="chart-full">
                   <div ref="barChartRef" class="chart-content"></div>
-                </div>
+                </ChartCard>
               </div>
             </div>
           </el-tab-pane>
@@ -645,6 +606,8 @@ import {
   Download,
   Delete
 } from '@element-plus/icons-vue'
+import StatsCard from '../components/ui/StatsCard.vue'
+import ChartCard from '../components/ui/ChartCard.vue'
 import {
   getReportList,
   getReportById,
