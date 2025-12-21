@@ -516,7 +516,7 @@
           </div>
 
           <div class="response-code-editor">
-            <pre class="code-content"><code>{{ formattedResponse }}</code></pre>
+            <pre class="code-content"><code class="language-json" v-html="highlightedResponse"></code></pre>
           </div>
             </div>
           </transition>
@@ -1745,6 +1745,10 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+// Syntax highlighting
+import Prism from 'prismjs'
+import 'prismjs/components/prism-json'
+import 'prismjs/themes/prism.css'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   CircleCloseFilled, 
@@ -3504,6 +3508,16 @@ const actualResponse = reactive({
 })
 
 const formattedResponse = ref('暂无执行结果')
+const highlightedResponse = ref('')
+
+watch(formattedResponse, (val) => {
+  try {
+    const code = typeof val === 'string' ? val : JSON.stringify(val, null, 2)
+    highlightedResponse.value = Prism.highlight(code, Prism.languages.json, 'json')
+  } catch (e) {
+    highlightedResponse.value = String(val)
+  }
+}, { immediate: true })
 
 // 加载最新的执行结果
 const loadLatestExecutionResult = async () => {
