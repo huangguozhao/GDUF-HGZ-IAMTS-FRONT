@@ -1,25 +1,29 @@
 <template>
   <el-container class="layout-container">
     <!-- 顶部标题栏 -->
-    <el-header class="header">
+    <el-header class="header glass-card">
       <div class="header-left">
-        <h1 class="system-title">接口自动化管理</h1>
+        <h1 class="system-title text-gradient-primary">接口自动化管理</h1>
         <p class="system-subtitle">API AutoOps</p>
       </div>
       <div class="header-right">
-        <el-link href="#" class="nav-link">首页</el-link>
-        <el-input
-          v-model="searchText"
-          placeholder="搜索..."
-          class="search-input"
-          :prefix-icon="Search"
-        />
-        <el-badge :value="3" class="notification-badge">
-          <el-icon class="notification-icon">
-            <Bell />
-          </el-icon>
-        </el-badge>
-        <div class="user-info" @click="handleUserClick">
+        <el-link href="#" class="nav-link hover-scale">首页</el-link>
+        <div class="search-wrapper">
+          <el-input
+            v-model="searchText"
+            placeholder="搜索..."
+            class="search-input modern-input"
+            :prefix-icon="Search"
+          />
+        </div>
+        <div class="notification-wrapper glass-btn hover-lift" @click="handleNotificationClick">
+          <el-badge :value="3" class="notification-badge">
+            <el-icon class="notification-icon">
+              <Bell />
+            </el-icon>
+          </el-badge>
+        </div>
+        <div class="user-info glass-btn hover-lift clickable" @click="handleUserClick">
           <el-avatar :size="40" class="user-avatar">
             <el-icon><User /></el-icon>
           </el-avatar>
@@ -134,6 +138,11 @@ const handleMenuSelect = (index) => {
   }
 }
 
+const handleNotificationClick = () => {
+  // TODO: 处理通知点击事件
+  console.log('点击了通知')
+}
+
 const handleUserClick = async () => {
   try {
     await ElMessageBox.confirm(
@@ -161,52 +170,112 @@ const handleUserClick = async () => {
 }
 
 .header {
-  background: #fff;
-  border-bottom: 1px solid #e4e7ed;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(228, 231, 237, 0.5);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 60px;
+  padding: 0 24px;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  height: 64px;
   flex-shrink: 0;
+  position: relative;
+  z-index: 100;
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
+  gap: 2px;
 }
 
 .system-title {
   font-family: '楷体', 'KaiTi', serif;
-  font-size: 30px;
+  font-size: 28px;
   font-weight: bold;
-  color: #303133;
   margin: 0;
-  line-height: 1;
+  line-height: 1.2;
+  letter-spacing: 1px;
 }
 
 .system-subtitle {
-  font-size: 14px;
+  font-size: 13px;
   color: #909399;
   margin: 0;
-  margin-top: 2px;
+  font-weight: 400;
+  letter-spacing: 0.5px;
 }
 
 .header-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .nav-link {
-  font-size: 16px;
+  font-size: 15px;
   color: #606266;
   text-decoration: none;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
-.search-input {
-  width: 200px;
+.nav-link:hover {
+  color: #1890ff;
+  background: rgba(24, 144, 255, 0.08);
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-wrapper :deep(.el-input) {
+  width: 240px;
+}
+
+.search-wrapper :deep(.el-input__wrapper) {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(228, 231, 237, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+  padding: 8px 12px;
+}
+
+.search-wrapper :deep(.el-input__wrapper:hover) {
+  border-color: #1890ff;
+  box-shadow: 0 2px 12px rgba(24, 144, 255, 0.15);
+}
+
+.search-wrapper :deep(.el-input.is-focus .el-input__wrapper) {
+  border-color: #1890ff;
+  box-shadow: 
+    0 0 0 3px rgba(24, 144, 255, 0.1),
+    0 2px 12px rgba(24, 144, 255, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.search-wrapper :deep(.el-input__inner) {
+  font-size: 14px;
+}
+
+.notification-wrapper {
+  padding: 8px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  height: 40px;
+  cursor: pointer;
 }
 
 .notification-badge {
@@ -216,38 +285,64 @@ const handleUserClick = async () => {
 .notification-icon {
   font-size: 20px;
   color: #606266;
+  transition: color 0.2s ease;
+}
+
+.notification-wrapper:hover .notification-icon {
+  color: #1890ff;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 12px;
   cursor: pointer;
+  min-width: 140px;
 }
 
 .user-avatar {
-  background-color: #409eff;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+  flex-shrink: 0;
 }
 
 .user-details {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .user-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-team {
   font-size: 12px;
   color: #909399;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dropdown-icon {
   font-size: 12px;
   color: #c0c4cc;
+  transition: transform 0.2s ease, color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.user-info:hover .dropdown-icon {
+  color: #606266;
+  transform: translateY(1px);
 }
 
 .sidebar {
@@ -378,5 +473,59 @@ const handleUserClick = async () => {
 
 .main-content::-webkit-scrollbar-track {
   background: #f5f7fa;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 16px;
+    height: 56px;
+  }
+
+  .system-title {
+    font-size: 20px;
+  }
+
+  .system-subtitle {
+    font-size: 11px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .nav-link {
+    display: none;
+  }
+
+  .search-wrapper :deep(.el-input) {
+    width: 140px;
+  }
+
+  .user-info {
+    min-width: auto;
+    padding: 4px 8px 4px 4px;
+    gap: 8px;
+  }
+
+  .user-details {
+    display: none;
+  }
+
+  .dropdown-icon {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-wrapper {
+    display: none;
+  }
+
+  .notification-wrapper {
+    min-width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
 }
 </style>

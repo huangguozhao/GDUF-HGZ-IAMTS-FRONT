@@ -1,99 +1,23 @@
 <template>
   <div class="home-page">
-    <div class="welcome-section">
-      <h2 class="welcome-title">您好,张工程师,欢迎回来!</h2>
-      <p class="current-date">{{ currentDate }}</p>
-    </div>
+    <!-- 欢迎区域 -->
+    <WelcomeSection />
     
+    <!-- 指标卡片区域 -->
     <div class="summary-section">
       <div class="summary-text">
         您有5个待处理任务,2个高优先级问题待解决
       </div>
-      <div class="summary-cards">
-        <el-card class="summary-card">
-          <div class="card-content">
-            <div class="card-title">总用例数</div>
-            <div class="card-value">587</div>
-            <div class="card-change positive">+12</div>
-          </div>
-        </el-card>
-        <el-card class="summary-card">
-          <div class="card-content">
-            <div class="card-title">测试通过率</div>
-            <div class="card-value">92.7%</div>
-            <div class="card-change positive">+1.5%</div>
-          </div>
-        </el-card>
-        <el-card class="summary-card">
-          <div class="card-content">
-            <div class="card-title">活跃项目</div>
-            <div class="card-value">14</div>
-            <div class="card-change">+0</div>
-          </div>
-        </el-card>
-        <el-card class="summary-card">
-          <div class="card-content">
-            <div class="card-title">接口覆盖率</div>
-            <div class="card-value">86.3%</div>
-            <div class="card-change positive">+0.8%</div>
-          </div>
-        </el-card>
-      </div>
+      <MetricsGrid :metrics="metricsData" />
     </div>
 
     <div class="content-grid">
-      <div class="left-section">
-        <div class="section-header">
-          <h3>最近编辑的项目</h3>
-          <el-link href="#" class="view-all-link">查看全部</el-link>
-        </div>
-        <div class="project-list">
-          <el-card class="project-card">
-            <div class="project-content">
-              <div class="project-title">电商支付系统</div>
-              <div class="project-desc">支付接口与退款流程自动化测试</div>
-              <div class="project-date">2024-03-10 14:30</div>
-              <div class="project-progress">
-                <el-progress :percentage="80" color="#67c23a" />
-                <span class="progress-label">测试覆盖率</span>
-              </div>
-              <div class="project-tags">
-                <el-tag size="small" type="success">支付</el-tag>
-                <el-tag size="small" type="info">电商</el-tag>
-              </div>
-            </div>
-          </el-card>
-          <el-card class="project-card">
-            <div class="project-content">
-              <div class="project-title">用户中心系统</div>
-              <div class="project-desc">用户注册、登录、权限管理接口测试</div>
-              <div class="project-date">2024-03-09 11:20</div>
-              <div class="project-progress">
-                <el-progress :percentage="65" color="#409eff" />
-                <span class="progress-label">测试覆盖率</span>
-              </div>
-              <div class="project-tags">
-                <el-tag size="small" type="primary">用户</el-tag>
-                <el-tag size="small" type="warning">权限</el-tag>
-              </div>
-            </div>
-          </el-card>
-          <el-card class="project-card">
-            <div class="project-content">
-              <div class="project-title">物流管理平台</div>
-              <div class="project-desc">订单追踪与配送状态更新接口测试</div>
-              <div class="project-date">2024-03-08 16:45</div>
-              <div class="project-progress">
-                <el-progress :percentage="42" color="#e6a23c" />
-                <span class="progress-label">测试覆盖率</span>
-              </div>
-              <div class="project-tags">
-                <el-tag size="small" type="warning">物流</el-tag>
-                <el-tag size="small" type="info">订单</el-tag>
-              </div>
-            </div>
-          </el-card>
-        </div>
+      <div class="left-section glass-card rounded-xl">
+        <RecentProjects 
+          :projects="recentProjects" 
+          @view-all="handleViewAllProjects"
+          @project-action="handleProjectAction"
+        />
       </div>
 
       <div class="right-section">
@@ -188,10 +112,87 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import WelcomeSection from '@/components/home/WelcomeSection.vue'
+import MetricsGrid from '@/components/home/MetricsGrid.vue'
+import RecentProjects from '@/components/home/RecentProjects.vue'
 
-const currentDate = ref('2024年3月11日 星期一')
 const timeRange = ref('7days')
+
+// 指标数据
+const metricsData = computed(() => [
+  {
+    title: '总用例数',
+    value: '587',
+    change: '+12',
+    changeUnit: '',
+    showChart: false
+  },
+  {
+    title: '测试通过率',
+    value: '92.7%',
+    change: '+1.5',
+    changeUnit: '%',
+    showChart: false
+  },
+  {
+    title: '活跃项目',
+    value: '14',
+    change: '+0',
+    changeUnit: '',
+    showChart: false
+  },
+  {
+    title: '接口覆盖率',
+    value: '86.3%',
+    change: '+0.8',
+    changeUnit: '%',
+    showChart: false
+  }
+])
+
+// 最近编辑的项目数据
+const recentProjects = computed(() => [
+  {
+    id: 1,
+    name: '电商支付系统',
+    description: '支付接口与退款流程自动化测试',
+    updateTime: '2024-03-10 14:30',
+    coverage: 80,
+    tags: ['支付', '电商'],
+    owner: null
+  },
+  {
+    id: 2,
+    name: '用户中心系统',
+    description: '用户注册、登录、权限管理接口测试',
+    updateTime: '2024-03-09 11:20',
+    coverage: 65,
+    tags: ['用户', '权限'],
+    owner: null
+  },
+  {
+    id: 3,
+    name: '物流管理平台',
+    description: '订单追踪与配送状态更新接口测试',
+    updateTime: '2024-03-08 16:45',
+    coverage: 42,
+    tags: ['物流', '订单'],
+    owner: null
+  }
+])
+
+// 处理查看全部项目
+const handleViewAllProjects = () => {
+  console.log('查看全部项目')
+  // TODO: 导航到项目列表页面
+}
+
+// 处理项目操作
+const handleProjectAction = ({ command, project }) => {
+  console.log('项目操作:', command, project)
+  // TODO: 根据命令执行相应操作
+}
 </script>
 
 <style scoped>
@@ -200,139 +201,34 @@ const timeRange = ref('7days')
   margin: 0 auto;
 }
 
-.welcome-section {
-  margin-bottom: 30px;
-}
-
-.welcome-title {
-  font-size: 24px;
-  color: #303133;
-  margin: 0 0 10px 0;
-}
-
-.current-date {
-  font-size: 16px;
-  color: #606266;
-  margin: 0;
-}
-
 .summary-section {
-  margin-bottom: 30px;
+  margin-bottom: 32px;
 }
 
 .summary-text {
   font-size: 14px;
   color: #606266;
   margin-bottom: 20px;
-}
-
-.summary-cards {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-bottom: 20px;
-}
-
-.summary-card {
-  text-align: center;
-}
-
-.card-content {
-  padding: 20px;
-}
-
-.card-title {
-  font-size: 14px;
-  color: #909399;
-  margin-bottom: 10px;
-}
-
-.card-value {
-  font-size: 28px;
-  font-weight: bold;
-  color: #303133;
-  margin-bottom: 5px;
-}
-
-.card-change {
-  font-size: 12px;
-  color: #909399;
-}
-
-.card-change.positive {
-  color: #67c23a;
+  padding: 0 4px;
+  font-weight: 500;
 }
 
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 30px;
-  margin-bottom: 30px;
+  gap: 24px;
+  margin-bottom: 32px;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
+.left-section {
+  min-height: 400px;
 }
 
-.section-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: #303133;
-}
-
-.view-all-link, .view-more-link {
-  font-size: 14px;
-}
-
-.project-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.project-card {
-  margin-bottom: 0;
-}
-
-.project-content {
-  padding: 15px;
-}
-
-.project-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 8px;
-}
-
-.project-desc {
-  font-size: 14px;
-  color: #606266;
-  margin-bottom: 8px;
-}
-
-.project-date {
-  font-size: 12px;
-  color: #909399;
-  margin-bottom: 10px;
-}
-
-.project-progress {
-  margin-bottom: 10px;
-}
-
-.progress-label {
-  font-size: 12px;
-  color: #909399;
-  margin-left: 10px;
-}
-
-.project-tags {
-  display: flex;
-  gap: 5px;
+/* 响应式 */
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .chart-section {
