@@ -275,7 +275,7 @@ const roleOptions = [
 }
 
 /* roleOptions default list (visual only) */
-</style>
+ 
 
 .btn-delete {
   padding: 6px 12px;
