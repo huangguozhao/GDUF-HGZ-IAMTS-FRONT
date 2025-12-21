@@ -20,20 +20,11 @@
         />
       </div>
 
-      <div class="right-section">
-        <div class="section-header">
-          <h3>近七天测试执行情况</h3>
-          <el-select v-model="timeRange" placeholder="最近7天" size="small">
-            <el-option label="最近7天" value="7days" />
-            <el-option label="最近30天" value="30days" />
-          </el-select>
-        </div>
-        <div class="chart-section">
-          <div class="chart-placeholder">
-            <p>测试执行趋势图</p>
-            <p class="chart-desc">本周测试通过率提升3.2%,性能表现稳定</p>
-          </div>
-        </div>
+      <div class="right-section glass-card rounded-xl">
+        <TestExecutionChart
+          :time-range="timeRange"
+          @time-range-change="handleTimeRangeChange"
+        />
       </div>
     </div>
 
@@ -116,6 +107,7 @@ import { ref, computed } from 'vue'
 import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
 import RecentProjects from '@/components/home/RecentProjects.vue'
+import TestExecutionChart from '@/components/home/TestExecutionChart.vue'
 
 const timeRange = ref('7days')
 
@@ -193,6 +185,13 @@ const handleProjectAction = ({ command, project }) => {
   console.log('项目操作:', command, project)
   // TODO: 根据命令执行相应操作
 }
+
+// 处理时间范围变化
+const handleTimeRangeChange = (value) => {
+  timeRange.value = value
+  // TODO: 根据时间范围重新加载图表数据
+  console.log('时间范围变化:', value)
+}
 </script>
 
 <style scoped>
@@ -231,25 +230,8 @@ const handleProjectAction = ({ command, project }) => {
   }
 }
 
-.chart-section {
-  background: #fff;
-  border-radius: 4px;
-  padding: 20px;
-  text-align: center;
-}
-
-.chart-placeholder {
-  height: 200px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: #909399;
-}
-
-.chart-desc {
-  font-size: 14px;
-  margin-top: 10px;
+.right-section {
+  min-height: 400px;
 }
 
 .bottom-grid {
