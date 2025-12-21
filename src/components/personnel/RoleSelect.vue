@@ -80,6 +80,12 @@ function select(val) {
   query.value = ''
 }
 
+// emit open/close for parent to react (so parent can prevent hover/stacking issues)
+watch(open, (v) => {
+  if (v) emit('open')
+  else emit('close')
+})
+
 function onClickOutside(e) {
   if (!root.value) return
   if (!root.value.contains(e.target)) {

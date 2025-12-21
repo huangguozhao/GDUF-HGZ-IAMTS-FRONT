@@ -1,5 +1,5 @@
 <template>
-  <div class="assignment-table-wrapper assignment-card">
+  <div :class="['assignment-table-wrapper assignment-card', { 'dropdown-active': activeRoleDropdownId !== null }]">
     <table class="assignment-table">
       <thead>
         <tr>
@@ -11,7 +11,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="user in userList" :key="user.id" class="user-row">
+        <tr v-for="user in userList" :key="user.id" :class="['user-row', { 'dropdown-open': activeRoleDropdownId === user.id }]" tabindex="-1">
           <td class="col-name">
             <div class="user-cell">
               <img 
@@ -33,6 +33,8 @@
                 :options="roleOptions"
                 :disabled="isRoleChanging(user.id)"
                 @change="val => handleRoleChange(user, val)"
+                @open="() => activeRoleDropdownId = user.id"
+                @close="() => { if (activeRoleDropdownId === user.id) activeRoleDropdownId = null }"
               />
             </div>
           </td>
@@ -74,6 +76,9 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['role-change', 'remove-member']);
+
+import { ref } from 'vue'
+const activeRoleDropdownId = ref(null)
 
 const isRoleChanging = (userId) => {
   return props.roleChangingIds.has(userId);
@@ -172,11 +177,25 @@ const roleOptions = [
 .user-row {
   transition: transform .16s ease, box-shadow .16s ease, background .12s;
   border-radius: 8px;
+  position: relative;
+  z-index: 1;
 }
 .user-row:hover {
   transform: translateY(-6px);
   box-shadow: 0 10px 26px rgba(15,23,42,0.06);
   background: rgba(240, 248, 255, 0.6);
+}
+
+/* when any dropdown is open, disable lift for all rows to avoid overlay issues */
+.assignment-table-wrapper.dropdown-active .user-row:hover {
+  transform: none;
+  box-shadow: none;
+  background: transparent;
+}
+
+/* specific row when its dropdown is open: raise z-index so dropdown appears above others */
+.user-row.dropdown-open {
+  z-index: 80;
 }
 
 .user-cell {
