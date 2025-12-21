@@ -185,7 +185,7 @@ const handleTimeRangeChange = (value) => {
 
 .chart-content {
   display: grid;
-  grid-template-columns: 1.5fr 1fr;
+  grid-template-columns: 1fr; /* 上下布局：单列，折线图在上，饼图在下 */
   gap: 20px;
   margin-bottom: 16px;
 }
