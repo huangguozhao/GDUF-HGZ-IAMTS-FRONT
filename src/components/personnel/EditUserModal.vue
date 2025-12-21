@@ -3,74 +3,88 @@
     <div class="modal-content">
       <div class="modal-header">
         <h2>编辑用户</h2>
-        <button class="close-btn" @click="handleClose">×</button>
+        <button class="close-btn" @click="handleClose" aria-label="关闭">×</button>
       </div>
 
       <div class="modal-body">
-        <form @submit.prevent="handleSubmit">
-          <div class="form-group">
-            <label>用户名 *</label>
-            <input 
-              v-model="formData.name" 
-              type="text" 
-              placeholder="请输入用户名"
-              required
-            />
-          </div>
+        <form @submit.prevent="handleSubmit" novalidate>
+          <div class="form-grid">
+            <div class="left-column">
+              <div class="form-group">
+                <label>用户名 *</label>
+                <input 
+                  v-model="formData.name" 
+                  type="text" 
+                  placeholder="请输入用户名"
+                  :class="{ invalid: validation.name }"
+                  autofocus
+                />
+                <div v-if="validation.name" class="field-error">{{ validation.name }}</div>
+              </div>
 
-          <div class="form-group">
-            <label>邮箱 *</label>
-            <input 
-              v-model="formData.email" 
-              type="email" 
-              placeholder="请输入邮箱"
-              required
-            />
-          </div>
+              <div class="form-group">
+                <label>邮箱 *</label>
+                <input 
+                  v-model="formData.email" 
+                  type="email" 
+                  placeholder="请输入邮箱"
+                  :class="{ invalid: validation.email }"
+                />
+                <div v-if="validation.email" class="field-error">{{ validation.email }}</div>
+              </div>
 
-          <div class="form-group">
-            <label>电话</label>
-            <input 
-              v-model="formData.phone" 
-              type="tel" 
-              placeholder="请输入电话"
-            />
-          </div>
+              <div class="form-group">
+                <label>电话</label>
+                <input 
+                  v-model="formData.phone" 
+                  type="tel" 
+                  placeholder="请输入电话"
+                />
+              </div>
 
-          <div class="form-group">
-            <label>职位</label>
-            <input 
-              v-model="formData.position" 
-              type="text" 
-              placeholder="请输入职位"
-            />
-          </div>
+              <div class="form-group">
+                <label>描述</label>
+                <textarea 
+                  v-model="formData.description" 
+                  placeholder="请输入描述"
+                  rows="4"
+                ></textarea>
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label>部门ID</label>
-            <input 
-              v-model="formData.departmentId" 
-              type="text" 
-              placeholder="请输入部门ID"
-            />
-          </div>
+            <div class="right-column">
+              <div class="avatar-area">
+                <div class="avatar-preview" v-if="avatarPreview" :style="{ backgroundImage: `url(${avatarPreview})` }" role="img" :aria-label=\"`头像预览 ${formData.name}`\"></div>
+                <div v-else class="avatar-placeholder-lg">{{ avatarInitials }}</div>
+                <div class="avatar-actions">
+                  <label class="upload-btn">
+                    上传头像
+                    <input type="file" accept="image/*" @change="handleFileChange" />
+                  </label>
+                  <button type="button" class="btn btn-secondary" @click="clearAvatar" v-if="avatarPreview">移除</button>
+                </div>
+              </div>
 
-          <div class="form-group">
-            <label>员工ID</label>
-            <input 
-              v-model="formData.employeeId" 
-              type="text" 
-              placeholder="请输入员工ID"
-            />
-          </div>
+              <div class="form-group">
+                <label>职位</label>
+                <input 
+                  v-model="formData.position" 
+                  type="text" 
+                  placeholder="请输入职位"
+                />
+              </div>
 
-          <div class="form-group">
-            <label>描述</label>
-            <textarea 
-              v-model="formData.description" 
-              placeholder="请输入描述"
-              rows="3"
-            ></textarea>
+              <div class="form-group two-columns">
+                <div>
+                  <label>部门ID</label>
+                  <input v-model="formData.departmentId" type="text" placeholder="部门ID" />
+                </div>
+                <div>
+                  <label>员工ID</label>
+                  <input v-model="formData.employeeId" type="text" placeholder="员工ID" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal-footer">
@@ -78,7 +92,7 @@
               取消
             </button>
             <button type="submit" class="btn btn-primary" :disabled="isUpdating">
-              {{ isUpdating ? '更新中...' : '确定' }}
+              {{ isUpdating ? '更新中...' : '保存' }}
             </button>
           </div>
         </form>
@@ -89,6 +103,8 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   visible: {
@@ -136,17 +152,59 @@ watch(
   { immediate: true }
 );
 
+// avatar preview support
+const avatarPreview = ref(null)
+const avatarFile = ref(null)
+
+watch(() => props.user, (u) => {
+  if (u && u.avatarUrl) {
+    avatarPreview.value = u.avatarUrl
+  } else {
+    avatarPreview.value = null
+  }
+}, { immediate: true })
+
+const avatarInitials = computed(() => {
+  const n = formData.value.name || ''
+  if (!n) return ''
+  return n.length <= 2 ? n : n.slice(0,2)
+})
+
+const validation = ref({ name: '', email: '' })
+
 const handleClose = () => {
   emit('close');
 };
 
 const handleSubmit = () => {
-  if (!formData.value.name || !formData.value.email) {
-    alert('用户名和邮箱为必填项');
-    return;
-  }
-  emit('submit', props.user.id, formData.value);
+  // simple validation
+  validation.value = { name: '', email: '' }
+  let ok = true
+  if (!formData.value.name) { validation.value.name = '用户名为必填项'; ok = false }
+  if (!formData.value.email || !/^\S+@\S+\.\S+$/.test(formData.value.email)) { validation.value.email = '请输入有效邮箱'; ok = false }
+  if (!ok) return
+
+  const payload = { ...formData.value }
+  // include avatarFile if uploaded
+  if (avatarFile.value) payload.avatarFile = avatarFile.value
+  emit('submit', props.user?.id, payload);
 };
+
+function handleFileChange(e) {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  avatarFile.value = f
+  const reader = new FileReader()
+  reader.onload = () => {
+    avatarPreview.value = reader.result
+  }
+  reader.readAsDataURL(f)
+}
+
+function clearAvatar() {
+  avatarFile.value = null
+  avatarPreview.value = null
+}
 </script>
 
 <style scoped>
@@ -279,6 +337,33 @@ const handleSubmit = () => {
 .btn-secondary:hover {
   border-color: #40a9ff;
   color: #40a9ff;
+}
+
+/* Layout improvements */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 18px;
+}
+.left-column { min-width: 0; }
+.right-column { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
+
+.avatar-area { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 12px; border: 1px dashed #eef3fb; border-radius: 8px; background: #fbfdff; }
+.avatar-preview { width: 96px; height: 96px; border-radius: 8px; background-size: cover; background-position: center; box-shadow: 0 6px 18px rgba(15,23,42,0.06); }
+.avatar-placeholder-lg { width: 96px; height: 96px; border-radius: 8px; background: linear-gradient(90deg,#e9eefb,#f3f6fb); display:flex; align-items:center; justify-content:center; color:#1f2d3d; font-weight:700; font-size:20px; }
+.avatar-actions { display:flex; gap:8px; align-items:center; }
+.upload-btn { background:#fff; border:1px solid #e6eef8; padding:6px 10px; border-radius:8px; cursor:pointer; display:inline-block; }
+.upload-btn input[type=file]{ display:none; }
+
+.field-error { color: #ff4d4f; font-size: 12px; margin-top: 6px; }
+
+.two-columns { display:flex; gap:8px; }
+.two-columns input { width:100%; }
+
+@media (max-width: 800px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .right-column { order: -1; }
+  .modal-content { width: 96%; max-width: 720px; }
 }
 </style>
 
