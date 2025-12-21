@@ -54,7 +54,13 @@
 
             <div class="right-column">
               <div class="avatar-area">
-                <div class="avatar-preview" v-if="avatarPreview" :style="{ backgroundImage: `url(${avatarPreview})` }" role="img" :aria-label=\"`头像预览 ${formData.name}`\"></div>
+                <div
+                  class="avatar-preview"
+                  v-if="avatarPreview"
+                  :style="{ backgroundImage: 'url(' + avatarPreview + ')' }"
+                  role="img"
+                  :aria-label="'头像预览 ' + (formData.name || '')"
+                ></div>
                 <div v-else class="avatar-placeholder-lg">{{ avatarInitials }}</div>
                 <div class="avatar-actions">
                   <label class="upload-btn">
@@ -102,8 +108,6 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-
 import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
