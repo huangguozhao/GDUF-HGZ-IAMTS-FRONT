@@ -310,6 +310,17 @@
           </el-radio-group>
         </div>
 
+        <!-- 折叠卡片：请求体 -->
+        <div class="collapsible-card">
+          <div class="collapsible-toggle" role="button" tabindex="0" @click="bodyCollapsed = !bodyCollapsed" @keydown.enter.prevent="bodyCollapsed = !bodyCollapsed" :aria-expanded="!bodyCollapsed">
+            <div class="collapsible-left">请求体预览</div>
+            <div class="collapsible-right">
+              <span class="small-muted">{{ bodyType.toUpperCase() }}</span>
+              <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+          </div>
+        </div>
+
         <!-- JSON格式 -->
         <div v-if="bodyType === 'json'" class="body-section">
           <el-table 
@@ -416,6 +427,7 @@
         </div>
       </div>
 
+
       <!-- 响应结果 -->
       <div v-if="activeTab === 'result'" class="tab-content result-content">
         <!-- 测试失败状态 -->
@@ -471,7 +483,18 @@
 
         <!-- 响应体内容 -->
         <div v-if="resultTab === 'response'" class="result-tab-content">
-          <div class="result-toolbar">
+          <div class="collapsible-card">
+            <div class="collapsible-toggle" role="button" tabindex="0" @click="responseCollapsed = !responseCollapsed" @keydown.enter.prevent="responseCollapsed = !responseCollapsed" :aria-expanded="!responseCollapsed">
+              <div class="collapsible-left">响应体</div>
+              <div class="collapsible-right">
+                <span class="small-muted">查看响应内容，点击展开/折叠</span>
+                <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+          </div>
+          <transition name="collapse">
+            <div v-show="!responseCollapsed">
+              <div class="result-toolbar">
             <div class="toolbar-left">
               <el-button size="small" :icon="CopyDocument" @click="copyResponse">复制</el-button>
               <el-button size="small" @click="formatResponse">格式化</el-button>
@@ -495,6 +518,8 @@
           <div class="response-code-editor">
             <pre class="code-content"><code>{{ formattedResponse }}</code></pre>
           </div>
+            </div>
+          </transition>
         </div>
 
         <!-- 断言结果 -->
@@ -1809,6 +1834,34 @@ onBeforeUnmount(() => {
 
 const activeTab = ref('basic')
 const deleteLoading = ref(false)
+// 折叠控制
+const bodyCollapsed = ref(false)
+const responseCollapsed = ref(false)
+
+// 折叠区摘要文本
+const bodySummary = computed(() => {
+  try {
+    if (bodyType === 'raw') {
+      return rawBody ? (rawBody.length > 120 ? rawBody.slice(0, 120) + '...' : rawBody) : '空'
+    }
+    if (bodyType === 'json') {
+      return (bodyParams?.length || 0) + ' 个字段'
+    }
+    if (bodyType === 'form-data') {
+      return (formDataParams?.length || 0) + ' 个字段'
+    }
+    return ''
+  } catch (e) {
+    return ''
+  }
+})
+
+const responseSummary = computed(() => {
+  if (actualResponse && (actualResponse.statusCode || actualResponse.responseCode)) {
+    return `${actualResponse.statusCode || '-'} · ${responseTime || '-'}`
+  }
+  return '暂无响应'
+})
 
 // 项目和模块相关状态
 const availableProjects = ref([])
@@ -4448,6 +4501,39 @@ onMounted(() => {
   background: #f5f7fa;
   padding: 16px;
 }
+
+/* 折叠卡片样式 */
+.collapsible-card {
+  border: 1px solid #eef2f6;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: white;
+}
+.collapsible-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  cursor: pointer;
+  gap: 12px;
+}
+.collapsible-title, .collapsible-left {
+  font-weight: 600;
+  color: #303133;
+}
+.collapsible-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #909399;
+}
+.collapse-icon { transform: rotate(0deg); transition: transform 0.2s; }
+.collapsible-toggle[aria-expanded=\"false\"] .collapse-icon { transform: rotate(-90deg); }
+.small-muted { font-size: 12px; color: #909399; }
+.collapse-enter-active, .collapse-leave-active { transition: max-height 0.2s ease, opacity 0.2s ease; }
+.collapse-enter-from, .collapse-leave-to { max-height: 0; opacity: 0; }
+.collapse-enter-to, .collapse-leave-from { max-height: 800px; opacity: 1; }
 
 .code-content {
   margin: 0;
