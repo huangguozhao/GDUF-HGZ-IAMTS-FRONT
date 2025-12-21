@@ -28,11 +28,12 @@
           <td class="col-email">{{ user.email }}</td>
           <td class="col-role">
             <div class="role-select-wrapper">
-              <select 
+            <select 
                 class="role-select" 
                 :value="user.role"
                 @change="handleRoleChange(user, $event)"
                 :disabled="isRoleChanging(user.id)"
+                aria-label="选择角色"
               >
                 <option value="项目负责人">项目负责人</option>
                 <option value="项目管理员">项目管理员</option>
@@ -43,6 +44,7 @@
               <svg class="select-arrow" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                 <path fill="currentColor" d="M840.4 300H183.6c-19.7 0-30.7 20.8-18.5 35l328.4 380.8c9.4 10.9 29.2 10.9 38.6 0L858.9 335c12.2-14.2 1.2-35-18.5-35z"></path>
               </svg>
+              <span v-if="isRoleChanging(user.id)" class="role-loading" aria-hidden="true"></span>
             </div>
           </td>
           <td class="col-date">{{ user.createTime }}</td>
@@ -218,25 +220,27 @@ const handleDelete = (user) => {
 
 .role-select {
   width: 100%;
-  padding: 6px 28px 6px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 4px;
+  padding: 8px 36px 8px 14px;
+  border: 1px solid #e6eef8;
+  border-radius: 10px;
   background-color: #fff;
-  color: #262626;
+  color: #1f2937;
   font-size: 14px;
   cursor: pointer;
   appearance: none;
-  transition: all 0.3s;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  box-shadow: 0 2px 8px rgba(15,23,42,0.04);
 }
 
 .role-select:hover:not(:disabled) {
-  border-color: #40a9ff;
+  border-color: #cfeeff;
+  transform: translateY(-2px);
 }
 
 .role-select:focus {
   outline: none;
   border-color: #1890ff;
-  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(24,144,255,0.10);
 }
 
 .role-select:disabled {
@@ -253,6 +257,22 @@ const handleDelete = (user) => {
   height: 12px;
   pointer-events: none;
   color: #8c8c8c;
+}
+
+/* loading spinner next to select when updating */
+.role-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.08);
+  border-top-color: #1890ff;
+  animation: spin 0.9s linear infinite;
+  margin-left: 8px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .btn-delete {
