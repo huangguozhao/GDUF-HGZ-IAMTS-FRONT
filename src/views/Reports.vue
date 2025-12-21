@@ -348,16 +348,17 @@
       class="report-detail-dialog"
       top="5vh"
     >
-      <div v-if="currentReport" class="report-detail">
+      <transition name="fade-scale" mode="out-in">
+        <div v-if="currentReport" class="report-detail">
         <!-- 顶部概览卡片 -->
         <div class="detail-overview">
           <!-- 使用封装后的 StatsCard 组件，视觉与交互保持一致 -->
-          <StatsCard label="通过用例" :value="currentReport.passedCases || 0" icon="✅" variant="success" />
-          <StatsCard label="失败用例" :value="currentReport.failedCases || 0" icon="❌" variant="danger" />
-          <StatsCard label="跳过用例" :value="currentReport.skippedCases || 0" icon="⚠️" variant="warning" />
-          <StatsCard label="总用例数" :value="currentReport.totalCases || 0" icon="📊" variant="info" />
-          <StatsCard label="成功率" :value="`${currentReport.successRate}%`" icon="🎯" variant="primary" />
-          <StatsCard label="执行耗时" :value="formatDuration(currentReport.duration)" icon="⏱️" />
+          <StatsCard flat label="通过用例" :value="currentReport.passedCases || 0" icon="✅" variant="success" />
+          <StatsCard flat label="失败用例" :value="currentReport.failedCases || 0" icon="❌" variant="danger" />
+          <StatsCard flat label="跳过用例" :value="currentReport.skippedCases || 0" icon="⚠️" variant="warning" />
+          <StatsCard flat label="总用例数" :value="currentReport.totalCases || 0" icon="📊" variant="info" />
+          <StatsCard flat label="成功率" :value="`${currentReport.successRate}%`" icon="🎯" variant="primary" />
+          <StatsCard flat label="执行耗时" :value="formatDuration(currentReport.duration)" icon="⏱️" />
         </div>
 
         <!-- 标签页内容 -->
@@ -367,18 +368,18 @@
             <div class="charts-container">
               <div class="chart-row">
                 <div class="chart-half">
-                  <ChartCard title="测试用例分布">
+                  <ChartCard flat title="测试用例分布">
                     <div ref="pieChartRef" class="chart-content"></div>
                   </ChartCard>
                 </div>
                 <div class="chart-half">
-                  <ChartCard title="成功率仪表盘">
+                  <ChartCard flat title="成功率仪表盘">
                     <div ref="gaugeChartRef" class="chart-content"></div>
                   </ChartCard>
                 </div>
               </div>
               <div class="chart-row">
-                <ChartCard title="测试结果统计" class="chart-full">
+                <ChartCard flat title="测试结果统计" class="chart-full">
                   <div ref="barChartRef" class="chart-content"></div>
                 </ChartCard>
               </div>
@@ -532,6 +533,7 @@
           </el-tab-pane>
         </el-tabs>
       </div>
+      </transition>
 
       <template #footer>
         <div class="dialog-footer-actions">
@@ -1567,6 +1569,37 @@ onMounted(() => {
 
 .report-detail {
   padding: 0;
+}
+
+/* 强化对话框样式：毛玻璃 + 内边距微调 */
+.report-detail-dialog {
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+}
+
+.report-detail {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 在较大屏幕上把概览和标签页并排显示以提升信息密度 */
+@media (min-width: 1200px) {
+  .report-detail {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  .detail-tabs {
+    grid-column: 2 / 3;
+  }
+  .detail-overview {
+    grid-column: 1 / 2;
+    margin-bottom: 0;
+  }
 }
 
 /* 顶部概览卡片 */

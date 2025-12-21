@@ -1,5 +1,5 @@
 <template>
-  <div class="overview-card glass-card hover-lift">
+  <div :class="['overview-card', flat ? '' : 'glass-card', 'hover-lift']">
     <div class="card-icon" :class="iconClass">
       <slot name="icon">{{ icon }}</slot>
     </div>
@@ -17,7 +17,8 @@ const props = defineProps({
   icon: { type: String, default: '' },
   label: { type: String, required: true },
   value: { type: [String, Number], default: '-' },
-  variant: { type: String, default: '' } // success/danger/warning/primary/info
+  variant: { type: String, default: '' }, // success/danger/warning/primary/info
+  flat: { type: Boolean, default: false }
 })
 
 const iconClass = computed(() => {

@@ -1,5 +1,5 @@
 <template>
-  <div class="chart-card glass-card">
+  <div :class="['chart-card', flat ? '' : 'glass-card']">
     <div class="chart-title">{{ title }}</div>
     <div class="chart-slot">
       <slot />
@@ -8,8 +8,9 @@
 </template>
 
 <script setup>
-defineProps({
-  title: { type: String, default: '' }
+const props = defineProps({
+  title: { type: String, default: '' },
+  flat: { type: Boolean, default: false }
 })
 </script>
 
