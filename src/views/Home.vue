@@ -31,23 +31,7 @@
     <div class="bottom-grid">
       <div class="bottom-left">
         <h3>系统资源状态</h3>
-        <div class="resource-list">
-          <div class="resource-item">
-            <div class="resource-label">CPU使用率</div>
-            <div class="resource-value">28%</div>
-            <div class="resource-chart cpu-chart"></div>
-          </div>
-          <div class="resource-item">
-            <div class="resource-label">内存使用率</div>
-            <div class="resource-value">45%</div>
-            <div class="resource-chart memory-chart"></div>
-          </div>
-          <div class="resource-item">
-            <div class="resource-label">磁盘空间</div>
-            <div class="resource-value">62%</div>
-            <div class="resource-chart disk-chart"></div>
-          </div>
-        </div>
+        <ResourceList :resources="resourceData" />
       </div>
 
       <div class="bottom-right">
@@ -108,6 +92,7 @@ import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
 import RecentProjects from '@/components/home/RecentProjects.vue'
 import TestExecutionChart from '@/components/home/TestExecutionChart.vue'
+import ResourceList from '@/components/home/ResourceList.vue'
 
 const timeRange = ref('7days')
 
@@ -192,6 +177,13 @@ const handleTimeRangeChange = (value) => {
   // TODO: 根据时间范围重新加载图表数据
   console.log('时间范围变化:', value)
 }
+
+// 系统资源数据（示例，可改为从 API 获取）
+const resourceData = computed(() => ([
+  { label: 'CPU使用率', value: '28%', percent: 28, color: 'linear-gradient(90deg, #67c23a 28%, #f0f0f0 28%)' },
+  { label: '内存使用率', value: '45%', percent: 45, color: 'linear-gradient(90deg, #409eff 45%, #f0f0f0 45%)' },
+  { label: '磁盘空间', value: '62%', percent: 62, color: 'linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%)' }
+]))
 </script>
 
 <style scoped>
