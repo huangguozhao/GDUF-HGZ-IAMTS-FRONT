@@ -28,23 +28,12 @@
           <td class="col-email">{{ user.email }}</td>
           <td class="col-role">
             <div class="role-select-wrapper">
-            <select 
-                class="role-select" 
+              <RoleSelect
                 :value="user.role"
-                @change="handleRoleChange(user, $event)"
+                :options="roleOptions"
                 :disabled="isRoleChanging(user.id)"
-                aria-label="选择角色"
-              >
-                <option value="项目负责人">项目负责人</option>
-                <option value="项目管理员">项目管理员</option>
-                <option value="开发人员">开发人员</option>
-                <option value="测试人员">测试人员</option>
-                <option value="只读成员">只读成员</option>
-              </select>
-              <svg class="select-arrow" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-                <path fill="currentColor" d="M840.4 300H183.6c-19.7 0-30.7 20.8-18.5 35l328.4 380.8c9.4 10.9 29.2 10.9 38.6 0L858.9 335c12.2-14.2 1.2-35-18.5-35z"></path>
-              </svg>
-              <span v-if="isRoleChanging(user.id)" class="role-loading" aria-hidden="true"></span>
+                @change="val => handleRoleChange(user, val)"
+              />
             </div>
           </td>
           <td class="col-date">{{ user.createTime }}</td>
@@ -67,6 +56,8 @@
 </template>
 
 <script setup>
+import RoleSelect from './RoleSelect.vue'
+
 const props = defineProps({
   userList: {
     type: Array,
@@ -92,8 +83,7 @@ const isDeletingId = (userId) => {
   return props.deletingIds.has(userId);
 };
 
-const handleRoleChange = (user, event) => {
-  const newRole = event.target.value;
+const handleRoleChange = (user, newRole) => {
   if (newRole !== user.role) {
     emit('role-change', user, newRole);
   }
@@ -102,6 +92,15 @@ const handleRoleChange = (user, event) => {
 const handleDelete = (user) => {
   emit('remove-member', user);
 };
+
+// default role options
+const roleOptions = [
+  { label: '项目负责人', value: '项目负责人' },
+  { label: '项目管理员', value: '项目管理员' },
+  { label: '开发人员', value: '开发人员' },
+  { label: '测试人员', value: '测试人员' },
+  { label: '只读成员', value: '只读成员' }
+];
 </script>
 
 <style scoped>
@@ -274,6 +273,9 @@ const handleDelete = (user) => {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* roleOptions default list (visual only) */
+</style>
 
 .btn-delete {
   padding: 6px 12px;
