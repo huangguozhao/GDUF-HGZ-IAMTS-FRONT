@@ -7,52 +7,61 @@
       </div>
 
       <div class="modal-body">
-        <form @submit.prevent="handleApply">
-          <div class="form-group">
-            <label>用户状态</label>
-            <select v-model="filterData.status">
-              <option value="">全部</option>
-              <option value="active">活跃</option>
-              <option value="pending">待审核</option>
-              <option value="inactive">已禁用</option>
-            </select>
-          </div>
+        <form @submit.prevent="handleApply" class="filter-form" novalidate>
+          <div class="filter-grid">
+            <div class="col">
+              <div class="form-group">
+                <label>用户状态</label>
+                <div class="status-chips" role="tablist" aria-label="用户状态">
+                  <button
+                    v-for="s in statusOptions"
+                    :key="s.value"
+                    type="button"
+                    :class="['chip', { active: filterData.status === s.value }]"
+                    @click="filterData.status = s.value"
+                  >
+                    {{ s.label }}
+                  </button>
+                </div>
+              </div>
 
-          <div class="form-group">
-            <label>职位</label>
-            <input 
-              v-model="filterData.position" 
-              type="text" 
-              placeholder="请输入职位"
-            />
-          </div>
+              <div class="form-group">
+                <label>职位</label>
+                <input
+                  v-model="filterData.position"
+                  type="text"
+                  placeholder="请输入职位（支持模糊匹配）"
+                  aria-label="职位"
+                />
+              </div>
+            </div>
 
-          <div class="form-group">
-            <label>开始日期</label>
-            <input 
-              v-model="filterData.startDate" 
-              type="date"
-            />
-          </div>
+            <div class="col">
+              <div class="form-group">
+                <label>日期范围</label>
+                <div class="date-row">
+                  <input v-model="filterData.startDate" type="date" aria-label="开始日期" />
+                  <span class="date-sep">—</span>
+                  <input v-model="filterData.endDate" type="date" aria-label="结束日期" />
+                </div>
+                <div v-if="dateError" class="field-error">{{ dateError }}</div>
+              </div>
 
-          <div class="form-group">
-            <label>结束日期</label>
-            <input 
-              v-model="filterData.endDate" 
-              type="date"
-            />
+              <div class="form-group">
+                <label>快捷筛选</label>
+                <div class="preset-row">
+                  <button type="button" class="preset" @click="applyPreset(7)">最近7天</button>
+                  <button type="button" class="preset" @click="applyPreset(30)">最近30天</button>
+                  <button type="button" class="preset" @click="applyPreset('all')">全部</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="handleReset">
-              重置
-            </button>
-            <button type="button" class="btn btn-secondary" @click="handleClose">
-              取消
-            </button>
-            <button type="submit" class="btn btn-primary">
-              应用筛选
-            </button>
+            <button type="button" class="btn btn-secondary" @click="handleReset">重置</button>
+            <button type="button" class="btn" @click="handleClose">取消</button>
+            <button type="submit" class="btn btn-primary" :disabled="!!dateError">应用筛选</button>
           </div>
         </form>
       </div>
@@ -62,6 +71,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import { computed } from 'vue';
 
 const props = defineProps({
   visible: {
@@ -82,6 +92,26 @@ const filterData = ref({
   startDate: '',
   endDate: '',
 });
+
+const statusOptions = [
+  { value: '', label: '全部' },
+  { value: 'active', label: '活跃' },
+  { value: 'pending', label: '待审核' },
+  { value: 'inactive', label: '已禁用' },
+]
+
+const dateError = ref('')
+
+const validateDates = () => {
+  dateError.value = ''
+  if (filterData.value.startDate && filterData.value.endDate) {
+    if (new Date(filterData.value.startDate) > new Date(filterData.value.endDate)) {
+      dateError.value = '开始日期不能晚于结束日期'
+    }
+  }
+}
+
+watch(() => [filterData.value.startDate, filterData.value.endDate], validateDates)
 
 // Watch for initial filters changes
 watch(
@@ -109,6 +139,19 @@ const handleReset = () => {
   };
   emit('reset', filterData.value);
 };
+
+function applyPreset(days) {
+  if (days === 'all') {
+    filterData.value.startDate = ''
+    filterData.value.endDate = ''
+    return
+  }
+  const end = new Date()
+  const start = new Date()
+  start.setDate(end.getDate() - (days - 1))
+  filterData.value.startDate = start.toISOString().slice(0,10)
+  filterData.value.endDate = end.toISOString().slice(0,10)
+}
 </script>
 
 <style scoped>
@@ -236,6 +279,37 @@ const handleReset = () => {
 .btn-secondary:hover {
   border-color: #40a9ff;
   color: #40a9ff;
+}
+
+/* Filter modal grid and chips */
+.filter-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.status-chips { display:flex; gap:8px; flex-wrap:wrap; }
+.chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #e6eef8;
+  background: #fff;
+  cursor: pointer;
+  font-size: 13px;
+}
+.chip.active {
+  background: linear-gradient(90deg,#1890ff,#40a9ff);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(24,144,255,0.08);
+}
+.date-row { display:flex; align-items:center; gap:8px; }
+.date-sep { color:#8c8c8c; }
+.preset-row { display:flex; gap:8px; margin-top:8px; }
+.preset { padding:6px 10px; border-radius:6px; border:1px solid #e6eef8; background:#fff; cursor:pointer; }
+.field-error { color:#ff4d4f; margin-top:6px; font-size:13px; }
+
+@media (max-width:600px) {
+  .filter-grid { grid-template-columns: 1fr; }
 }
 </style>
 
