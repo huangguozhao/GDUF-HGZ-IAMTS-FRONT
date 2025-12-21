@@ -1,10 +1,37 @@
 <template>
   <div class="user-management-tab">
-    <div v-if="loading" class="loading">加载中...</div>
-    
-    <div v-else-if="userList.length === 0" class="empty-state">
-      <p>暂无用户数据</p>
+  <div v-if="loading" class="loading-skeleton" aria-busy="true" aria-live="polite">
+    <div class="skeleton-table">
+      <div v-for="n in 6" :key="n" class="skeleton-row" role="row">
+        <div class="skeleton-cell avatar-cell">
+          <div class="skeleton-avatar"></div>
+        </div>
+        <div class="skeleton-cell">
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-cell">
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-cell">
+          <div class="skeleton-line medium"></div>
+        </div>
+        <div class="skeleton-cell">
+          <div class="skeleton-chip"></div>
+        </div>
+        <div class="skeleton-cell">
+          <div class="skeleton-line short"></div>
+        </div>
+        <div class="skeleton-cell actions-cell">
+          <div class="skeleton-btn"></div>
+          <div class="skeleton-btn small"></div>
+        </div>
+      </div>
     </div>
+  </div>
+  
+  <div v-else-if="userList.length === 0" class="empty-state">
+    <p>暂无用户数据</p>
+  </div>
 
     <div v-else class="table-wrapper">
       <table class="user-table">
@@ -350,6 +377,25 @@ const goToNextPage = () => {
   .user-table td[data-label]::before { content: attr(data-label); color: #8c8c8c; margin-right: 8px; font-size: 12px; }
   .actions { justify-content: flex-end; }
   .icon-btn .btn-text { display: none; } /* hide text on very small screens */
+}
+
+/* Skeleton styles */
+.loading-skeleton { padding: 8px 4px; }
+.skeleton-table { display: flex; flex-direction: column; gap: 12px; }
+.skeleton-row { display: flex; gap: 12px; align-items: center; padding: 12px; border-radius: 8px; background: #fff; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
+.skeleton-cell { flex: 1; min-width: 0; }
+.skeleton-cell.avatar-cell { flex: 0 0 48px; }
+.skeleton-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(90deg,#e9eefb,#f3f6fb); animation: shimmer 1.2s infinite; }
+.skeleton-line { height: 12px; background: linear-gradient(90deg,#eef3fb,#f7f9fe); border-radius: 6px; animation: shimmer 1.2s infinite; }
+.skeleton-line.short { width: 60%; }
+.skeleton-line.medium { width: 80%; }
+.skeleton-chip { width: 70px; height: 20px; border-radius: 12px; background: linear-gradient(90deg,#eef3fb,#f7f9fe); animation: shimmer 1.2s infinite; }
+.skeleton-btn { width: 60px; height: 28px; border-radius: 8px; background: linear-gradient(90deg,#eef3fb,#f7f9fe); animation: shimmer 1.2s infinite; display: inline-block; margin-right: 8px; }
+.skeleton-btn.small { width: 40px; height: 28px; }
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 .pagination {
