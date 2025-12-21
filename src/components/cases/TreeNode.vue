@@ -143,14 +143,16 @@ const handleCommand = (command) => {
 }
 
 .tree-node-item:hover {
-  background: rgba(255,255,255,0.6);
+  /* Hover 使用主蓝色的浅背景 */
+  background: #e6f4ff;
   box-shadow: 0 6px 18px -8px rgba(0,0,0,0.08);
   transform: translateY(-1px);
 }
 
 .tree-node-item.is-selected {
-  background: linear-gradient(90deg, rgba(53,191,171,0.08), rgba(31,201,231,0.06));
-  color: var(--color-brand, #35bfab);
+  /* 选中态使用浅蓝背景，文字强调为主蓝 #409eff */
+  background: linear-gradient(90deg, #e6f4ff 0%, rgba(230,244,255,0.6) 100%);
+  color: #409eff;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
 
@@ -188,7 +190,7 @@ const handleCommand = (command) => {
 
 .node-label {
   font-size: 14px;
-  color: #303133;
+  color: var(--color-primary, #4E3F42);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -217,7 +219,7 @@ const handleCommand = (command) => {
 .tree-node-item:focus,
 .expand-arrow:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(53,191,171,0.12);
+  box-shadow: 0 0 0 3px rgba(64,158,255,0.12); /* #409eff */
   border-radius: 8px;
 }
 
@@ -247,12 +249,12 @@ const handleCommand = (command) => {
 }
 
 .menu-trigger:hover {
-  background: #e6e8eb;
+  background: #e6f4ff;
 }
 
 .menu-dots {
   font-size: 16px;
-  color: #606266;
+  color: var(--color-secondary, #7b888e);
   font-weight: bold;
   line-height: 1;
 }
