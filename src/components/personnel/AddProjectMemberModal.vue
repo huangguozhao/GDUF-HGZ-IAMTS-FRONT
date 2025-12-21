@@ -7,25 +7,42 @@
       </div>
 
       <div class="modal-body">
-        <!-- 用户搜索选择器 -->
-        <div class="form-group">
-          <label class="form-label">搜索并选择用户</label>
-          <UserSearchSelector
-            :selected-user-ids="selectedUserIds"
-            :disabled="isSubmitting"
-            @select="handleUserSelect"
-          />
-        </div>
+        <div class="modal-grid">
+          <div class="left-panel">
+            <div class="panel-card">
+              <div class="panel-header">
+                <div class="panel-title">搜索并选择用户</div>
+                <div class="panel-sub">从组织中选择要添加到项目的成员</div>
+              </div>
+              <div class="panel-body">
+                <UserSearchSelector
+                  :selected-user-ids="selectedUserIds"
+                  :disabled="isSubmitting"
+                  @select="handleUserSelect"
+                />
+              </div>
+            </div>
+          </div>
 
-        <!-- 已选用户列表 -->
-        <div class="form-group">
-          <label class="form-label">已选用户 ({{ selectedUsers.length }})</label>
-          <SelectedUsersList
-            :selected-users="selectedUsers"
-            :disabled="isSubmitting"
-            @remove="handleUserRemove"
-            @role-change="handleRoleChange"
-          />
+          <div class="right-panel">
+            <div class="panel-card selected-card">
+              <div class="panel-header between">
+                <div>
+                  <div class="panel-title">已选用户</div>
+                  <div class="panel-sub">{{ selectedUsers.length }} 人</div>
+                </div>
+                <button class="btn-clear" type="button" @click="selectedUsers = []" :disabled="isSubmitting">清空</button>
+              </div>
+              <div class="panel-body">
+                <SelectedUsersList
+                  :selected-users="selectedUsers"
+                  :disabled="isSubmitting"
+                  @remove="handleUserRemove"
+                  @role-change="handleRoleChange"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -147,10 +164,10 @@ watch(
 
 .modal-content {
   background-color: #fff;
-  border-radius: 4px;
-  width: 90%;
-  max-width: 600px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  width: 95%;
+  max-width: 900px;
+  box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
   max-height: 80vh;
   display: flex;
   flex-direction: column;
@@ -193,6 +210,40 @@ watch(
   padding: 24px;
   overflow-y: auto;
   flex: 1;
+}
+
+/* modal grid for selector + selected list */
+.modal-grid {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 18px;
+}
+.panel-card {
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 8px 28px rgba(15,23,42,0.06);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.panel-header {
+  margin-bottom: 10px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+.panel-header.between { justify-content: space-between; }
+.panel-title { font-size: 15px; font-weight: 600; color:#1f2937; }
+.panel-sub { font-size: 13px; color:#6b7280; }
+.panel-body { flex: 1; overflow: auto; padding-top: 6px; }
+.selected-card .panel-body { max-height: 440px; }
+.btn-clear { background:none; border:1px solid #e6eef8; padding:6px 10px; border-radius:8px; cursor:pointer; color:#475569; }
+.btn-clear:hover { background:#f8fbff; border-color:#cfeeff; }
+
+@media (max-width: 900px) {
+  .modal-grid { grid-template-columns: 1fr; }
+  .selected-card .panel-body { max-height: 300px; }
 }
 
 .loading {
