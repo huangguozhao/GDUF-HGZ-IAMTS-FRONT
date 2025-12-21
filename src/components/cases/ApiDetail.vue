@@ -516,7 +516,12 @@
           </div>
 
           <div class="response-code-editor">
-            <pre class="code-content"><code class="language-json" v-html="highlightedResponse"></code></pre>
+            <div v-if="actualResponse && typeof actualResponse.body === 'object' && !Array.isArray(actualResponse.body)">
+              <JsonViewer :value="actualResponse.body" />
+            </div>
+            <div v-else>
+              <pre class="code-content"><code class="language-json" v-html="highlightedResponse"></code></pre>
+            </div>
           </div>
             </div>
           </transition>
@@ -1778,6 +1783,7 @@ import {
 import { getModulesByProject, updateApi, getProjects, deleteApi } from '@/api/project'
 import * as XLSX from 'xlsx'
 import { saveAs } from 'file-saver'
+import JsonViewer from '@/components/common/JsonViewer.vue'
 
 // 复制路径到剪贴板
 const copyApiPath = async () => {
