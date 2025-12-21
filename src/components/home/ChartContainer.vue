@@ -54,19 +54,33 @@ let chartInstance = null
 
 // 初始化图表
 const initChart = async () => {
-  if (!chartRef.value) return
+  if (!chartRef.value) {
+    // 如果 ref 还没有准备好，延迟重试
+    setTimeout(initChart, 100)
+    return
+  }
   
   await nextTick()
   
   if (!chartInstance) {
-    chartInstance = echarts.init(chartRef.value)
-    
-    // 监听窗口大小变化
-    window.addEventListener('resize', handleResize)
+    try {
+      chartInstance = echarts.init(chartRef.value)
+      
+      // 监听窗口大小变化
+      window.addEventListener('resize', handleResize)
+    } catch (error) {
+      console.error('ECharts 初始化失败:', error)
+      return
+    }
   }
   
+  // 设置图表选项
   if (props.options && Object.keys(props.options).length > 0) {
-    chartInstance.setOption(props.options, true)
+    try {
+      chartInstance.setOption(props.options, true)
+    } catch (error) {
+      console.error('ECharts 设置选项失败:', error)
+    }
   }
 }
 
@@ -81,11 +95,21 @@ const handleResize = () => {
 watch(
   () => props.options,
   (newOptions) => {
-    if (chartInstance && newOptions) {
-      chartInstance.setOption(newOptions, true)
+    if (!chartInstance) {
+      // 如果实例还没初始化，先初始化
+      initChart()
+      return
+    }
+    
+    if (newOptions && Object.keys(newOptions).length > 0) {
+      try {
+        chartInstance.setOption(newOptions, true)
+      } catch (error) {
+        console.error('ECharts 更新选项失败:', error)
+      }
     }
   },
-  { deep: true }
+  { deep: true, immediate: false }
 )
 
 // 监听 loading 状态
@@ -103,7 +127,10 @@ watch(
 )
 
 onMounted(() => {
-  initChart()
+  // 延迟初始化，确保 DOM 完全渲染
+  setTimeout(() => {
+    initChart()
+  }, 100)
 })
 
 onBeforeUnmount(() => {
@@ -151,6 +178,7 @@ defineExpose({
 .chart-wrapper {
   width: 100%;
   height: 100%;
+  min-height: 200px;
 }
 
 .chart-loading,

@@ -36,7 +36,22 @@ const props = defineProps({
 
 // 计算图表配置
 const chartOptions = computed(() => {
-  const { dates, passed, failed } = props.data
+  const { dates = [], passed = [], failed = [] } = props.data || {}
+
+  // 如果没有数据，返回空配置
+  if (!dates.length || !passed.length || !failed.length) {
+    return {
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'middle',
+        textStyle: {
+          color: '#909399',
+          fontSize: 14
+        }
+      }
+    }
+  }
 
   return {
     tooltip: {

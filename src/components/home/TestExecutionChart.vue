@@ -64,49 +64,97 @@ const emit = defineEmits(['time-range-change'])
 
 const selectedTimeRange = ref(props.timeRange)
 
-// 折线图数据（示例数据，后续可以从API获取）
-const lineChartData = computed(() => {
-  // 生成最近7天的日期
-  const dates = []
-  const passed = []
-  const failed = []
+// 生成日期标签的辅助函数
+const generateDateLabels = (days, is30Days = false) => {
+  const labels = []
+  const today = new Date()
   
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date()
-    date.setDate(date.getDate() - i)
-    const month = date.getMonth() + 1
-    const day = date.getDate()
-    dates.push(`${month}-${day}`)
-    
-    // 模拟数据
-    passed.push(Math.floor(Math.random() * 50) + 30)
-    failed.push(Math.floor(Math.random() * 10) + 2)
+  if (is30Days) {
+    // 30天模式：显示关键日期点
+    const keyDates = [6, 3, 0, -3, -6, -9, -12]
+    keyDates.forEach(offset => {
+      const date = new Date(today)
+      date.setDate(date.getDate() + offset)
+      const month = date.getMonth() + 1
+      const day = date.getDate()
+      labels.push(`${month}-${day}`)
+    })
+  } else {
+    // 7天模式：显示最近7天
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const month = date.getMonth() + 1
+      const day = date.getDate()
+      labels.push(`${month}-${day}`)
+    }
   }
   
-  return { dates, passed, failed }
+  return labels
+}
+
+// 模拟数据 - 最近7天的测试执行数据
+const mockLineChartData7Days = {
+  dates: generateDateLabels(7),
+  passed: [42, 45, 48, 52, 50, 55, 58],
+  failed: [5, 4, 6, 3, 5, 4, 3]
+}
+
+// 模拟数据 - 最近30天的测试执行数据（显示关键日期点）
+const mockLineChartData30Days = {
+  dates: generateDateLabels(30, true),
+  passed: [38, 40, 43, 45, 50, 55, 58],
+  failed: [7, 6, 5, 4, 5, 4, 3]
+}
+
+// 折线图数据
+const lineChartData = computed(() => {
+  if (selectedTimeRange.value === '30days') {
+    return mockLineChartData30Days
+  }
+  return mockLineChartData7Days
 })
 
-// 饼图数据（示例数据，后续可以从API获取）
+// 饼图数据（基于最近7天的数据计算）
 const pieChartData = computed(() => {
-  const totalPassed = lineChartData.value.passed.reduce((a, b) => a + b, 0)
-  const totalFailed = lineChartData.value.failed.reduce((a, b) => a + b, 0)
+  const data = lineChartData.value
+  const totalPassed = data.passed.reduce((a, b) => a + b, 0)
+  const totalFailed = data.failed.reduce((a, b) => a + b, 0)
   const total = totalPassed + totalFailed
   
+  // 计算百分比
+  const passedPercent = total > 0 ? Math.round((totalPassed / total) * 100) : 81
+  const failedPercent = total > 0 ? Math.round((totalFailed / total) * 100) : 7
+  const notExecutedPercent = 100 - passedPercent - failedPercent
+  
   return {
-    passed: total > 0 ? Math.round((totalPassed / total) * 100) : 81,
-    failed: total > 0 ? Math.round((totalFailed / total) * 100) : 7,
-    notExecuted: 12
+    passed: passedPercent,
+    failed: failedPercent,
+    notExecuted: notExecutedPercent > 0 ? notExecutedPercent : 12
   }
 })
 
 // 摘要文字
 const summaryText = computed(() => {
   const passRate = pieChartData.value.passed
-  return `本周测试通过率${passRate >= 80 ? '提升' : '为'}${passRate}%,性能表现稳定`
+  const data = lineChartData.value
+  const latestPassed = data.passed[data.passed.length - 1]
+  const previousPassed = data.passed[data.passed.length - 2] || latestPassed
+  const trend = latestPassed > previousPassed ? '提升' : latestPassed < previousPassed ? '下降' : '保持'
+  const change = Math.abs(latestPassed - previousPassed)
+  
+  if (trend === '提升') {
+    return `本周测试通过率${trend}${change}%,性能表现稳定`
+  } else if (trend === '下降') {
+    return `本周测试通过率${trend}${change}%,需要关注`
+  } else {
+    return `本周测试通过率${passRate}%,性能表现稳定`
+  }
 })
 
 // 处理时间范围变化
 const handleTimeRangeChange = (value) => {
+  selectedTimeRange.value = value
   emit('time-range-change', value)
 }
 </script>
