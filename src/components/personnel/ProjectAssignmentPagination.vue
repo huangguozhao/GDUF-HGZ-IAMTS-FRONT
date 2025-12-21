@@ -146,5 +146,16 @@ const goToPage = (page) => {
   color: #fff;
   border-color: #1890ff;
 }
+
+/* card style for pagination */
+.pagination-wrapper {
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  padding: 12px 16px;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15,23,42,0.04);
+  border-top: none;
+}
+
+.pagination-info { color:#6b7280; }
 </style>
 

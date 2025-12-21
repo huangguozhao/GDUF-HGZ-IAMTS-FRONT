@@ -52,7 +52,9 @@ const filteredProjects = computed(() => {
   padding: 12px;
   background-color: #fff;
   border: 1px solid #e8e8e8;
-  border-radius: 8px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
 }
 
 .search-box {
@@ -85,14 +87,26 @@ const filteredProjects = computed(() => {
 }
 
 .project-card {
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  padding: 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 14px;
   cursor: pointer;
-  transition: all .2s;
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s, background .18s;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 4px 12px rgba(15,23,42,0.04);
+  transform: translateZ(0);
 }
-.project-card:hover { border-color: #91d5ff; background: #f0faff; }
-.project-card.active { border-color: #1890ff; background: #e6f7ff; }
+.project-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 14px 40px rgba(15,23,42,0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #f5fbff 100%);
+  border-color: rgba(24,144,255,0.08);
+}
+.project-card.active {
+  border-color: transparent;
+  box-shadow: 0 18px 48px rgba(24,144,255,0.12);
+  background: linear-gradient(90deg,#e6f7ff,#f0fbff);
+}
 
 .title { font-size: 14px; font-weight: 600; color: #1f1f1f; margin-bottom: 6px; }
 .desc { font-size: 12px; color: #8c8c8c; margin-bottom: 8px; }

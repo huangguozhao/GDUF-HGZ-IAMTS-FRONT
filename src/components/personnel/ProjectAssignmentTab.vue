@@ -413,8 +413,15 @@ watch(
 
 <style scoped>
 .project-assignment-tab { width: 100%; }
-.two-cols { display: grid; grid-template-columns: 320px 1fr; gap: 24px; }
+.two-cols { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items:start; }
 .loading { text-align: center; padding: 40px; color: #8c8c8c; }
+
+/* subtle entrance animation for panels */
+@keyframes panelEnter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.left, .right { animation: panelEnter .28s cubic-bezier(.2,.8,.2,1); }
 
 .empty-state {
   display: flex;

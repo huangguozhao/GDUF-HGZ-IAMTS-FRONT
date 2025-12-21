@@ -1,5 +1,5 @@
 <template>
-  <div class="assignment-table-wrapper">
+  <div class="assignment-table-wrapper assignment-card">
     <table class="assignment-table">
       <thead>
         <tr>
@@ -112,11 +112,20 @@ const handleDelete = (user) => {
   width: 100%;
   border-collapse: collapse;
   font-size: 14px;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
 .assignment-table thead {
-  background-color: #fafafa;
-  border-bottom: 1px solid #e8e8e8;
+  background-color: transparent;
+}
+
+.assignment-card {
+  background: linear-gradient(180deg,#fff,#fbfdff);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(15,23,42,0.06);
+  padding: 8px;
+  transition: box-shadow .18s ease, transform .18s ease;
 }
 
 .assignment-table th {
@@ -159,8 +168,14 @@ const handleDelete = (user) => {
   color: #262626;
 }
 
+.user-row {
+  transition: transform .16s ease, box-shadow .16s ease, background .12s;
+  border-radius: 8px;
+}
 .user-row:hover {
-  background-color: #fafafa;
+  transform: translateY(-6px);
+  box-shadow: 0 10px 26px rgba(15,23,42,0.06);
+  background: rgba(240, 248, 255, 0.6);
 }
 
 .user-cell {
