@@ -83,12 +83,17 @@
                     @node-click="handleSelectNode(api, 'api')"
                   >
                     <!-- 测试用例列表 -->
-                    <div
+                  <div
                       v-for="testCase in api.cases"
                       :key="testCase.id"
                       class="case-item-tree"
+                      role="treeitem"
+                      :tabindex="0"
+                      :aria-selected="selectedNode?.id === testCase.id && selectedLevel === 'case'"
                       :class="{ 'is-selected': selectedNode?.id === testCase.id && selectedLevel === 'case' }"
                       @click.stop="handleSelectNode(testCase, 'case')"
+                      @keydown.enter.stop.prevent="handleSelectNode(testCase, 'case')"
+                      @keydown.space.stop.prevent="handleSelectNode(testCase, 'case')"
                     >
                       <div class="case-item-content">
                         <span class="case-item-label">{{ testCase.name }}</span>
@@ -126,12 +131,17 @@
                   @node-click="handleSelectNode(api, 'api')"
                 >
                   <!-- 测试用例列表 -->
-                  <div
+                <div
                     v-for="testCase in api.cases"
                     :key="testCase.id"
                     class="case-item-tree"
+                    role="treeitem"
+                    :tabindex="0"
+                    :aria-selected="selectedNode?.id === testCase.id && selectedLevel === 'case'"
                     :class="{ 'is-selected': selectedNode?.id === testCase.id && selectedLevel === 'case' }"
                     @click.stop="handleSelectNode(testCase, 'case')"
+                    @keydown.enter.stop.prevent="handleSelectNode(testCase, 'case')"
+                    @keydown.space.stop.prevent="handleSelectNode(testCase, 'case')"
                   >
                     <div class="case-item-content">
                       <span class="case-item-label">{{ testCase.name }}</span>
@@ -1265,7 +1275,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   CircleCheckFilled, 
@@ -1361,6 +1371,21 @@ const handleAPIError = (error, operation = '操作') => {
 const loading = ref(false)
 const sidebarCollapsed = ref(false)
 const searchKeyword = ref('')
+// 防抖搜索：输入节流，减少过滤计算频率
+const debouncedSearch = ref('')
+let searchDebounceTimer = null
+watch(searchKeyword, (val) => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    debouncedSearch.value = (val || '').trim()
+  }, 300)
+})
+onBeforeUnmount(() => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+})
+
+// 展开/收起节流锁，防止短时间内多次切换造成频繁保存
+const toggleLock = ref(false)
 const selectedNode = ref(null)
 const selectedLevel = ref(null) // 'project' | 'module' | 'api' | 'case'
 const executionHistory = ref([])
@@ -1727,9 +1752,9 @@ const dialogTitle = computed(() => {
 })
 
 const filteredProjects = computed(() => {
-  if (!searchKeyword.value) return projects.value
+  if (!debouncedSearch.value) return projects.value
   
-  const keyword = searchKeyword.value.toLowerCase()
+  const keyword = debouncedSearch.value.toLowerCase()
   return projects.value.filter(project => {
     if (project.name.toLowerCase().includes(keyword)) return true
     
@@ -1792,6 +1817,13 @@ const handleSelectNode = async (node, level) => {
 
 // 处理节点展开/收起
 const handleToggleExpand = (nodeId) => {
+  // 防止短时间内重复切换
+  if (toggleLock.value) return
+  toggleLock.value = true
+  setTimeout(() => {
+    toggleLock.value = false
+  }, 150)
+
   if (expandedNodes.value.has(nodeId)) {
     // 如果已展开，则收起
     expandedNodes.value.delete(nodeId)
@@ -1799,8 +1831,8 @@ const handleToggleExpand = (nodeId) => {
     // 如果已收起，则展开
     expandedNodes.value.add(nodeId)
   }
-  // 保存页面状态
-  savePageState()
+  // 使用 nextTick 批量保存，减少频繁 localStorage 写操作
+  nextTick(savePageState)
 }
 
 // 加载项目模块
@@ -3819,6 +3851,7 @@ onDeactivated(() => {
   transition: background 0.2s;
   border-radius: 4px;
   margin: 2px 0;
+  will-change: transform, opacity;
 }
 
 .case-item-tree:hover {

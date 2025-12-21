@@ -1,19 +1,23 @@
 <template>
   <div class="tree-node">
-    <div 
+  <div 
       class="tree-node-item"
+      role="treeitem"
+      :tabindex="0"
       :class="{ 
         'is-selected': isSelected,
         'has-children': hasChildren
       }"
       @click="handleClick"
+      @keydown.enter.stop.prevent="handleClick"
+      @keydown.space.stop.prevent="handleClick"
     >
       <div class="node-content">
-        <span class="expand-arrow" v-if="hasChildren" @click.stop="toggleExpand">
-          {{ isExpanded ? '▼' : '▶' }}
+        <span class="expand-arrow" v-if="hasChildren" @click.stop="toggleExpand" :class="{ expanded: isExpanded }" role="button" :aria-expanded="isExpanded" :tabindex="0" @keydown.enter.stop.prevent="toggleExpand" @keydown.space.stop.prevent="toggleExpand">
+          ▶
         </span>
         <span class="expand-arrow-placeholder" v-else></span>
-        <span class="node-label">{{ node.name }}</span>
+        <span :class="labelClass">{{ node.name }}</span>
       </div>
       
       <div class="node-menu" @click.stop>
@@ -67,6 +71,15 @@ const props = defineProps({
 const emit = defineEmits(['add-module', 'add-api', 'add-case', 'edit', 'delete', 'node-click', 'toggle-expand'])
 
 const isExpanded = ref(props.defaultExpanded)
+
+const labelClass = computed(() => {
+  return {
+    'node-label': true,
+    'project-label': props.level === 'project',
+    'module-label': props.level === 'module',
+    'api-label': props.level === 'api'
+  }
+})
 
 const hasChildren = computed(() => {
   if (props.level === 'project') return props.node.modules?.length > 0
@@ -124,15 +137,21 @@ const handleCommand = (command) => {
   transition: background 0.2s;
   border-radius: 4px;
   margin: 2px 0;
+  /* 轻微卡片风格 */
+  border-radius: 8px;
+  padding: 10px 12px;
 }
 
 .tree-node-item:hover {
-  background: #f5f7fa;
+  background: rgba(255,255,255,0.6);
+  box-shadow: 0 6px 18px -8px rgba(0,0,0,0.08);
+  transform: translateY(-1px);
 }
 
 .tree-node-item.is-selected {
-  background: #e6f4ff;
-  color: #409eff;
+  background: linear-gradient(90deg, rgba(53,191,171,0.08), rgba(31,201,231,0.06));
+  color: var(--color-brand, #35bfab);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.02);
 }
 
 .node-content {
@@ -157,6 +176,11 @@ const handleCommand = (command) => {
   color: #409eff;
 }
 
+.expand-arrow.expanded {
+  transform: rotate(90deg);
+  color: var(--color-brand, #35bfab);
+}
+
 .expand-arrow-placeholder {
   width: 12px;
   flex-shrink: 0;
@@ -173,6 +197,38 @@ const handleCommand = (command) => {
 .tree-node-item.is-selected .node-label {
   color: #409eff;
   font-weight: 500;
+}
+
+/* 分级样式：项目标题使用渐变文字与装饰字体（根据 theme.css） */
+.project-label {
+  font-family: var(--font-averia, 'Averia Gruesa Libre'), inherit;
+  font-weight: 600;
+  color: var(--color-primary, #4E3F42);
+}
+.module-label {
+  font-weight: 600;
+  color: var(--color-primary, #4E3F42);
+}
+.api-label {
+  color: var(--color-secondary, #7b888e);
+}
+
+/* 焦点与无障碍 */
+.tree-node-item:focus,
+.expand-arrow:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(53,191,171,0.12);
+  border-radius: 8px;
+}
+
+/* 减少动画对偏好禁用的影响 */
+@media (prefers-reduced-motion: reduce) {
+  .expand-enter-active,
+  .expand-leave-active,
+  .expand-arrow,
+  .tree-node-item {
+    transition: none !important;
+  }
 }
 
 .node-menu {

@@ -35,52 +35,7 @@
       </div>
 
       <div class="bottom-right">
-        <div class="section-header">
-          <h3>最近活动</h3>
-          <el-link href="#" class="view-more-link">查看更多</el-link>
-        </div>
-        <div class="activity-list">
-          <div class="activity-item">
-            <div class="activity-time">10:30</div>
-            <div class="activity-content">
-              <div class="activity-title">API接口自动化测试执行</div>
-              <div class="activity-desc">成功执行了支付系统的20个测试用例</div>
-              <div class="activity-origin">系统自动</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-time">09:15</div>
-            <div class="activity-content">
-              <div class="activity-title">新建测试用例</div>
-              <div class="activity-desc">用户中心-权限校验接口测试用例</div>
-              <div class="activity-origin">李测试</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-time">昨天</div>
-            <div class="activity-content">
-              <div class="activity-title">系统部署更新</div>
-              <div class="activity-desc">自动化测试引擎升级至v2.4.5</div>
-              <div class="activity-origin">系统管理员</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-time">昨天</div>
-            <div class="activity-content">
-              <div class="activity-title">接口变更检测</div>
-              <div class="activity-desc">检测到用户服务3个接口参数变更</div>
-              <div class="activity-origin">变更监控</div>
-            </div>
-          </div>
-          <div class="activity-item">
-            <div class="activity-time">3天前</div>
-            <div class="activity-content">
-              <div class="activity-title">定时测试任务执行失败</div>
-              <div class="activity-desc">物流系统接口连接超时</div>
-              <div class="activity-origin">系统自动</div>
-            </div>
-          </div>
-        </div>
+        <RecentActivities :activities="recentActivities" @view-more="handleViewMoreActivities" />
       </div>
     </div>
   </div>
@@ -93,6 +48,7 @@ import MetricsGrid from '@/components/home/MetricsGrid.vue'
 import RecentProjects from '@/components/home/RecentProjects.vue'
 import TestExecutionChart from '@/components/home/TestExecutionChart.vue'
 import ResourceList from '@/components/home/ResourceList.vue'
+import RecentActivities from '@/components/home/RecentActivities.vue'
 
 const timeRange = ref('7days')
 
@@ -184,6 +140,20 @@ const resourceData = computed(() => ([
   { label: '内存使用率', value: '45%', percent: 45, color: 'linear-gradient(90deg, #409eff 45%, #f0f0f0 45%)' },
   { label: '磁盘空间', value: '62%', percent: 62, color: 'linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%)' }
 ]))
+
+// 最近活动数据（示例）
+const recentActivities = computed(() => ([
+  { id: 1, time: '10:30', title: 'API接口自动化测试执行', desc: '成功执行了支付系统的20个测试用例', origin: '系统自动' },
+  { id: 2, time: '09:15', title: '新建测试用例', desc: '用户中心-权限校验接口测试用例', origin: '李测试' },
+  { id: 3, time: '昨天', title: '系统部署更新', desc: '自动化测试引擎升级至v2.4.5', origin: '系统管理员' },
+  { id: 4, time: '昨天', title: '接口变更检测', desc: '检测到用户服务3个接口参数变更', origin: '变更监控' },
+  { id: 5, time: '3天前', title: '定时测试任务执行失败', desc: '物流系统接口连接超时', origin: '系统自动' }
+]))
+
+const handleViewMoreActivities = () => {
+  console.log('查看更多活动')
+  // TODO: 跳转到活动详情或历史页面
+}
 </script>
 
 <style scoped>
