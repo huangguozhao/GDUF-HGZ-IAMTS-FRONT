@@ -640,6 +640,8 @@ const barChartRef = ref(null)
 let pieChartInstance = null
 let gaugeChartInstance = null
 let barChartInstance = null
+// 图表初始化状态（防止重复初始化）
+const chartsInitialized = ref(false)
 
 // 过滤表单
 const filterForm = reactive({
@@ -941,6 +943,14 @@ const initCharts = async () => {
   
   if (!currentReport.value) return
   
+  if (chartsInitialized.value) {
+    // already initialized, just resize to be safe
+    if (pieChartInstance) pieChartInstance.resize()
+    if (gaugeChartInstance) gaugeChartInstance.resize()
+    if (barChartInstance) barChartInstance.resize()
+    return
+  }
+
   // 初始化饼图
   initPieChart()
   
@@ -949,6 +959,7 @@ const initCharts = async () => {
   
   // 初始化柱状图
   initBarChart()
+  chartsInitialized.value = true
 }
 
 // 饼图 - 测试用例分布
@@ -1200,25 +1211,41 @@ const initBarChart = () => {
 
 // 监听详情对话框打开，初始化图表
 watch(detailDialogVisible, async (newVal) => {
-  if (newVal && currentReport.value) {
+  if (newVal && currentReport.value && activeDetailTab.value === 'charts') {
     // 等待DOM渲染完成
     await nextTick()
-    // 延迟一点确保tab渲染完成
-    setTimeout(() => {
-      initCharts()
-    }, 100)
+    initCharts()
+  }
+  // 如果对话框关闭，销毁图表以释放内存，下次打开重新初始化
+  if (!newVal) {
+    disposeCharts()
   }
 })
 
 // 监听标签页切换
 watch(activeDetailTab, async (newVal) => {
-  if (newVal === 'charts' && detailDialogVisible.value) {
+  if (newVal === 'charts' && detailDialogVisible.value && currentReport.value) {
     await nextTick()
-    setTimeout(() => {
-      initCharts()
-    }, 100)
+    initCharts()
   }
 })
+
+// 销毁图表实例并重置初始化状态
+function disposeCharts() {
+  if (pieChartInstance) {
+    try { pieChartInstance.dispose() } catch (e) { /* ignore */ }
+    pieChartInstance = null
+  }
+  if (gaugeChartInstance) {
+    try { gaugeChartInstance.dispose() } catch (e) { /* ignore */ }
+    gaugeChartInstance = null
+  }
+  if (barChartInstance) {
+    try { barChartInstance.dispose() } catch (e) { /* ignore */ }
+    barChartInstance = null
+  }
+  chartsInitialized.value = false
+}
 
 // 窗口大小改变时重新渲染图表
 window.addEventListener('resize', () => {
