@@ -54,6 +54,7 @@
           <div class="stat-label">通过</div>
           <div class="stat-value">{{ getPassedCount() }}</div>
         </div>
+        <div class="stat-chart" ref="passedChart" aria-hidden="true"></div>
       </div>
 
       <div class="stat-card error">
@@ -62,6 +63,7 @@
           <div class="stat-label">失败</div>
           <div class="stat-value">{{ getFailedCount() }}</div>
         </div>
+        <div class="stat-chart" ref="failedChart" aria-hidden="true"></div>
       </div>
 
       <div class="stat-card warning">
@@ -150,12 +152,14 @@
 </template>
 
 <script setup>
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import * as echarts from 'echarts'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
 import { Setting, Edit, Delete } from '@element-plus/icons-vue'
 import { getProjectStatistics, getModuleStatistics } from '@/api/project'
 import { ElMessage } from 'element-plus'
+import { donutOption, sparklineOption } from '@/utils/chartTheme'
 
 const props = defineProps({
   node: {
@@ -267,6 +271,44 @@ const children = computed(() => {
   } else {
     return props.node.apis || []
   }
+})
+
+// Chart refs & instances
+const passedChart = ref(null)
+const failedChart = ref(null)
+let passedChartInstance = null
+let failedChartInstance = null
+
+const renderCharts = () => {
+  const total = getTotalCases()
+  const passed = getPassedCount()
+  const failed = getFailedCount()
+  const passedRate = total > 0 ? Math.round((passed / total) * 100) : 0
+  const failedRate = total > 0 ? Math.round((failed / total) * 100) : 0
+
+  if (passedChart.value) {
+    try { passedChartInstance?.dispose() } catch (e) {}
+    passedChartInstance = echarts.init(passedChart.value)
+    passedChartInstance.setOption(donutOption(passedRate))
+  }
+
+  if (failedChart.value) {
+    try { failedChartInstance?.dispose() } catch (e) {}
+    failedChartInstance = echarts.init(failedChart.value)
+    failedChartInstance.setOption(donutOption(failedRate))
+  }
+}
+
+onMounted(() => {
+  renderCharts()
+})
+
+watch([() => projectStats.value, () => children.value.length], () => {
+  renderCharts()
+})
+
+onBeforeUnmount(() => {
+  try { passedChartInstance?.dispose(); failedChartInstance?.dispose() } catch (e) {}
 })
 
 const getLevelIcon = () => {
@@ -569,6 +611,12 @@ const handleSelectChild = (child) => {
   font-size: 24px;
   font-weight: 600;
   color: var(--color-primary, #303133);
+}
+
+.stat-chart {
+  width: 72px;
+  height: 48px;
+  margin-left: 12px;
 }
 
 /* 列表表格 */
