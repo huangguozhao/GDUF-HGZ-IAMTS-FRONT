@@ -4006,22 +4006,56 @@ onDeactivated(() => {
 /* 环境配置对话框 */
 .env-config-layout {
   display: flex;
-  height: 600px;
+  height: 620px;
   overflow: hidden;
+  gap: 18px;
+  padding: 18px;
+  align-items: stretch;
+  background: transparent;
 }
+
+/* dialog body wrapper customization for nicer card look */
+.env-config-dialog .el-dialog__body {
+  padding: 0;
+  background: transparent;
+}
+
+/* make the whole dialog look like a card */
+.env-config-dialog {
+  --dialog-radius: 14px;
+}
+.env-config-dialog .el-dialog {
+  border-radius: var(--dialog-radius);
+  overflow: visible;
+}
+
 
 /* 左侧环境列表 */
 .env-sidebar {
-  width: 200px;
-  border-right: 1px solid #e4e7ed;
+  width: 240px;
+  border-radius: 12px;
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  box-shadow: 0 12px 36px rgba(15,23,42,0.06);
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  background: #fafafa;
+  border: 1px solid rgba(15,23,42,0.04);
 }
 
 .env-sidebar-header {
+  padding: 10px;
+  border-bottom: 1px solid transparent;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+
+.env-sidebar .env-sidebar-footer {
   padding: 12px;
-  border-bottom: 1px solid #e4e7ed;
+  border-top: 1px dashed #eef3fb;
+  margin-top: 8px;
+  background: transparent;
+  border-radius: 8px;
 }
 
 .env-search-input {
@@ -4046,6 +4080,9 @@ onDeactivated(() => {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
 
 .env-sidebar-list::-webkit-scrollbar {
@@ -4058,15 +4095,19 @@ onDeactivated(() => {
 }
 
 .env-sidebar-item {
-  padding: 12px;
-  margin-bottom: 4px;
-  border-radius: 4px;
-  transition: all 0.2s;
-  background: white;
-  border: 1px solid transparent;
+  padding: 10px;
+  margin-bottom: 6px;
+  border-radius: 10px;
+  transition: transform .14s ease, box-shadow .14s ease, background .12s;
+  background: linear-gradient(180deg,#ffffff,#fcfeff);
+  border: 1px solid rgba(15,23,42,0.03);
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.env-sidebar-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(15,23,42,0.06);
 }
 
 .env-sidebar-item:hover {
@@ -4168,7 +4209,10 @@ onDeactivated(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: white;
+  background: linear-gradient(180deg,#ffffff,#fbfdff);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 12px 36px rgba(15,23,42,0.06);
   overflow: hidden;
 }
 
@@ -4232,12 +4276,17 @@ onDeactivated(() => {
 }
 
 .env-content-header {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 12px 16px;
+  border-bottom: 1px solid transparent;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
+
+.env-content-header .env-actions { display:flex; gap:8px; align-items:center; }
+.env-content-header .el-button { border-radius: 10px; }
+
 
 .env-content-title {
   margin: 0;
