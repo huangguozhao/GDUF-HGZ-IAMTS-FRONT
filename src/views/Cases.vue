@@ -905,62 +905,89 @@
         </template>
 
         <template v-if="dialogType === 'module'">
-          <el-form-item label="模块名称" prop="name">
-            <el-input v-model="formData.name" placeholder="请输入模块名称" />
-          </el-form-item>
-          
-          <el-form-item label="模块编码" prop="module_code">
-            <el-input 
-              v-model="formData.module_code" 
-              placeholder="留空则自动生成"
-              :disabled="isEdit"
-            />
-            <span class="form-tip" v-if="!isEdit">模块编码在项目内唯一，留空则自动生成</span>
-            <span class="form-tip" v-else>模块编码创建后不可修改</span>
-          </el-form-item>
-          
-          <el-form-item label="模块描述" prop="description">
-            <el-input
-              v-model="formData.description"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入模块描述"
-            />
-          </el-form-item>
-          
-          <el-form-item label="排序顺序" prop="sort_order">
-            <el-input-number 
-              v-model="formData.sort_order" 
-              :min="0" 
-              :step="1"
-              placeholder="数字越小越靠前"
-            />
-            <span class="form-tip">用于控制模块在列表中的显示顺序</span>
-          </el-form-item>
-          
-          <el-form-item label="模块状态" prop="status">
-            <el-select v-model="formData.status" placeholder="请选择状态">
-              <el-option label="活跃" value="active" />
-              <el-option label="已归档" value="archived" />
-              <el-option label="已禁用" value="disabled" />
-            </el-select>
-          </el-form-item>
-          
-          <el-form-item label="标签" prop="tags">
-            <el-select
-              v-model="formData.tags"
-              multiple
-              filterable
-              allow-create
-              placeholder="请选择或输入标签"
-              style="width: 100%"
-            >
-              <el-option label="核心功能" value="核心功能" />
-              <el-option label="辅助功能" value="辅助功能" />
-              <el-option label="测试中" value="测试中" />
-              <el-option label="待开发" value="待开发" />
-            </el-select>
-          </el-form-item>
+          <div class="module-edit-grid">
+            <div class="module-edit-left">
+              <el-form-item label="模块名称" prop="name">
+                <el-input v-model="formData.name" placeholder="请输入模块名称" />
+              </el-form-item>
+
+              <el-form-item label="模块编码" prop="module_code">
+                <el-input 
+                  v-model="formData.module_code" 
+                  placeholder="留空则自动生成"
+                  :disabled="isEdit"
+                />
+                <span class="form-tip" v-if="!isEdit">模块编码在项目内唯一，留空则自动生成</span>
+                <span class="form-tip" v-else>模块编码创建后不可修改</span>
+              </el-form-item>
+
+              <el-form-item label="模块描述" prop="description">
+                <el-input
+                  v-model="formData.description"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入模块描述"
+                />
+              </el-form-item>
+
+              <el-form-item label="标签" prop="tags">
+                <el-select
+                  v-model="formData.tags"
+                  multiple
+                  filterable
+                  allow-create
+                  placeholder="请选择或输入标签"
+                  style="width: 100%"
+                >
+                  <el-option label="核心功能" value="核心功能" />
+                  <el-option label="辅助功能" value="辅助功能" />
+                  <el-option label="测试中" value="测试中" />
+                  <el-option label="待开发" value="待开发" />
+                </el-select>
+              </el-form-item>
+            </div>
+
+            <div class="module-edit-right">
+              <el-form-item label="模块图标">
+                <div class="cover-area small">
+                  <div
+                    v-if="moduleIconPreview"
+                    class="cover-preview"
+                    :style="{ backgroundImage: 'url(' + moduleIconPreview + ')' }"
+                    role="img"
+                    :aria-label="'模块图标预览 ' + (formData.name || '')"
+                  ></div>
+                  <div v-else class="cover-placeholder">图标</div>
+                  <div class="cover-actions">
+                    <label class="upload-btn small">
+                      上传图标
+                      <input type="file" accept="image/*" @change="handleModuleIconChange" />
+                    </label>
+                    <el-button size="small" @click="clearModuleIcon" :disabled="!moduleIconPreview">移除</el-button>
+                  </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="排序顺序" prop="sort_order">
+                <el-input-number 
+                  v-model="formData.sort_order" 
+                  :min="0" 
+                  :step="1"
+                  placeholder="数字越小越靠前"
+                  style="width:100%"
+                />
+                <span class="form-tip">用于控制模块在列表中的显示顺序</span>
+              </el-form-item>
+
+              <el-form-item label="模块状态" prop="status">
+                <el-select v-model="formData.status" placeholder="请选择状态">
+                  <el-option label="活跃" value="active" />
+                  <el-option label="已归档" value="archived" />
+                  <el-option label="已禁用" value="disabled" />
+                </el-select>
+              </el-form-item>
+            </div>
+          </div>
         </template>
 
         <template v-if="dialogType === 'api'">
@@ -1665,6 +1692,24 @@ function handleCoverChange(e) {
 function clearCover() {
   coverFile.value = null
   coverPreview.value = null
+}
+
+// module icon support
+const moduleIconPreview = ref(null)
+const moduleIconFile = ref(null)
+
+function handleModuleIconChange(e) {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  moduleIconFile.value = f
+  const reader = new FileReader()
+  reader.onload = () => { moduleIconPreview.value = reader.result }
+  reader.readAsDataURL(f)
+}
+
+function clearModuleIcon() {
+  moduleIconFile.value = null
+  moduleIconPreview.value = null
 }
 
 // 环境配置对话框
@@ -4436,6 +4481,24 @@ onDeactivated(() => {
   color: #909399;
   margin-top: 4px;
   line-height: 1.4;
+}
+
+/* module edit dialog styles */
+.module-edit-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 16px;
+}
+.module-edit-left { min-width: 0; }
+.module-edit-right { display:flex; flex-direction:column; gap:12px; }
+.cover-area.small { padding:8px; border-radius:8px; border:1px dashed #eef3fb; background:#fbfdff; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.cover-preview { width:72px; height:72px; border-radius:8px; background-size:cover; background-position:center; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
+.cover-placeholder { width:72px; height:72px; border-radius:8px; background:linear-gradient(90deg,#eef3fb,#f8fbff); display:flex; align-items:center; justify-content:center; color:#6b7280; font-weight:600; }
+.cover-actions { display:flex; gap:8px; align-items:center; }
+
+@media (max-width:900px) {
+  .module-edit-grid { grid-template-columns: 1fr; }
+  .module-edit-right { order:-1; }
 }
 
 /* 状态指示行 */
