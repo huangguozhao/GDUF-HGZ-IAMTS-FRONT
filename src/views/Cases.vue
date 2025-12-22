@@ -4448,6 +4448,16 @@ onDeactivated(() => {
   border-radius: 3px;
 }
 
+/* Ensure charts inside environment dialog are constrained and scrollable */
+.env-tab-content .chart-content,
+.panel-body .chart-content {
+  width: 100%;
+  max-height: calc(80vh - 420px);
+  height: auto;
+  overflow: auto;
+  min-height: 120px;
+}
+
 /* 表单区域 */
 .env-form-section {
   display: grid;
