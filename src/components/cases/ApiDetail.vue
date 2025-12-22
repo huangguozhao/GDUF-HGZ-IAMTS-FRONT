@@ -1345,6 +1345,7 @@
     <!-- 执行测试配置对话框 -->
     <el-dialog
       v-model="executeDialogVisible"
+      custom-class="execute-dialog"
       :title="isExecutingApi ? '执行接口测试配置' : '执行测试用例配置'"
       width="700px"
       :close-on-click-modal="false"
@@ -5180,6 +5181,54 @@ onMounted(() => {
 /* 执行结果对话框 */
 .execution-result-container {
   padding: 0;
+}
+
+/* Execute (调试) dialog improvements */
+.execute-dialog .el-dialog__body {
+  max-height: calc(70vh);
+  overflow: auto;
+  padding: 18px 24px;
+}
+.execute-dialog .el-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.execute-dialog .el-form-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.execute-dialog .el-form-item .el-input,
+.execute-dialog .el-form-item .el-select,
+.execute-dialog .el-form-item .el-input-number {
+  flex: 1;
+}
+.execute-dialog .el-form-item[label] .el-form-item__label {
+  white-space: nowrap;
+}
+.execute-dialog .execute-variables {
+  min-height: 120px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+@media (min-width: 900px) {
+  .execute-dialog .el-form {
+    grid-template-columns: 1fr 320px;
+  }
+  .execute-dialog .el-form-item.break-full {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 899px) {
+  .execute-dialog {
+    --el-dialog-width: 90vw;
+  }
+  .execute-dialog .el-form {
+    grid-template-columns: 1fr;
+  }
 }
 
 .result-banner {
