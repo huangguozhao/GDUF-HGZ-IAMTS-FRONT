@@ -863,17 +863,45 @@
         label-width="100px"
       >
         <template v-if="dialogType === 'project'">
-          <el-form-item label="项目名称" prop="name">
-            <el-input v-model="formData.name" placeholder="请输入项目名称" />
-          </el-form-item>
-          <el-form-item label="项目描述" prop="description">
-            <el-input
-              v-model="formData.description"
-              type="textarea"
-              :rows="3"
-              placeholder="请输入项目描述"
-            />
-          </el-form-item>
+          <div class="project-edit-grid">
+            <div class="project-edit-left">
+              <el-form-item label="项目名称" prop="name">
+                <el-input v-model="formData.name" placeholder="请输入项目名称" />
+              </el-form-item>
+              <el-form-item label="项目描述" prop="description">
+                <el-input
+                  v-model="formData.description"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入项目描述"
+                />
+              </el-form-item>
+            </div>
+
+            <div class="project-edit-right">
+              <el-form-item label="项目封面">
+                <div class="cover-area">
+                  <div v-if="coverPreview" class="cover-preview" :style="{ backgroundImage: 'url(' + coverPreview + ')' }" role="img" :aria-label="'项目封面预览 ' + (formData.name || '')"></div>
+                  <div v-else class="cover-placeholder">封面</div>
+                  <div class="cover-actions">
+                    <label class="upload-btn small">
+                      上传封面
+                      <input type="file" accept="image/*" @change="handleCoverChange" />
+                    </label>
+                    <el-button size="small" @click="clearCover" :disabled="!coverPreview">移除</el-button>
+                  </div>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="显示设置">
+                <el-switch v-model="formData.is_enabled" /> 显示在项目列表
+              </el-form-item>
+
+              <el-form-item label="高级">
+                <div class="form-tip">更多高级设置请在创建后进入项目设置页面调整</div>
+              </el-form-item>
+            </div>
+          </div>
         </template>
 
         <template v-if="dialogType === 'module'">
@@ -1620,6 +1648,24 @@ const formData = reactive({
   validation_rules: '',
   parentId: null
 })
+
+// project cover preview support for project edit dialog
+const coverPreview = ref(formData.coverUrl || null)
+const coverFile = ref(null)
+
+function handleCoverChange(e) {
+  const f = e.target.files && e.target.files[0]
+  if (!f) return
+  coverFile.value = f
+  const reader = new FileReader()
+  reader.onload = () => { coverPreview.value = reader.result }
+  reader.readAsDataURL(f)
+}
+
+function clearCover() {
+  coverFile.value = null
+  coverPreview.value = null
+}
 
 // 环境配置对话框
 const envDialogVisible = ref(false)
@@ -3396,6 +3442,9 @@ const resetForm = () => {
   })
   caseFormActiveTab.value = 'basic'
   formRef.value?.clearValidate()
+  // clear cover preview when resetting
+  coverPreview.value = null
+  coverFile.value = null
 }
 
 // 测试步骤相关
