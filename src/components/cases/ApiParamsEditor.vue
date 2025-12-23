@@ -248,6 +248,5 @@ const toggleBodyCollapsed = () => {
 .collapsible-card { border-radius: 10px; overflow: hidden; transition: box-shadow .16s ease; }
 .collapsible-card:hover { box-shadow: 0 8px 22px rgba(16,24,40,0.04); }
 </style>
-</style>
 
 
