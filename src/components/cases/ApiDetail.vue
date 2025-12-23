@@ -586,6 +586,7 @@
 
       <!-- 测试历史 -->
       <div v-if="activeTab === 'history'" class="tab-content history-content">
+        <div class="history-card" role="region" aria-label="测试历史卡片">
         <!-- 筛选工具栏 -->
         <div class="history-toolbar">
           <div class="toolbar-left">
@@ -865,6 +866,7 @@
             <el-button @click="historyDetailDialogVisible = false">关闭</el-button>
           </template>
         </el-dialog>
+        </div>
       </div>
 
       <!-- 相关用例 -->
@@ -4805,6 +4807,65 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+/* 测试历史卡片样式 */
+.history-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 28px rgba(16,24,40,0.04);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  margin-bottom: 18px;
+}
+.history-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(16,24,40,0.08);
+}
+
+/* 历史表格增强：斑马线与悬停 */
+.history-table :deep(.el-table__row) {
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.history-table :deep(.el-table__row:nth-child(odd)) {
+  background: linear-gradient(90deg, rgba(245,247,250,0.6), rgba(255,255,255,0));
+}
+.history-table :deep(.el-table__row:hover) {
+  background: linear-gradient(90deg, rgba(240,249,255,0.8), rgba(246,253,255,0.4));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+}
+
+/* 工具栏按钮强调与过渡 */
+.history-toolbar .el-button {
+  border-radius: 8px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+.history-toolbar .el-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* 分页样式微动效 */
+.history-pagination {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: white;
+  border-top: 1px solid #e4e7ed;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.history-pagination:hover {
+  transform: translateY(-2px);
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+/* 历史详情弹窗改进 */
+.history-detail-content {
+  border-radius: 8px;
+  padding: 12px;
+  background: #fff;
 }
 
 /* 历史记录表格 */
