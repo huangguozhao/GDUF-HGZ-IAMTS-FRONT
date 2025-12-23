@@ -28,10 +28,10 @@
       </div>
     </div>
   </div>
-  
-  <div v-else-if="userList.length === 0" class="empty-state">
-    <p>暂无用户数据</p>
-  </div>
+    
+    <div v-else-if="userList.length === 0" class="empty-state">
+      <p>暂无用户数据</p>
+    </div>
 
     <div v-else class="table-wrapper">
       <table class="user-table">

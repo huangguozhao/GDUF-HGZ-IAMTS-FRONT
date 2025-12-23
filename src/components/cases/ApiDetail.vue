@@ -107,6 +107,7 @@
     <div class="detail-content">
       <!-- 基本信息 -->
       <div v-if="activeTab === 'basic'" class="tab-content">
+        <div class="basic-info-card" role="group" aria-label="接口基本信息卡片">
         <div class="form-section">
           <div class="section-title">所属项目</div>
           <el-select 
@@ -212,6 +213,7 @@
           >
             删除接口
           </el-button>
+        </div>
         </div>
       </div>
 
@@ -4295,6 +4297,39 @@ onMounted(() => {
 
 .tab-content {
   max-width: 800px;
+}
+
+/* 基本信息卡片视觉优化 */
+.basic-info-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  will-change: transform;
+}
+.basic-info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12);
+}
+.basic-info-card .section-title {
+  transition: color 0.18s ease;
+}
+
+/* 按钮和标签微交互 */
+.method-tag, .status-tag {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.method-tag:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(64, 158, 255, 0.08);
+}
+.form-actions .el-button {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.form-actions .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
 /* 表单部分 */

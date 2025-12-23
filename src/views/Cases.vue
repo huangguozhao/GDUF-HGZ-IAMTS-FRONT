@@ -1343,6 +1343,8 @@ import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
 import ApiDetail from '../components/cases/ApiDetail.vue'
 import LevelStats from '../components/cases/LevelStats.vue'
+import EnvironmentConfigDialog from '../components/cases/EnvironmentConfigDialog.vue'
+import EditDialog from '../components/cases/EditDialog.vue'
 import {
   getProjects,
   getModulesByProject,

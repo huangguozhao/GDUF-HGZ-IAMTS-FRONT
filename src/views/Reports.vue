@@ -349,7 +349,7 @@
       top="5vh"
     >
       <transition name="fade-scale" mode="out-in">
-        <div v-if="currentReport" class="report-detail">
+      <div v-if="currentReport" class="report-detail">
         <!-- 顶部概览卡片 -->
         <div class="detail-overview">
           <!-- 使用封装后的 StatsCard 组件，视觉与交互保持一致 -->
@@ -369,12 +369,12 @@
               <div class="chart-row">
                 <div class="chart-half">
                   <ChartCard flat title="测试用例分布">
-                    <div ref="pieChartRef" class="chart-content"></div>
+                  <div ref="pieChartRef" class="chart-content"></div>
                   </ChartCard>
                 </div>
                 <div class="chart-half">
                   <ChartCard flat title="成功率仪表盘">
-                    <div ref="gaugeChartRef" class="chart-content"></div>
+                  <div ref="gaugeChartRef" class="chart-content"></div>
                   </ChartCard>
                 </div>
               </div>
@@ -950,7 +950,7 @@ const initCharts = async () => {
     if (barChartInstance) barChartInstance.resize()
     return
   }
-
+  
   // 初始化饼图
   initPieChart()
   
@@ -1214,7 +1214,7 @@ watch(detailDialogVisible, async (newVal) => {
   if (newVal && currentReport.value && activeDetailTab.value === 'charts') {
     // 等待DOM渲染完成
     await nextTick()
-    initCharts()
+      initCharts()
   }
   // 如果对话框关闭，销毁图表以释放内存，下次打开重新初始化
   if (!newVal) {
@@ -1226,7 +1226,7 @@ watch(detailDialogVisible, async (newVal) => {
 watch(activeDetailTab, async (newVal) => {
   if (newVal === 'charts' && detailDialogVisible.value && currentReport.value) {
     await nextTick()
-    initCharts()
+      initCharts()
   }
 })
 
