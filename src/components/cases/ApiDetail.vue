@@ -434,6 +434,7 @@
 
       <!-- 响应结果 -->
       <div v-if="activeTab === 'result'" class="tab-content result-content">
+        <div class="result-card" role="region" aria-label="响应结果卡片">
         <!-- 测试失败状态 -->
         <div class="test-status-banner" :class="'status-' + testStatus">
           <div class="status-icon">
@@ -579,6 +580,7 @@
           <el-button type="success" :icon="Refresh" @click="handleRetest">重新测试</el-button>
           <el-button :icon="DocumentCopy" @click="handleSaveResult">保存结果</el-button>
           <el-button :icon="Share" @click="handleExportReport">导出报告</el-button>
+        </div>
         </div>
       </div>
 
@@ -4622,6 +4624,78 @@ onMounted(() => {
   overflow-y: auto;
   background: #f5f7fa;
   padding: 16px;
+}
+
+/* 响应结果卡片 */
+.result-card {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 8px 28px rgba(16,24,40,0.06);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.result-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 44px rgba(16,24,40,0.10);
+}
+
+/* 提升测试状态横幅视觉 */
+.test-status-banner {
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  transition: box-shadow 0.16s ease, transform 0.12s ease;
+}
+.test-status-banner.status-passed {
+  background: linear-gradient(90deg, #f0f9ff 0%, #ecfdf5 100%);
+  border-left: 6px solid #67c23a;
+}
+.test-status-banner.status-failed {
+  background: linear-gradient(90deg, #fff5f5 0%, #fff7f8 100%);
+  border-left: 6px solid #f56c6c;
+}
+.test-status-banner:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(16,24,40,0.06);
+}
+
+/* 响应工具栏按钮强化 */
+.result-toolbar .el-button {
+  border-radius: 6px;
+  background: transparent;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
+}
+.result-toolbar .el-button:hover {
+  transform: translateY(-3px);
+  background: rgba(64,158,255,0.06);
+  box-shadow: 0 8px 18px rgba(64,158,255,0.06);
+}
+
+/* 代码展示区增强 */
+.response-code-editor {
+  border-radius: 10px;
+  padding: 18px;
+  background: linear-gradient(180deg, #0f1724 0%, #071025 100%);
+  color: #e6eef8;
+}
+.response-code-editor .code-content {
+  background: transparent;
+  color: #e6eef8;
+}
+.response-code-editor pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 下载/复制按钮强调 */
+.toolbar-left .el-button[icon] {
+  background: rgba(255,255,255,0.02);
+}
+.toolbar-left .el-button[icon]:hover {
+  background: rgba(255,255,255,0.04);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.12);
 }
 
 /* 折叠卡片样式 */
