@@ -219,6 +219,7 @@
 
       <!-- 请求参数 -->
       <div v-if="activeTab === 'params'" class="tab-content params-content">
+        <div class="params-card" role="region" aria-label="请求参数卡片">
         <div class="params-header">
           <h3 class="params-title">Headers</h3>
           </div>
@@ -303,12 +304,12 @@
           </el-button>
         </div>
 
-        <div class="params-header">
+        <div class="params-header params-header--with-controls">
           <h3 class="params-title">Body</h3>
-          <el-radio-group v-model="bodyType" size="small" class="body-type-selector">
-            <el-radio-button label="json">JSON</el-radio-button>
-            <el-radio-button label="form-data">form-data</el-radio-button>
-            <el-radio-button label="raw">raw</el-radio-button>
+          <el-radio-group v-model="bodyType" size="small" class="body-type-selector" role="tablist" aria-label="请求体类型">
+            <el-radio-button label="json" role="tab" aria-selected="true">JSON</el-radio-button>
+            <el-radio-button label="form-data" role="tab" aria-selected="false">form-data</el-radio-button>
+            <el-radio-button label="raw" role="tab" aria-selected="false">raw</el-radio-button>
           </el-radio-group>
         </div>
 
@@ -426,6 +427,7 @@
         <div class="params-actions">
           <el-button type="primary" @click="handleSaveParams">保存</el-button>
           <el-button @click="handleFormatParams">格式化</el-button>
+        </div>
         </div>
       </div>
 
@@ -4361,6 +4363,70 @@ onMounted(() => {
   padding-top: 24px;
   border-top: 1px solid #e4e7ed;
   margin-top: 24px;
+}
+
+/* 请求参数卡片样式 */
+.params-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.04);
+  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  margin-bottom: 18px;
+}
+.params-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 14px 36px rgba(16,24,40,0.08);
+}
+
+/* params header with controls alignment */
+.params-header--with-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* body type selector transitions */
+.body-type-selector :deep(.el-radio-button__inner) {
+  transition: background-color 0.18s ease, color 0.18s ease, transform 0.12s ease;
+}
+.body-type-selector :deep(.el-radio-button:hover) {
+  transform: translateY(-2px);
+}
+
+/* table row hover / zebra */
+.params-table :deep(.el-table__row) {
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.params-table :deep(.el-table__row:hover) {
+  background: linear-gradient(90deg, rgba(240,249,255,0.6), rgba(246,253,255,0.2));
+  transform: translateY(-2px);
+}
+.params-table :deep(.el-table__body) {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* add-param button float */
+.add-param-btn {
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* small toolbar tweaks */
+.result-toolbar, .params-header {
+  align-items: center;
+}
+
+/* collapsible card improvements */
+.collapsible-card {
+  border-radius: 10px;
+  overflow: hidden;
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+.collapsible-card:hover {
+  box-shadow: 0 8px 22px rgba(16,24,40,0.04);
 }
 
 /* 请求参数部分 */
