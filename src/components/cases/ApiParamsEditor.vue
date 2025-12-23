@@ -238,10 +238,16 @@ const toggleBodyCollapsed = () => {
 </script>
 
 <style scoped>
-.params-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(16,24,40,0.04); }
+.params-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 6px 18px rgba(16,24,40,0.04); transition: transform .18s ease, box-shadow .18s ease; }
+.params-card:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(16,24,40,0.08); }
 .params-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; margin-top:24px; }
 .params-title { font-size:16px; font-weight:600; color:#303133; margin:0; }
 .add-param-btn { margin-bottom:24px; display:flex; justify-content:flex-start; }
+.params-table :deep(.el-input__inner) { border: none; background: transparent; transition: box-shadow .12s ease; }
+.params-table :deep(.el-input__inner:focus) { box-shadow: 0 8px 18px rgba(64,158,255,0.06); border-radius: 4px; background: #fff; }
+.collapsible-card { border-radius: 10px; overflow: hidden; transition: box-shadow .16s ease; }
+.collapsible-card:hover { box-shadow: 0 8px 22px rgba(16,24,40,0.04); }
+</style>
 </style>
 
 

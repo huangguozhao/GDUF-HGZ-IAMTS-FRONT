@@ -140,6 +140,16 @@ const onProjectChange = (val) => {
   padding: 20px;
   box-shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
 }
+.basic-info-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(16, 24, 40, 0.12);
+}
+.form-section { margin-bottom: 24px; }
+.section-title { font-size: 14px; color: #606266; margin-bottom: 8px; font-weight: 500; }
+.form-actions { display:flex; gap:12px; padding-top:24px; border-top:1px solid #e4e7ed; margin-top:24px; }
+.tag-list { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.basic-info-card .el-input__inner, .basic-info-card .el-select .el-input__inner { transition: box-shadow .12s ease; }
+.basic-info-card .el-input__inner:focus, .basic-info-card .el-select .el-input__inner:focus { box-shadow: 0 8px 18px rgba(64,158,255,0.08); border-color: #409eff; }
 </style>
 
 
