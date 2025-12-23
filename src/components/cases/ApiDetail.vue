@@ -871,6 +871,7 @@
 
       <!-- 相关用例 -->
       <div v-if="activeTab === 'cases'" class="tab-content cases-content">
+        <div class="cases-card" role="region" aria-label="相关用例卡片">
         <!-- 用例工具栏 -->
         <div class="cases-toolbar">
           <div class="toolbar-left">
@@ -1026,6 +1027,7 @@
             layout="prev, pager, next"
             @current-change="handleCasesPageChange"
           />
+        </div>
         </div>
       </div>
     </div>
@@ -4993,6 +4995,79 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   align-items: center;
+}
+
+/* 相关用例卡片 */
+.cases-card {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: 0 8px 28px rgba(16,24,40,0.04);
+  transition: transform 0.16s ease, box-shadow 0.16s ease;
+  margin-bottom: 18px;
+}
+.cases-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 44px rgba(16,24,40,0.08);
+}
+
+/* 用例表格 - 斑马线与行 hover */
+.cases-table :deep(.el-table__row) {
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.cases-table :deep(.el-table__row:nth-child(odd)) {
+  background: linear-gradient(90deg, rgba(248,250,252,0.6), rgba(255,255,255,0));
+}
+.cases-table :deep(.el-table__row:hover) {
+  background: linear-gradient(90deg, rgba(240,249,255,0.9), rgba(246,253,255,0.6));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+}
+
+/* case name cell as clickable card */
+.case-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: background-color 0.12s ease, transform 0.12s ease;
+}
+.case-name-cell:hover {
+  background: rgba(64,158,255,0.06);
+  transform: translateX(4px);
+}
+.case-name-text {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 600;
+}
+
+/* 优先级 & 类型标签更紧凑 */
+.cases-table :deep(.el-tag) {
+  font-weight: 600;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+/* 工具按钮微交互 */
+.cases-table :deep(.el-button) {
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.cases-table :deep(.el-button:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+}
+
+/* 小屏幕下调整布局 */
+@media (max-width: 800px) {
+  .cases-card {
+    padding: 6px;
+  }
+  .case-name-text {
+    font-size: 13px;
+  }
 }
 
 /* 用例列表表格 */
