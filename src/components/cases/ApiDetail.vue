@@ -5070,6 +5070,23 @@ onMounted(() => {
   }
 }
 
+/* 强制使操作按钮不透明并置于行上方，防止下方用例内容透出 */
+.cases-table :deep(.el-table__body .el-button) {
+  position: relative;
+  z-index: 5;
+  background: rgba(255,255,255,0.98); /* 近乎不透明的白色背景，适配浅色主题 */
+  opacity: 1 !important;
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+.cases-table :deep(.el-button--text) {
+  background: rgba(255,255,255,0.98);
+  color: inherit;
+}
+.cases-table :deep(.el-button--text):hover {
+  background: rgba(64,158,255,0.06);
+}
+
 /* 用例列表表格 */
 .cases-table {
   width: 100%;
