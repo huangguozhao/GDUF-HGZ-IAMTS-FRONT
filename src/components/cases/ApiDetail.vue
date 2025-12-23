@@ -121,218 +121,18 @@
       />
 
       <!-- 请求参数 -->
-      <div v-if="activeTab === 'params'" class="tab-content params-content">
-        <div class="params-card" role="region" aria-label="请求参数卡片">
-        <div class="params-header">
-          <h3 class="params-title">Headers</h3>
-          </div>
-        <el-table 
-          :data="headerParams" 
-          class="params-table"
-          border
-        >
-          <el-table-column label="参数名" width="200">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.name" placeholder="参数名" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="参数值" width="200">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.value" placeholder="参数值" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="参数描述">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.description" placeholder="参数描述" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center">
-            <template #default="{ row, $index }">
-              <el-button 
-                size="small" 
-                text 
-                type="danger"
-                @click="removeParam(headerParams, $index)"
-              >
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div class="add-param-btn">
-          <el-button size="small" @click="addParam(headerParams)">
-            + 添加参数
-          </el-button>
-          </div>
-
-        <div class="params-header">
-          <h3 class="params-title">Params</h3>
-        </div>
-        <el-table 
-          :data="queryParams" 
-          class="params-table"
-          border
-        >
-          <el-table-column label="参数名" width="200">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.name" placeholder="参数名" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="参数值" width="200">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.value" placeholder="参数值" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="参数描述">
-            <template #default="{ row, $index }">
-              <el-input v-model="row.description" placeholder="参数描述" size="small" />
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="120" align="center">
-            <template #default="{ row, $index }">
-              <el-button 
-                size="small" 
-                text 
-                type="danger"
-                @click="removeParam(queryParams, $index)"
-              >
-                删除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-        <div class="add-param-btn">
-          <el-button size="small" @click="addParam(queryParams)">
-            + 添加参数
-          </el-button>
-        </div>
-
-        <div class="params-header params-header--with-controls">
-          <h3 class="params-title">Body</h3>
-          <el-radio-group v-model="bodyType" size="small" class="body-type-selector" role="tablist" aria-label="请求体类型">
-            <el-radio-button label="json" role="tab" aria-selected="true">JSON</el-radio-button>
-            <el-radio-button label="form-data" role="tab" aria-selected="false">form-data</el-radio-button>
-            <el-radio-button label="raw" role="tab" aria-selected="false">raw</el-radio-button>
-          </el-radio-group>
-        </div>
-
-        <!-- 折叠卡片：请求体 -->
-        <div class="collapsible-card">
-          <div class="collapsible-toggle" role="button" tabindex="0" @click="bodyCollapsed = !bodyCollapsed" @keydown.enter.prevent="bodyCollapsed = !bodyCollapsed" :aria-expanded="!bodyCollapsed">
-            <div class="collapsible-left">请求体预览</div>
-            <div class="collapsible-right">
-              <span class="small-muted">{{ bodyType.toUpperCase() }}</span>
-              <svg class="collapse-icon" width="14" height="14" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </div>
-          </div>
-        </div>
-
-        <!-- JSON格式 -->
-        <div v-if="bodyType === 'json'" class="body-section">
-          <el-table 
-            :data="bodyParams" 
-            class="params-table"
-            border
-          >
-            <el-table-column label="变量名" width="200">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.name" placeholder="变量名" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="变量值" width="200">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.value" placeholder="变量值" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="变量描述">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.description" placeholder="变量描述" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120" align="center">
-              <template #default="{ row, $index }">
-                <el-button 
-                  size="small" 
-                  text 
-                  type="danger"
-                  @click="removeParam(bodyParams, $index)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="add-param-btn">
-            <el-button size="small" @click="addParam(bodyParams)">
-              + 添加变量
-            </el-button>
-          </div>
-        </div>
-
-        <!-- Raw格式 -->
-        <div v-else-if="bodyType === 'raw'" class="body-section">
-          <el-input
-            v-model="rawBody"
-            type="textarea"
-            :rows="10"
-            placeholder='请输入请求体内容，例如：
-{
-  "userId": "user_12345",
-  "userName": "测试用户",
-  "userEmail": "test@example.com",
-  "userRole": "admin"
-}'
-          />
-        </div>
-
-        <!-- form-data格式 -->
-        <div v-else-if="bodyType === 'form-data'" class="body-section">
-          <el-table 
-            :data="formDataParams" 
-            class="params-table"
-            border
-          >
-            <el-table-column label="参数名" width="200">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.name" placeholder="参数名" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="参数值" width="200">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.value" placeholder="参数值" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="参数描述">
-              <template #default="{ row, $index }">
-                <el-input v-model="row.description" placeholder="参数描述" size="small" />
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="120" align="center">
-              <template #default="{ row, $index }">
-                <el-button 
-                  size="small" 
-                  text 
-                  type="danger"
-                  @click="removeParam(formDataParams, $index)"
-                >
-                  删除
-                </el-button>
-              </template>
-            </el-table-column>
-          </el-table>
-          <div class="add-param-btn">
-            <el-button size="small" @click="addParam(formDataParams)">
-              + 添加参数
-            </el-button>
-          </div>
-        </div>
-
-        <div class="params-actions">
-          <el-button type="primary" @click="handleSaveParams">保存</el-button>
-          <el-button @click="handleFormatParams">格式化</el-button>
-        </div>
-        </div>
-      </div>
+      <ApiParamsEditor
+        :visible="activeTab === 'params'"
+        v-model:headerParams="headerParams"
+        v-model:queryParams="queryParams"
+        v-model:bodyParams="bodyParams"
+        v-model:formDataParams="formDataParams"
+        v-model:rawBody="rawBody"
+        v-model:bodyType="bodyType"
+        v-model:bodyCollapsed="bodyCollapsed"
+        @save-params="handleSaveParams"
+        @format-params="handleFormatParams"
+      />
 
 
       <!-- 响应结果 -->
@@ -1506,6 +1306,7 @@ import { getModulesByProject, updateApi, getProjects, deleteApi } from '@/api/pr
 import JsonViewer from '@/components/common/JsonViewer.vue'
 import ExecutionResult from './ExecutionResult.vue'
 import ApiBasicForm from './ApiBasicForm.vue'
+import ApiParamsEditor from './ApiParamsEditor.vue'
 import useProjectsModules from './apiDetail/useProjectsModules'
 import { exportToExcel, exportToJson, exportToCsv } from './apiDetail/exportUtils'
 import {
