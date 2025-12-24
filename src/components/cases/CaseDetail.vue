@@ -4709,7 +4709,7 @@ onMounted(() => {
 
 .execute-form {
   background: #fafbfc;
-  padding: 20px;
+  padding: 16px;
   border-radius: 8px;
   border: 1px solid #e4e7ed;
 }
@@ -4717,7 +4717,7 @@ onMounted(() => {
 .execute-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 20px;
+  gap: 16px;
   align-items: start;
 }
 
@@ -4728,8 +4728,8 @@ onMounted(() => {
 /* 表单项对齐：将 el-form-item 布局为两列（label + control），防止内容混乱与遮挡 */ 
 .execute-form .el-form-item {
   display: grid;
-  grid-template-columns: 120px 1fr;
-  grid-column-gap: 16px;
+  grid-template-columns: 100px 1fr;
+  grid-column-gap: 12px;
   align-items: start;
   width: 100%;
   box-sizing: border-box;
@@ -4738,7 +4738,7 @@ onMounted(() => {
 
 .execute-form .el-form-item__label {
   justify-self: end;
-  padding-right: 8px;
+  padding-right: 6px;
   color: #606266;
   font-size: 14px;
   line-height: 1.6;
@@ -4849,40 +4849,27 @@ onMounted(() => {
 /* 执行模式选择 */
 .execution-mode-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 12px;
   width: 100%;
 }
 
 .mode-option {
-  padding: 12px;
+  flex: 1;
+  padding: 10px 12px;
   background: white;
   border: 1px solid #e4e7ed;
   border-radius: 8px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-}
-
-.mode-option::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.05), transparent);
-  transition: left 0.5s ease;
-}
-
-.mode-option:hover::before {
-  left: 100%;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
 }
 
 .mode-option:hover {
   border-color: #409eff;
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
   transform: translateY(-2px);
 }
 
@@ -4893,7 +4880,7 @@ onMounted(() => {
 .mode-option .el-radio__input.is-checked .el-radio__inner {
   background: #409eff;
   border-color: #409eff;
-  animation: radioCheckPulse 0.3s ease;
+  animation: radioCheckPulse 0.25s ease;
 }
 
 @keyframes radioCheckPulse {
