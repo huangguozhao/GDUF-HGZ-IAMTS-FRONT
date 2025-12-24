@@ -35,7 +35,7 @@
       </div>
 
       <!-- 筛选工具栏 -->
-      <div class="filter-toolbar">
+      <div class="filter-toolbar" role="region" aria-label="筛选工具栏">
         <div class="toolbar-content">
           <div class="filter-group">
             <el-select 
@@ -1162,6 +1162,82 @@ watch(() => props.visible, (newVisible) => {
   border-radius: 12px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
   border: 1px solid #f0f0f0;
+}
+
+/* 提升模态框整体视觉 */
+.execution-history-modal {
+  --dialog-shadow: 0 30px 80px rgba(16,24,40,0.12);
+}
+.execution-history-modal :deep(.el-dialog) {
+  box-shadow: var(--dialog-shadow);
+  border-radius: 14px;
+  overflow: hidden;
+  animation: dialogFadeIn .18s ease;
+}
+.modal-header {
+  background: linear-gradient(90deg,#f7fbff 0%, #ffffff 100%);
+  padding: 18px 24px;
+  border-bottom: 1px solid #eaf3ff;
+}
+.header-title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: #102a43;
+}
+.header-subtitle {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #61748a;
+}
+
+@keyframes dialogFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 让筛选工具栏在滚动时悬浮可见 */
+.filter-toolbar {
+  position: sticky;
+  top: 92px;
+  z-index: 6;
+  margin-bottom: 12px;
+  padding: 0 24px;
+}
+.toolbar-content {
+  padding: 12px 16px;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(6px);
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(16,24,40,0.04);
+}
+
+/* 统计卡片微调 */
+.stat-card {
+  padding: 18px;
+  background: linear-gradient(180deg,#ffffff 0%, #fbfdff 100%);
+  box-shadow: 0 6px 28px rgba(16,24,40,0.06);
+  border: 1px solid rgba(234,243,255,0.8);
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease;
+}
+.stat-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 18px 56px rgba(16,24,40,0.08);
+}
+.stat-number {
+  color: #102a43;
+  animation: popIn .36s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes popIn {
+  0% { transform: scale(.85); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* 表格行 hover 动效 */
+.history-table :deep(.el-table__row:hover) {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 30px rgba(16,24,40,0.04);
 }
 
 /* 响应式设计 */
