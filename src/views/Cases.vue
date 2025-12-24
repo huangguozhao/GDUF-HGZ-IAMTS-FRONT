@@ -1021,6 +1021,7 @@
           <el-tabs v-model="caseFormActiveTab" class="case-form-tabs">
             <!-- 基本信息 -->
             <el-tab-pane label="基本信息" name="basic">
+              <div class="form-section">
               <el-form-item label="用例名称" prop="name">
                 <el-input v-model="formData.name" placeholder="请输入用例名称" />
               </el-form-item>
@@ -1091,11 +1092,13 @@
                 <el-switch v-model="formData.is_template" />
                 <span class="form-tip">模板用例可以被其他用例引用</span>
               </el-form-item>
+              </div>
             </el-tab-pane>
 
             <!-- 测试步骤 -->
             <el-tab-pane label="测试步骤" name="steps">
-              <div class="test-steps-section">
+              <div class="form-section">
+                <div class="test-steps-section">
                 <div class="steps-header">
                   <span class="steps-title">测试步骤列表</span>
                   <el-button size="small" type="primary" @click="handleAddTestStep">
@@ -1138,12 +1141,14 @@
                   description="暂无测试步骤，点击上方按钮添加"
                   :image-size="80"
                 />
+                </div>
               </div>
             </el-tab-pane>
 
             <!-- 前置条件与请求参数 -->
             <el-tab-pane label="请求参数" name="request">
-              <el-form-item label="前置条件">
+              <div class="form-section">
+                <el-form-item label="前置条件">
                 <el-input
                   v-model="formData.pre_conditions_str"
                   type="textarea"
@@ -1151,9 +1156,9 @@
                   placeholder='JSON格式的前置条件，例如：&#10;{&#10;  "token": "xxxx",&#10;  "userId": 123&#10;}'
                 />
                 <span class="form-tip">用于设置环境变量、登录状态等</span>
-              </el-form-item>
+                </el-form-item>
 
-              <el-form-item label="请求参数覆盖">
+                <el-form-item label="请求参数覆盖">
                 <el-input
                   v-model="formData.request_override_str"
                   type="textarea"
@@ -1161,11 +1166,13 @@
                   placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
                 />
                 <span class="form-tip">将覆盖接口的默认请求参数</span>
-              </el-form-item>
+                </el-form-item>
+              </div>
             </el-tab-pane>
 
             <!-- 预期响应 -->
             <el-tab-pane label="预期响应" name="response">
+              <div class="form-section">
               <el-form-item label="预期状态码" prop="expected_http_status">
                 <el-input-number
                   v-model="formData.expected_http_status"
@@ -1193,11 +1200,13 @@
                 />
                 <span class="form-tip">用于验证响应结构</span>
               </el-form-item>
+              </div>
             </el-tab-pane>
 
             <!-- 断言规则 -->
             <el-tab-pane label="断言规则" name="assertions">
-              <div class="assertions-section">
+              <div class="form-section">
+                <div class="assertions-section">
                 <div class="assertions-header">
                   <span class="assertions-title">断言列表</span>
                   <el-button size="small" type="primary" @click="handleAddAssertion">
@@ -1255,12 +1264,14 @@
                   description="暂无断言规则，点击上方按钮添加"
                   :image-size="80"
                 />
+                </div>
               </div>
             </el-tab-pane>
 
             <!-- 响应提取规则 -->
             <el-tab-pane label="提取规则" name="extractors">
-              <div class="extractors-section">
+              <div class="form-section">
+                <div class="extractors-section">
                 <div class="extractors-header">
                   <span class="extractors-title">提取器列表</span>
                   <el-button size="small" type="primary" @click="handleAddExtractor">
@@ -1311,6 +1322,7 @@
                 <div class="extractor-tip">
                   <el-icon color="#409eff"><InfoFilled /></el-icon>
                   <span>提取器用于从响应中提取数据供后续用例使用，如提取登录token、订单ID等</span>
+                </div>
                 </div>
               </div>
             </el-tab-pane>
