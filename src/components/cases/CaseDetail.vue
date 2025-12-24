@@ -980,7 +980,8 @@
     <el-dialog
       v-model="exportDialogVisible"
       title="导出测试用例"
-      width="600px"
+      width="720px"
+      class="export-dialog"
       :close-on-click-modal="false"
     >
       <div class="export-content">
@@ -1008,55 +1009,58 @@
           :model="exportFormData"
           :rules="exportFormRules"
           label-width="120px"
-          style="margin-top: 24px;"
+          style="margin-top: 18px;"
         >
-          <el-form-item label="导出格式" prop="format">
-            <el-select 
-              v-model="exportFormData.format" 
-              placeholder="选择导出格式"
-              style="width: 100%;"
-            >
-              <el-option 
-                label="Excel (.xlsx)" 
-                value="excel"
+          <el-form-item label="导出格式" prop="format" class="format-picker-item">
+            <div class="format-cards" role="list">
+              <div
+                role="listitem"
+                tabindex="0"
+                class="format-card"
+                :class="{ selected: exportFormData.format === 'excel' }"
+                @click="exportFormData.format = 'excel'"
               >
-                <span class="format-option">
-                  <span class="format-icon">📊</span>
-                  <span class="format-name">Excel (.xlsx)</span>
-                  <span class="format-desc">推荐，适合查看和编辑</span>
-                </span>
-              </el-option>
-              <el-option 
-                label="JSON (.json)" 
-                value="json"
+                <div class="card-icon">📊</div>
+                <div class="card-title">Excel</div>
+                <div class="card-desc">.xlsx · 推荐 · 适合查看与编辑</div>
+              </div>
+
+              <div
+                role="listitem"
+                tabindex="0"
+                class="format-card"
+                :class="{ selected: exportFormData.format === 'json' }"
+                @click="exportFormData.format = 'json'"
               >
-                <span class="format-option">
-                  <span class="format-icon">{ }</span>
-                  <span class="format-name">JSON (.json)</span>
-                  <span class="format-desc">适合程序处理</span>
-                </span>
-              </el-option>
-              <el-option 
-                label="YAML (.yaml)" 
-                value="yaml"
+                <div class="card-icon">{ }</div>
+                <div class="card-title">JSON</div>
+                <div class="card-desc">.json · 适合程序化处理</div>
+              </div>
+
+              <div
+                role="listitem"
+                tabindex="0"
+                class="format-card"
+                :class="{ selected: exportFormData.format === 'yaml' }"
+                @click="exportFormData.format = 'yaml'"
               >
-                <span class="format-option">
-                  <span class="format-icon">📄</span>
-                  <span class="format-name">YAML (.yaml)</span>
-                  <span class="format-desc">适合配置管理</span>
-                </span>
-              </el-option>
-              <el-option 
-                label="CSV (.csv)" 
-                value="csv"
+                <div class="card-icon">📄</div>
+                <div class="card-title">YAML</div>
+                <div class="card-desc">.yaml · 适合配置与版本管理</div>
+              </div>
+
+              <div
+                role="listitem"
+                tabindex="0"
+                class="format-card"
+                :class="{ selected: exportFormData.format === 'csv' }"
+                @click="exportFormData.format = 'csv'"
               >
-                <span class="format-option">
-                  <span class="format-icon">📋</span>
-                  <span class="format-name">CSV (.csv)</span>
-                  <span class="format-desc">适合表格处理</span>
-                </span>
-              </el-option>
-            </el-select>
+                <div class="card-icon">📋</div>
+                <div class="card-title">CSV</div>
+                <div class="card-desc">.csv · 适合简单表格</div>
+              </div>
+            </div>
           </el-form-item>
 
           <el-divider content-position="left">导出内容</el-divider>
@@ -1136,6 +1140,18 @@
             </el-input>
             <div class="form-tip">留空将使用默认命名：用例编码_日期时间</div>
           </el-form-item>
+          
+          <!-- 右侧导出统计浮层 -->
+          <div class="export-preview-float" aria-hidden="false">
+            <div class="preview-top">
+              <div class="preview-format">格式：<strong>{{ getFormatName(exportFormData.format) }}</strong></div>
+              <div class="preview-size">预计大小：<strong>{{ getEstimatedSize() }}</strong></div>
+            </div>
+            <div class="preview-actions">
+              <el-button size="small" type="primary" @click="handleConfirmExport" :loading="exporting" :icon="Download">开始导出</el-button>
+              <el-button size="small" @click="exportDialogVisible = false">取消</el-button>
+            </div>
+          </div>
 
           <el-form-item label="编码格式" v-if="exportFormData.format === 'csv'">
             <el-select v-model="exportFormData.encoding" style="width: 100%;">
@@ -3616,6 +3632,74 @@ onMounted(() => {
   font-size: 12px;
   color: #909399;
   margin-left: auto;
+}
+
+/* 导出对话框 - 格式卡片 */
+.export-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(90deg,#f7fbff 0%, #ffffff 100%);
+  border-bottom: 1px solid #eaf3ff;
+}
+.format-cards {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.format-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  width: 160px;
+  border-radius: 10px;
+  background: linear-gradient(180deg,#ffffff 0%, #fbfdff 100%);
+  border: 1px solid transparent;
+  box-shadow: 0 8px 22px rgba(16,24,40,0.04);
+  cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+  outline: none;
+}
+.format-card:focus,
+.format-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 46px rgba(16,24,40,0.06);
+}
+.format-card.selected {
+  border-color: #409eff;
+  box-shadow: 0 20px 56px rgba(64,158,255,0.08);
+}
+.format-card .card-icon {
+  font-size: 22px;
+}
+.format-card .card-title {
+  font-weight: 700;
+  color: #2b3a4b;
+}
+.format-card .card-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* 浮动预览区域 */
+.export-preview-float {
+  margin-top: 18px;
+  padding: 12px;
+  border-radius: 10px;
+  background: linear-gradient(135deg,#fbfdff 0%, #f5f9ff 100%);
+  border: 1px solid #eaf3ff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(16,24,40,0.04);
+}
+.export-preview-float .preview-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.export-preview-float .preview-actions {
+  display: flex;
+  gap: 8px;
 }
 
 /* 复选框列表 */
