@@ -4725,6 +4725,35 @@ onMounted(() => {
   grid-column: 1 / -1;
 }
 
+/* 修复输入控件在 CSS Grid 中的溢出问题：允许子项收缩、输入撑满父容器 */
+.execute-form-grid > * {
+  min-width: 0;
+}
+
+.execute-form .el-form-item {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.execute-form .el-form-item .el-input,
+.execute-form .el-form-item .el-select,
+.execute-form .el-form-item .el-input-number,
+.execute-form .el-form-item .el-radio-group,
+.execute-form .el-form-item .el-input__inner {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.execute-form .el-select .el-input__inner,
+.execute-form .el-input .el-input__inner {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
 .form-item-enhanced .el-form-item__label {
   font-weight: 500;
   color: #303133;
