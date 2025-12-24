@@ -416,14 +416,14 @@
     >
       <el-form :model="executeFormData" label-width="120px" class="execute-form">
         <div class="execute-form-grid">
-          <el-form-item label="执行环境">
-            <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
-              <el-option label="开发环境 (dev)" value="dev" />
-              <el-option label="测试环境 (test)" value="test" />
-              <el-option label="预发布环境 (staging)" value="staging" />
-              <el-option label="生产环境 (prod)" value="prod" />
-            </el-select>
-          </el-form-item>
+        <el-form-item label="执行环境">
+          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
+            <el-option label="开发环境 (dev)" value="dev" />
+            <el-option label="测试环境 (test)" value="test" />
+            <el-option label="预发布环境 (staging)" value="staging" />
+            <el-option label="生产环境 (prod)" value="prod" />
+          </el-select>
+        </el-form-item>
 
           <el-form-item label="执行模式">
             <el-radio-group v-model="executeFormData.async">
@@ -433,31 +433,31 @@
           </el-form-item>
 
           <el-form-item label="Base URL" class="full-width">
-            <el-input 
-              v-model="executeFormData.baseUrl" 
+          <el-input 
+            v-model="executeFormData.baseUrl" 
               placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
-            />
-          </el-form-item>
+          />
+        </el-form-item>
 
           <el-form-item label="超时时间" class="timeout-item">
-            <el-input-number 
-              v-model="executeFormData.timeout" 
-              :min="1" 
-              :max="300"
-            />
+          <el-input-number 
+            v-model="executeFormData.timeout" 
+            :min="1" 
+            :max="300"
+          />
             <span class="timeout-unit">秒</span>
-          </el-form-item>
+        </el-form-item>
 
           <el-form-item label="执行变量" class="full-width variables-field">
-            <el-input 
-              v-model="executeVariables" 
-              type="textarea"
+          <el-input 
+            v-model="executeVariables" 
+            type="textarea"
               :rows="6"
               placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
-            />
+          />
             <div v-if="variablesError" class="variables-error">{{ variablesError }}</div>
             <div v-else class="variables-hint">支持 JSON 格式变量；留空将使用默认值。</div>
-          </el-form-item>
+        </el-form-item>
         </div>
       </el-form>
 
@@ -686,142 +686,276 @@
     <el-dialog
       v-model="shareDialogVisible"
       title="分享测试用例"
-      width="600px"
+      width="650px"
       :close-on-click-modal="false"
+      class="share-dialog"
     >
       <div class="share-content">
-        <div class="share-info">
+        <div class="share-header-section">
+          <div class="share-header-icon">
+            <el-icon size="24" color="#409eff"><Share /></el-icon>
+          </div>
+          <div class="share-header-info">
+            <h3 class="share-title">分享设置</h3>
+            <p class="share-subtitle">配置分享参数，生成安全的访问链接</p>
+          </div>
+        </div>
+
+        <div class="share-info-banner">
           <el-alert
             title="分享说明"
             type="info"
             :closable="false"
             show-icon
+            class="share-info-alert"
           >
             <template #default>
-              <p>生成分享链接后，其他用户可以通过链接查看此测试用例的详细信息。</p>
-              <ul>
-                <li>• 分享链接包含用例的完整信息</li>
-                <li>• 链接具有访问权限控制</li>
-                <li>• 可以设置链接有效期</li>
-                <li>• 支持密码保护（可选）</li>
-              </ul>
-            </template>
-          </el-alert>
-        </div>
-
-        <el-form
-          ref="shareFormRef"
-          :model="shareFormData"
-          :rules="shareFormRules"
-          label-width="100px"
-          style="margin-top: 20px;"
-        >
-          <el-form-item label="分享标题" prop="title">
-            <el-input 
-              v-model="shareFormData.title" 
-              placeholder="请输入分享标题"
-              maxlength="100"
-              show-word-limit
-            />
-          </el-form-item>
-          
-          <el-form-item label="有效期" prop="expireDays">
-            <el-select 
-              v-model="shareFormData.expireDays" 
-              placeholder="选择有效期"
-              style="width: 100%;"
-            >
-              <el-option label="1天" :value="1" />
-              <el-option label="7天" :value="7" />
-              <el-option label="30天" :value="30" />
-              <el-option label="90天" :value="90" />
-              <el-option label="永久" :value="0" />
-            </el-select>
-          </el-form-item>
-          
-          <el-form-item label="访问密码" prop="password">
-            <el-input 
-              v-model="shareFormData.password" 
-              type="password"
-              placeholder="设置访问密码（可选）"
-              maxlength="20"
-              show-password
-            />
-            <div class="form-tip">设置密码后，访问者需要输入密码才能查看</div>
-          </el-form-item>
-          
-          <el-form-item label="权限设置" prop="permissions">
-            <el-checkbox-group v-model="shareFormData.permissions">
-              <el-checkbox label="view">允许查看</el-checkbox>
-              <el-checkbox label="download">允许下载</el-checkbox>
-              <el-checkbox label="comment">允许评论</el-checkbox>
-            </el-checkbox-group>
-          </el-form-item>
-        </el-form>
-
-        <!-- 生成的分享链接 -->
-        <div v-if="shareLink" class="share-result">
-          <el-alert
-            title="分享链接已生成"
-            type="success"
-            :closable="false"
-            show-icon
-          >
-            <template #default>
-              <div class="share-link-container">
-                <div class="share-link">
-                  <el-input
-                    v-model="shareLink"
-                    readonly
-                    placeholder="分享链接"
-                  >
-                    <template #append>
-                      <el-button 
-                        @click="copyShareLink"
-                        :icon="CopyDocument"
-                      >
-                        复制
-                      </el-button>
-                    </template>
-                  </el-input>
+              <div class="share-features">
+                <div class="feature-item">
+                  <el-icon class="feature-icon"><Document /></el-icon>
+                  <span>完整用例信息</span>
                 </div>
-                <div class="share-stats">
-                  <span>访问次数: {{ shareStats.views || 0 }}</span>
-                  <span>有效期: {{ shareStats.expireTime || '永久' }}</span>
+                <div class="feature-item">
+                  <el-icon class="feature-icon"><Lock /></el-icon>
+                  <span>权限控制</span>
+                </div>
+                <div class="feature-item">
+                  <el-icon class="feature-icon"><Clock /></el-icon>
+                  <span>有效期设置</span>
+                </div>
+                <div class="feature-item">
+                  <el-icon class="feature-icon"><Key /></el-icon>
+                  <span>密码保护</span>
                 </div>
               </div>
             </template>
           </el-alert>
         </div>
+
+        <div class="share-form-section">
+          <el-form
+            ref="shareFormRef"
+            :model="shareFormData"
+            :rules="shareFormRules"
+            label-width="120px"
+            class="share-form"
+          >
+            <el-form-item label="分享标题" prop="title" class="form-item-enhanced">
+              <el-input
+                v-model="shareFormData.title"
+                placeholder="请输入分享标题"
+                maxlength="100"
+                show-word-limit
+                class="enhanced-input"
+              >
+                <template #prefix>
+                  <el-icon><Document /></el-icon>
+                </template>
+              </el-input>
+            </el-form-item>
+
+            <el-form-item label="有效期" prop="expireDays" class="form-item-enhanced">
+              <el-select
+                v-model="shareFormData.expireDays"
+                placeholder="选择有效期"
+                class="enhanced-select"
+              >
+                <template #prefix>
+                  <el-icon><Clock /></el-icon>
+                </template>
+                <el-option label="1天" :value="1">
+                  <div class="option-content">
+                    <span class="option-label">1天</span>
+                    <span class="option-desc">临时分享</span>
+                  </div>
+                </el-option>
+                <el-option label="7天" :value="7">
+                  <div class="option-content">
+                    <span class="option-label">7天</span>
+                    <span class="option-desc">短期分享</span>
+                  </div>
+                </el-option>
+                <el-option label="30天" :value="30">
+                  <div class="option-content">
+                    <span class="option-label">30天</span>
+                    <span class="option-desc">中期分享</span>
+                  </div>
+                </el-option>
+                <el-option label="90天" :value="90">
+                  <div class="option-content">
+                    <span class="option-label">90天</span>
+                    <span class="option-desc">长期分享</span>
+                  </div>
+                </el-option>
+                <el-option label="永久" :value="0">
+                  <div class="option-content">
+                    <span class="option-label">永久</span>
+                    <span class="option-desc">永久有效</span>
+                  </div>
+                </el-option>
+              </el-select>
+            </el-form-item>
+
+            <el-form-item label="访问密码" prop="password" class="form-item-enhanced">
+              <el-input
+                v-model="shareFormData.password"
+                type="password"
+                placeholder="设置访问密码（可选）"
+                maxlength="20"
+                show-password
+                class="enhanced-input"
+              >
+                <template #prefix>
+                  <el-icon><Key /></el-icon>
+                </template>
+              </el-input>
+              <div class="form-tip">
+                <el-icon class="tip-icon"><WarningFilled /></el-icon>
+                <span>设置密码后，访问者需要输入密码才能查看用例详情</span>
+              </div>
+            </el-form-item>
+
+            <el-form-item label="权限设置" prop="permissions" class="form-item-enhanced">
+              <div class="permissions-grid">
+                <el-checkbox-group v-model="shareFormData.permissions" class="permission-group">
+                  <div class="permission-item">
+                    <el-checkbox label="view" class="permission-checkbox">
+                      <div class="permission-content">
+                        <el-icon class="permission-icon"><Document /></el-icon>
+                        <div class="permission-text">
+                          <div class="permission-title">查看权限</div>
+                          <div class="permission-desc">允许查看用例详情</div>
+                        </div>
+                      </div>
+                    </el-checkbox>
+                  </div>
+                  <div class="permission-item">
+                    <el-checkbox label="download" class="permission-checkbox">
+                      <div class="permission-content">
+                        <el-icon class="permission-icon"><Download /></el-icon>
+                        <div class="permission-text">
+                          <div class="permission-title">下载权限</div>
+                          <div class="permission-desc">允许下载用例文件</div>
+                        </div>
+                      </div>
+                    </el-checkbox>
+                  </div>
+                  <div class="permission-item">
+                    <el-checkbox label="comment" class="permission-checkbox">
+                      <div class="permission-content">
+                        <el-icon class="permission-icon"><User /></el-icon>
+                        <div class="permission-text">
+                          <div class="permission-title">评论权限</div>
+                          <div class="permission-desc">允许添加评论</div>
+                        </div>
+                      </div>
+                    </el-checkbox>
+                  </div>
+                </el-checkbox-group>
+              </div>
+            </el-form-item>
+          </el-form>
+        </div>
+
+        <!-- 生成的分享链接 -->
+        <div v-if="shareLink" class="share-result-section">
+          <div class="success-banner">
+            <div class="success-icon">
+              <el-icon size="32" color="#67c23a"><CircleCheckFilled /></el-icon>
+            </div>
+            <div class="success-content">
+              <h4 class="success-title">分享链接已生成</h4>
+              <p class="success-desc">复制下方链接分享给其他人查看用例</p>
+            </div>
+          </div>
+
+          <div class="link-display-card">
+            <div class="link-header">
+              <el-icon class="link-icon"><Link /></el-icon>
+              <span class="link-title">分享链接</span>
+            </div>
+            <div class="link-input-wrapper">
+              <el-input
+                v-model="shareLink"
+                readonly
+                class="share-link-input"
+                placeholder="分享链接"
+              >
+                <template #suffix>
+                  <el-button
+                    @click="copyShareLink"
+                    :icon="copyingLink ? CircleCheck : CopyDocument"
+                    :type="copyingLink ? 'success' : 'primary'"
+                    size="small"
+                    class="copy-btn"
+                    :disabled="copyingLink"
+                  >
+                    {{ copyingLink ? '已复制' : '复制链接' }}
+                  </el-button>
+                </template>
+              </el-input>
+            </div>
+
+            <div class="link-stats">
+              <div class="stat-item">
+                <el-icon class="stat-icon"><User /></el-icon>
+                <span class="stat-label">访问次数:</span>
+                <span class="stat-value">{{ shareStats.views || 0 }}</span>
+              </div>
+              <div class="stat-item">
+                <el-icon class="stat-icon"><Clock /></el-icon>
+                <span class="stat-label">有效期:</span>
+                <span class="stat-value">{{ shareStats.expireTime || '永久' }}</span>
+              </div>
+              <div v-if="shareFormData.password" class="stat-item">
+                <el-icon class="stat-icon"><Lock /></el-icon>
+                <span class="stat-label">密码保护:</span>
+                <span class="stat-value">已启用</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="shareDialogVisible = false">取消</el-button>
-          <el-button 
-            v-if="!shareLink"
-            type="primary" 
-            @click="handleGenerateShare" 
-            :loading="generating"
-          >
-            {{ generating ? '生成中...' : '生成分享链接' }}
-          </el-button>
-          <el-button 
-            v-if="shareLink"
-            type="success" 
-            @click="copyShareLink"
-            :icon="CopyDocument"
-          >
-            复制链接
-          </el-button>
-          <el-button 
-            v-if="shareLink"
-            type="danger" 
-            @click="handleRevokeShare"
-            :icon="Delete"
-          >
-            撤销分享
-          </el-button>
+        <div class="share-dialog-footer">
+          <div class="footer-left">
+            <el-button @click="shareDialogVisible = false" plain>
+              <el-icon><CircleClose /></el-icon>
+              <span>取消</span>
+            </el-button>
+          </div>
+          <div class="footer-right">
+            <el-button
+              v-if="!shareLink"
+              type="primary"
+              @click="handleGenerateShare"
+              :loading="generating"
+              class="generate-btn"
+            >
+              <el-icon v-if="!generating"><Share /></el-icon>
+              <span>{{ generating ? '生成中...' : '生成分享链接' }}</span>
+            </el-button>
+            <el-button
+              v-if="shareLink"
+              type="success"
+              @click="copyShareLink"
+              :icon="CopyDocument"
+              class="copy-link-btn"
+            >
+              <span>复制链接</span>
+            </el-button>
+            <el-button
+              v-if="shareLink"
+              type="danger"
+              plain
+              @click="handleRevokeShare"
+              :icon="Delete"
+              class="revoke-btn"
+            >
+              <span>撤销分享</span>
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -1198,10 +1332,10 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  Edit, 
-  Delete, 
-  CircleCheckFilled, 
+import {
+  Edit,
+  Delete,
+  CircleCheckFilled,
   CircleCloseFilled,
   CircleCheck,
   Link,
@@ -1215,7 +1349,9 @@ import {
   Share,
   CircleClose,
   Document,
-  Refresh
+  Refresh,
+  Lock,
+  Key
 } from '@element-plus/icons-vue'
 import { 
   executeTestCase, 
@@ -1906,6 +2042,7 @@ const copyFormRules = {
 // 分享相关数据
 const shareDialogVisible = ref(false)
 const generating = ref(false)
+const copyingLink = ref(false)
 const shareFormRef = ref(null)
 const shareFormData = reactive({
   title: '',
@@ -1968,7 +2105,7 @@ const handleConfirmExecute = async () => {
     if (executeVariables.value) {
       try {
         parsedVariables = JSON.parse(executeVariables.value)
-      } catch (e) {
+  } catch (e) {
         ElMessage.error('执行变量必须是有效的JSON格式')
         executing.value = false
         return
@@ -2204,12 +2341,17 @@ const handleGenerateShare = async () => {
 
 // 复制分享链接
 const copyShareLink = async () => {
+  copyingLink.value = true
   try {
     await navigator.clipboard.writeText(shareLink.value)
     ElMessage.success('分享链接已复制到剪贴板')
+    setTimeout(() => {
+      copyingLink.value = false
+    }, 2000)
   } catch (error) {
     console.error('复制失败:', error)
     ElMessage.error('复制失败，请手动复制')
+    copyingLink.value = false
   }
 }
 
@@ -3483,66 +3625,596 @@ onMounted(() => {
 }
 
 /* 分享对话框样式 */
+.share-dialog .el-dialog__body {
+  padding: 0;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .share-content {
-  max-height: 60vh;
+  max-height: 70vh;
   overflow-y: auto;
+  padding: 24px;
 }
 
-.share-info {
-  margin-bottom: 20px;
+/* 分享头部区域 */
+.share-header-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #e3f2fd;
 }
 
-.share-info .el-alert {
-  margin-bottom: 0;
+.share-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #409eff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
 
-.share-info ul {
-  margin: 8px 0 0 0;
-  padding-left: 20px;
+.share-header-info {
+  flex: 1;
 }
 
-.share-info li {
-  margin: 4px 0;
-  font-size: 13px;
+.share-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.share-subtitle {
+  margin: 0;
+  font-size: 14px;
   color: #606266;
 }
 
-.share-result {
-  margin-top: 20px;
+/* 分享信息横幅 */
+.share-info-banner {
+  margin-bottom: 24px;
 }
 
-.share-link-container {
+.share-info-alert .el-alert__content {
+  padding-top: 16px;
+}
+
+.share-features {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+}
+
+.feature-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+/* 表单区域 */
+.share-form-section {
+  margin-bottom: 24px;
+}
+
+.share-form {
+  background: #fafbfc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.form-item-enhanced .el-form-item__label {
+  font-weight: 500;
+  color: #303133;
+}
+
+.enhanced-input .el-input__prefix,
+.enhanced-select .el-input__prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #909399;
+}
+
+.enhanced-input .el-input__inner,
+.enhanced-select .el-input__inner {
+  border-radius: 6px;
+}
+
+.option-content {
   display: flex;
   flex-direction: column;
+  gap: 2px;
+}
+
+.option-label {
+  font-weight: 500;
+  color: #303133;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+.form-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #e6a23c;
+}
+
+.form-tip .tip-icon {
+  font-size: 14px;
+}
+
+/* 权限设置网格 */
+.permissions-grid {
+  margin-top: 8px;
+}
+
+.permission-group {
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 12px;
 }
 
-.share-link {
+.permission-item {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.permission-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.permission-item:hover::before {
+  left: 100%;
+}
+
+.permission-item:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.permission-item .el-checkbox__input.is-checked + .el-checkbox__label {
+  color: #409eff;
+}
+
+.permission-item .el-checkbox__input.is-checked .el-checkbox__inner {
+  background: #409eff;
+  border-color: #409eff;
+  animation: checkPulse 0.3s ease;
+}
+
+@keyframes checkPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.permission-checkbox {
+  width: 100%;
+  margin-right: 0 !important;
+}
+
+.permission-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   width: 100%;
 }
 
-.share-stats {
+.permission-icon {
+  color: #409eff;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.permission-text {
+  flex: 1;
+}
+
+.permission-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 2px;
+}
+
+.permission-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 结果区域 */
+.share-result-section {
+  margin-top: 24px;
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.success-banner {
   display: flex;
-  gap: 20px;
-  font-size: 13px;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e8 100%);
+  border: 1px solid #d4edda;
+  border-radius: 12px;
+  margin-bottom: 20px;
+}
+
+.success-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #67c23a;
+  border-radius: 50%;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+}
+
+.success-content {
+  flex: 1;
+}
+
+.success-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.success-desc {
+  margin: 0;
+  font-size: 14px;
   color: #606266;
 }
 
-.share-stats span {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* 链接展示卡片 */
+.link-display-card {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
 }
 
-/* 分享对话框按钮样式 */
-.dialog-footer {
+.link-header {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.link-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.link-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.link-input-wrapper {
+  margin-bottom: 16px;
+}
+
+.share-link-input .el-input__inner {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  border-radius: 6px;
+}
+
+.copy-btn {
+  border-radius: 0 6px 6px 0;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.copy-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.copy-btn:active::before {
+  width: 120px;
+  height: 120px;
+}
+
+.copy-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.copy-btn:disabled {
+  background: linear-gradient(135deg, #67c23a 0%, #5cad4c 100%);
+  border-color: #67c23a;
+  color: white;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* 链接统计 */
+.link-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.stat-icon {
+  color: #909399;
+  font-size: 14px;
+}
+
+.stat-label {
+  color: #909399;
+}
+
+.stat-value {
+  color: #303133;
+  font-weight: 500;
+}
+
+/* 对话框底部 */
+.share-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #e4e7ed;
+  background: #fafbfc;
+}
+
+.footer-left,
+.footer-right {
+  display: flex;
   gap: 12px;
 }
 
-.dialog-footer .el-button {
-  min-width: 80px;
+.generate-btn {
+  background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.generate-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+}
+
+.copy-link-btn {
+  background: linear-gradient(135deg, #67c23a 0%, #5cad4c 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.3);
+}
+
+.revoke-btn {
+  color: #f56c6c;
+  border-color: #f56c6c;
+}
+
+.revoke-btn:hover {
+  background: #fef0f0;
+  border-color: #fab1a0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .share-dialog {
+    width: 95% !important;
+    margin: 10px;
+  }
+
+  .share-content {
+    padding: 16px;
+    max-height: 60vh;
+  }
+
+  .share-header-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .share-header-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .share-title {
+    font-size: 16px;
+  }
+
+  .share-subtitle {
+    font-size: 13px;
+  }
+
+  .share-features {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .feature-item {
+    padding: 6px 0;
+  }
+
+  .share-form {
+    padding: 16px;
+  }
+
+  .permission-group {
+    gap: 8px;
+  }
+
+  .permission-item {
+    padding: 10px;
+  }
+
+  .permission-content {
+    gap: 8px;
+  }
+
+  .permission-icon {
+    font-size: 18px;
+  }
+
+  .success-banner {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .success-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .success-title {
+    font-size: 15px;
+  }
+
+  .link-display-card {
+    padding: 16px;
+  }
+
+  .link-stats {
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 12px;
+  }
+
+  .share-dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .footer-left,
+  .footer-right {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .footer-right {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .generate-btn,
+  .copy-link-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .share-dialog {
+    width: 98% !important;
+    margin: 5px;
+  }
+
+  .share-content {
+    padding: 12px;
+  }
+
+  .share-header-section {
+    padding: 12px;
+  }
+
+  .share-form {
+    padding: 12px;
+  }
+
+  .link-display-card {
+    padding: 12px;
+  }
+
+  .success-banner {
+    padding: 12px;
+  }
+
+  .permission-item {
+    padding: 8px;
+  }
 }
 
 /* 禁用状态样式 */

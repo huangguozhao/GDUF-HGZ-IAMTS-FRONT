@@ -1098,7 +1098,7 @@
             <!-- 测试步骤 -->
             <el-tab-pane label="测试步骤" name="steps">
               <div class="form-section">
-                <div class="test-steps-section">
+              <div class="test-steps-section">
                 <div class="steps-header">
                   <span class="steps-title">测试步骤列表</span>
                   <el-button size="small" type="primary" @click="handleAddTestStep">
@@ -1148,7 +1148,7 @@
             <!-- 前置条件与请求参数 -->
             <el-tab-pane label="请求参数" name="request">
               <div class="form-section">
-                <el-form-item label="前置条件">
+              <el-form-item label="前置条件">
                 <el-input
                   v-model="formData.pre_conditions_str"
                   type="textarea"
@@ -1156,9 +1156,9 @@
                   placeholder='JSON格式的前置条件，例如：&#10;{&#10;  "token": "xxxx",&#10;  "userId": 123&#10;}'
                 />
                 <span class="form-tip">用于设置环境变量、登录状态等</span>
-                </el-form-item>
+              </el-form-item>
 
-                <el-form-item label="请求参数覆盖">
+              <el-form-item label="请求参数覆盖">
                 <el-input
                   v-model="formData.request_override_str"
                   type="textarea"
@@ -1166,7 +1166,7 @@
                   placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
                 />
                 <span class="form-tip">将覆盖接口的默认请求参数</span>
-                </el-form-item>
+              </el-form-item>
               </div>
             </el-tab-pane>
 
@@ -1206,7 +1206,7 @@
             <!-- 断言规则 -->
             <el-tab-pane label="断言规则" name="assertions">
               <div class="form-section">
-                <div class="assertions-section">
+              <div class="assertions-section">
                 <div class="assertions-header">
                   <span class="assertions-title">断言列表</span>
                   <el-button size="small" type="primary" @click="handleAddAssertion">
@@ -1271,7 +1271,7 @@
             <!-- 响应提取规则 -->
             <el-tab-pane label="提取规则" name="extractors">
               <div class="form-section">
-                <div class="extractors-section">
+              <div class="extractors-section">
                 <div class="extractors-header">
                   <span class="extractors-title">提取器列表</span>
                   <el-button size="small" type="primary" @click="handleAddExtractor">
