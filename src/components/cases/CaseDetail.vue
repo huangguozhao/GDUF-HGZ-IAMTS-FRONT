@@ -238,12 +238,14 @@
             <div class="response-item full-width">
               <span class="response-label">响应体</span>
               <div class="response-code">
+                <el-button class="copy-btn" size="mini" type="text" :icon="CopyDocument" @click="handleCopyExpectedResponse" title="复制响应体" />
                 <pre>{{ formatExpectedResponse() }}</pre>
               </div>
             </div>
             <div class="response-item full-width" v-if="hasExpectedResponseSchema">
               <span class="response-label">响应Schema</span>
               <div class="response-code">
+                <el-button class="copy-btn" size="mini" type="text" :icon="CopyDocument" @click="handleCopyExpectedResponseSchema" title="复制响应Schema" />
                 <pre>{{ formatExpectedResponseSchema() }}</pre>
               </div>
             </div>
@@ -1619,6 +1621,28 @@ const formatExpectedResponseSchema = () => {
   return ''
 }
 
+// 复制预期响应到剪贴板（响应体）
+const handleCopyExpectedResponse = async () => {
+  try {
+    await navigator.clipboard.writeText(formatExpectedResponse())
+    ElMessage.success('响应体已复制到剪贴板')
+  } catch (e) {
+    console.error('复制响应体失败:', e)
+    ElMessage.error('复制失败')
+  }
+}
+
+// 复制预期响应 Schema 到剪贴板
+const handleCopyExpectedResponseSchema = async () => {
+  try {
+    await navigator.clipboard.writeText(formatExpectedResponseSchema() || '')
+    ElMessage.success('响应 Schema 已复制到剪贴板')
+  } catch (e) {
+    console.error('复制响应Schema失败:', e)
+    ElMessage.error('复制失败')
+  }
+}
+
 // 获取创建人名称
 const getCreatorName = () => {
   if (props.testCase?.creatorInfo && props.testCase?.creatorInfo.name) {
@@ -2545,6 +2569,15 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+/* 使侧边栏在滚动内容时保持可见 */
+.case-sidebar {
+  align-self: flex-start;
+  position: sticky;
+  top: 96px; /* 保持在标题下方，可根据实际头部高度微调 */
+  max-height: calc(100vh - 112px);
+  overflow: auto;
+}
+
 /* 信息卡片 */
 .info-card {
   background: #fafafa;
@@ -2788,6 +2821,18 @@ onMounted(() => {
   margin-top: 8px;
 }
 
+.response-code {
+  position: relative;
+}
+
+.response-code .copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #409eff;
+  z-index: 5;
+}
+
 .response-code pre {
   margin: 0;
   font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
@@ -3022,6 +3067,17 @@ onMounted(() => {
 
 .banner-icon {
   flex-shrink: 0;
+}
+
+/* 结果横幅图标入场动画 */
+.banner-icon {
+  animation: bannerPop .32s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes bannerPop {
+  0% { transform: scale(.7); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .banner-content {
