@@ -410,51 +410,55 @@
     <el-dialog
       v-model="executeDialogVisible"
       title="执行测试配置"
-      width="600px"
+      width="680px"
+      class="execute-dialog"
       :close-on-click-modal="false"
     >
-      <el-form :model="executeFormData" label-width="100px">
-        <el-form-item label="执行环境">
-          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
-            <el-option label="开发环境 (dev)" value="dev" />
-            <el-option label="测试环境 (test)" value="test" />
-            <el-option label="预发布环境 (staging)" value="staging" />
-            <el-option label="生产环境 (prod)" value="prod" />
-          </el-select>
-        </el-form-item>
+      <el-form :model="executeFormData" label-width="120px" class="execute-form">
+        <div class="execute-form-grid">
+          <el-form-item label="执行环境">
+            <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
+              <el-option label="开发环境 (dev)" value="dev" />
+              <el-option label="测试环境 (test)" value="test" />
+              <el-option label="预发布环境 (staging)" value="staging" />
+              <el-option label="生产环境 (prod)" value="prod" />
+            </el-select>
+          </el-form-item>
 
-        <el-form-item label="Base URL">
-          <el-input 
-            v-model="executeFormData.baseUrl" 
-            placeholder="留空则使用环境默认URL"
-          />
-        </el-form-item>
+          <el-form-item label="执行模式">
+            <el-radio-group v-model="executeFormData.async">
+              <el-radio :label="false">同步</el-radio>
+              <el-radio :label="true">异步</el-radio>
+            </el-radio-group>
+          </el-form-item>
 
-        <el-form-item label="超时时间">
-          <el-input-number 
-            v-model="executeFormData.timeout" 
-            :min="1" 
-            :max="300"
-            placeholder="秒"
-          />
-          <span style="margin-left: 8px; color: #909399;">秒</span>
-        </el-form-item>
+          <el-form-item label="Base URL" class="full-width">
+            <el-input 
+              v-model="executeFormData.baseUrl" 
+              placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
+            />
+          </el-form-item>
 
-        <el-form-item label="执行模式">
-          <el-radio-group v-model="executeFormData.async">
-            <el-radio :label="false">同步执行</el-radio>
-            <el-radio :label="true">异步执行</el-radio>
-          </el-radio-group>
-        </el-form-item>
+          <el-form-item label="超时时间" class="timeout-item">
+            <el-input-number 
+              v-model="executeFormData.timeout" 
+              :min="1" 
+              :max="300"
+            />
+            <span class="timeout-unit">秒</span>
+          </el-form-item>
 
-        <el-form-item label="执行变量">
-          <el-input 
-            v-model="executeVariables" 
-            type="textarea"
-            :rows="4"
-            placeholder='可选，JSON格式的变量，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
-          />
-        </el-form-item>
+          <el-form-item label="执行变量" class="full-width variables-field">
+            <el-input 
+              v-model="executeVariables" 
+              type="textarea"
+              :rows="6"
+              placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
+            />
+            <div v-if="variablesError" class="variables-error">{{ variablesError }}</div>
+            <div v-else class="variables-hint">支持 JSON 格式变量；留空将使用默认值。</div>
+          </el-form-item>
+        </div>
       </el-form>
 
       <template #footer>
@@ -1786,6 +1790,7 @@ const getPriorityType = (priority) => {
 const executeDialogVisible = ref(false)
 const executing = ref(false)
 const executeVariables = ref('')
+const variablesError = ref('')
 const executeFormData = reactive({
   environment: 'dev',
   baseUrl: '',
@@ -1889,11 +1894,18 @@ const handleConfirmExecute = async () => {
     if (executeVariables.value) {
       try {
         parsedVariables = JSON.parse(executeVariables.value)
-  } catch (e) {
+      } catch (e) {
         ElMessage.error('执行变量必须是有效的JSON格式')
         executing.value = false
         return
       }
+    }
+    
+    // 如果已有变量校验错误（watch 可能已设置），阻止提交
+    if (variablesError.value) {
+      ElMessage.error('执行变量 JSON 格式有误，请修正后重试')
+      executing.value = false
+      return
     }
     
     // 构建请求数据
@@ -2459,6 +2471,21 @@ watch(
   { immediate: true }  // 立即执行一次
 )
 
+// 监听执行变量输入并进行 JSON 校验（即时反馈）
+watch(executeVariables, (val) => {
+  if (!val || !val.trim()) {
+    variablesError.value = ''
+    return
+  }
+
+  try {
+    JSON.parse(val)
+    variablesError.value = ''
+  } catch (e) {
+    variablesError.value = 'JSON 格式错误：' + (e.message || '无法解析')
+  }
+})
+
 /**
  * 组件挂载时加载执行历史
  */
@@ -2479,6 +2506,14 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+/* 主题变量：圆角、阴影、过渡 */
+.case-detail-container {
+  --card-radius: 12px;
+  --card-shadow: 0 10px 30px rgba(16,24,40,0.06);
+  --card-shadow-hover: 0 18px 40px rgba(16,24,40,0.08);
+  --card-transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s cubic-bezier(.2,.8,.2,1);
 }
 
 /* 面包屑导航 */
@@ -2582,9 +2617,11 @@ onMounted(() => {
 .info-card {
   background: #fafafa;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   padding: 16px;
   margin-bottom: 20px;
+  box-shadow: var(--card-shadow);
+  transition: var(--card-transition);
 }
 
 .info-grid {
@@ -2654,9 +2691,12 @@ onMounted(() => {
 .section-card {
   background: white;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: var(--card-radius);
   padding: 20px;
   margin-bottom: 20px;
+  box-shadow: var(--card-shadow);
+  transition: var(--card-transition);
+  animation: fadeInUp .28s cubic-bezier(.2,.8,.2,1) both;
 }
 
 .section-title {
@@ -2815,7 +2855,7 @@ onMounted(() => {
   width: 100%;
   background: #f5f7fa;
   border: 1px solid #e4e7ed;
-  border-radius: 6px;
+  border-radius: calc(var(--card-radius) - 6px);
   padding: 12px;
   overflow-x: auto;
   margin-top: 8px;
@@ -2845,9 +2885,11 @@ onMounted(() => {
 .sidebar-section {
   background: white;
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: calc(var(--card-radius) - 2px);
   padding: 16px;
   margin-bottom: 16px;
+  box-shadow: 0 8px 26px rgba(16,24,40,0.04);
+  transition: var(--card-transition);
 }
 
 .sidebar-title {
@@ -2866,10 +2908,11 @@ onMounted(() => {
 
 .history-card {
   background: #fafafa;
-  border-radius: 6px;
+  border-radius: calc(var(--card-radius) - 6px);
   padding: 12px;
   border: 1px solid transparent;
-  transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s cubic-bezier(.2,.8,.2,1);
 }
 
 .history-card.clickable {
@@ -2879,8 +2922,8 @@ onMounted(() => {
 .history-card.clickable:hover {
   background: #ecf5ff;
   border-color: #409eff;
-  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.2);
-  transform: translateY(-2px);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-6px);
 }
 
 .history-header {
@@ -3051,8 +3094,10 @@ onMounted(() => {
   align-items: center;
   gap: 24px;
   padding: 32px 24px;
-  border-radius: 8px;
+  border-radius: calc(var(--card-radius) + 2px);
   margin-bottom: 24px;
+  box-shadow: var(--card-shadow);
+  transition: var(--card-transition);
 }
 
 .result-banner.status-passed {
@@ -3078,6 +3123,20 @@ onMounted(() => {
   0% { transform: scale(.7); opacity: 0; }
   60% { transform: scale(1.05); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* 通用卡片 hover 微交互 */
+.info-card:hover,
+.section-card:hover,
+.sidebar-section:hover,
+.extractor-item:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--card-shadow-hover);
 }
 
 .banner-content {
@@ -3603,5 +3662,84 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 执行对话框样式优化 */
+.execute-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(90deg,#f5f9ff 0%, #ffffff 100%);
+  border-bottom: 1px solid #e6eefc;
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  padding: 14px 24px;
+}
+.execute-dialog .el-dialog__body {
+  padding: 20px 24px;
+}
+.execute-form .execute-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 20px;
+  align-items: start;
+}
+.execute-form .full-width {
+  grid-column: 1 / -1;
+}
+.execute-form .timeout-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.timeout-unit {
+  color: #909399;
+}
+.variables-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+.variables-error {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #f56c6c;
+  background: #fff6f6;
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid #ffd6d6;
+  white-space: pre-wrap;
+}
+
+/* 对话框入场动画 */
+.execute-dialog :deep(.el-dialog) {
+  animation: dialogFadeIn .22s ease;
+}
+@keyframes dialogFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* 按钮与可交互元素微交互 */
+.case-actions .el-button,
+.dialog-footer .el-button,
+.view-more-btn,
+.result-links-section .el-button {
+  transition: transform .14s cubic-bezier(.2,.8,.2,1), box-shadow .14s cubic-bezier(.2,.8,.2,1), background-color .14s ease;
+}
+
+.case-actions .el-button:hover,
+.dialog-footer .el-button:hover,
+.view-more-btn:hover,
+.result-links-section .el-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(16,24,40,0.06);
+}
+
+.step-number {
+  box-shadow: 0 6px 18px rgba(16,24,40,0.04);
+  transition: transform .16s ease, box-shadow .16s ease;
+}
+
+.step-item:hover .step-number {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 36px rgba(16,24,40,0.06);
 }
 </style>
