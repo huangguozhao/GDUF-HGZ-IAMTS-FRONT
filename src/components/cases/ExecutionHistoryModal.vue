@@ -145,8 +145,28 @@
             <div class="stat-label">成功率</div>
             <div class="sparkline-wrap" aria-hidden="true">
               <svg :width="120" :height="30" viewBox="0 0 120 30" class="sparkline-svg" role="img" aria-label="成功率趋势">
-                <path :d="getSparklinePath(getSuccessSeries(12), 120, 28)" fill="none" stroke="#409eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+                <template v-if="sparkSeries.length > 0">
+                  <rect
+                    v-for="(d, i) in sparkSeries"
+                    :key="i"
+                    :x="i * barWidth"
+                    :y="30 - Math.round((d.value / (sparkMax || 1)) * 28)"
+                    :width="Math.max(barWidth - 2, 2)"
+                    :height="Math.max(Math.round((d.value / (sparkMax || 1)) * 28), 1)"
+                    :fill="d.value >= (sparkMax * 0.8) ? '#10b981' : '#409eff'"
+                    @mouseenter="onBarEnter(d, $event)"
+                    @mouseleave="onBarLeave"
+                    role="img"
+                    :aria-label="`${d.value}%`"
+                  />
+                </template>
               </svg>
+              <div
+                v-if="sparkTooltipVisible"
+                class="sparkline-tooltip"
+                :style="sparkTooltipStyle"
+                role="tooltip"
+              >{{ sparkTooltipContent }}</div>
             </div>
           </div>
         </div>
@@ -373,8 +393,12 @@
       size="40%"
       :before-close="() => { errorDrawerVisible = false }"
     >
+      <div class="error-detail-toolbar" style="display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-bottom:8px;">
+        <el-button size="small" type="primary" :icon="CopyDocument" @click="copyErrorToClipboard">复制</el-button>
+        <el-button size="small" type="success" :icon="Download" @click="downloadErrorLog">下载</el-button>
+      </div>
       <div class="error-detail-content">
-        <pre class="error-full-text">{{ currentErrorText }}</pre>
+        <pre class="error-full-text" tabindex="0">{{ currentErrorText }}</pre>
       </div>
     </el-drawer>
   </el-dialog>
@@ -607,6 +631,38 @@ const getSparklinePath = (values = [], w = 120, h = 30) => {
   return d
 }
 
+// 用于柱状 spark 图的数据和计算
+const sparkSeries = computed(() => {
+  const items = executionHistory.value || []
+  const list = items.slice(0, 12).map(i => ({ value: Number(i.successRate || 0), time: i.startTime || i.start_time || '' })).reverse()
+  if (list.length < 12) {
+    const pad = Array(12 - list.length).fill({ value: list[0]?.value || 0, time: '' })
+    return pad.concat(list)
+  }
+  return list
+})
+const sparkMax = computed(() => {
+  const vals = sparkSeries.value.map(s => s.value)
+  return vals.length ? Math.max(...vals) : 0
+})
+const barWidth = computed(() => Math.floor(120 / (sparkSeries.value.length || 1)))
+
+const sparkTooltipVisible = ref(false)
+const sparkTooltipContent = ref('')
+const sparkTooltipStyle = ref({ left: '0px', top: '0px' })
+
+const onBarEnter = (d, ev) => {
+  sparkTooltipContent.value = `${d.value.toFixed(1)}% · ${d.time ? new Date(d.time).toLocaleString('zh-CN') : '时间未知'}`
+  sparkTooltipVisible.value = true
+  const svgRect = ev.currentTarget.ownerSVGElement.getBoundingClientRect()
+  const x = ev.clientX - svgRect.left + 8
+  const y = ev.clientY - svgRect.top - 36
+  sparkTooltipStyle.value = { left: `${x}px`, top: `${y}px` }
+}
+const onBarLeave = () => {
+  sparkTooltipVisible.value = false
+}
+
 // 筛选条件变化
 const handleFilterChange = () => {
   pagination.currentPage = 1
@@ -735,6 +791,39 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener('resize', updateStickyTop)
 })
+
+// 复制错误到剪贴板
+const copyErrorToClipboard = async () => {
+  try {
+    if (!currentErrorText.value) {
+      ElMessage.info('没有错误内容可复制')
+      return
+    }
+    await navigator.clipboard.writeText(currentErrorText.value)
+    ElMessage.success('错误内容已复制到剪贴板')
+  } catch (e) {
+    console.error('复制错误失败:', e)
+    ElMessage.error('复制失败')
+  }
+}
+
+// 下载错误日志
+const downloadErrorLog = () => {
+  if (!currentErrorText.value) {
+    ElMessage.info('没有错误内容可下载')
+    return
+  }
+  const blob = new Blob([currentErrorText.value], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `error_${(new Date()).toISOString().replace(/[:.]/g, '-')}.log`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  ElMessage.success('日志已开始下载')
+}
 
 // 工具函数
 const formatTime = (time) => {
@@ -904,6 +993,45 @@ watch(() => props.visible, (newVisible) => {
 .export-btn:hover {
   border-color: #409eff;
   color: #409eff;
+}
+
+/* sparkline 样式 */
+.sparkline-wrap {
+  position: relative;
+  width: 120px;
+  height: 30px;
+  margin-top: 6px;
+}
+.sparkline-svg {
+  display: block;
+}
+.sparkline-tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: rgba(2,6,23,0.9);
+  color: white;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+  transform: translate(-50%, -100%);
+  white-space: nowrap;
+  z-index: 40;
+}
+
+/* 错误抽屉样式 */
+.error-detail-content {
+  height: calc(100% - 48px);
+  overflow: auto;
+  padding: 12px;
+}
+.error-full-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: #fff;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #eef6ff;
+  color: #2b3a4b;
 }
 
 /* 统计卡片 */
