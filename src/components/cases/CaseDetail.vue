@@ -591,7 +591,8 @@
     <el-dialog
       v-model="copyDialogVisible"
       title="复制测试用例"
-      width="600px"
+      width="640px"
+      class="copy-dialog"
       :close-on-click-modal="false"
     >
       <el-form
@@ -606,8 +607,14 @@
             placeholder="请输入新的用例编码"
             maxlength="50"
             show-word-limit
-          />
+          >
+            <template #suffix>
+              <el-button size="small" type="text" :icon="Refresh" @click="generateCopyCode" title="生成新编码">生成</el-button>
+              <el-button size="small" type="text" :icon="CopyDocument" @click="copyCaseCodeToClipboard" title="复制编码">复制</el-button>
+            </template>
+          </el-input>
           <div class="form-tip">系统将自动生成唯一编码，您也可以自定义</div>
+          <div v-if="copyCodeError" class="copy-error">{{ copyCodeError }}</div>
         </el-form-item>
         
         <el-form-item label="用例名称" prop="name">
@@ -648,6 +655,16 @@
               </ul>
             </template>
           </el-alert>
+        </div>
+        
+        <!-- 复制预览卡片 -->
+        <div class="copy-preview" aria-hidden="false">
+          <div class="preview-header">复制预览</div>
+          <div class="preview-body">
+            <div class="preview-row"><span class="label">用例编码</span><span class="value">{{ copyFormData.caseCode || '（自动生成）' }}</span></div>
+            <div class="preview-row"><span class="label">用例名称</span><span class="value">{{ copyFormData.name || '（空）' }}</span></div>
+            <div class="preview-row desc"><span class="label">描述</span><span class="value">{{ copyFormData.description || '（空）' }}</span></div>
+          </div>
         </div>
       </el-form>
 
@@ -1811,6 +1828,47 @@ const copyFormData = reactive({
   caseCode: '',
   name: '',
   description: ''
+})
+
+// 复制对话框相关：实时校验与复制功能
+const copyCodeError = ref('')
+
+const generateCopyCode = () => {
+  const originalCode = props.testCase?.caseCode || props.testCase?.case_code || props.testCase?.id || 'CASE'
+  const timestamp = new Date().toISOString().slice(0,19).replace(/[-:T]/g,'').slice(0,14)
+  copyFormData.caseCode = `${originalCode}_COPY_${timestamp}`
+  ElMessage.success('已生成新的用例编码')
+}
+
+const copyCaseCodeToClipboard = async () => {
+  try {
+    if (!copyFormData.caseCode) {
+      ElMessage.warning('用例编码为空，无法复制')
+      return
+    }
+    await navigator.clipboard.writeText(copyFormData.caseCode)
+    ElMessage.success('用例编码已复制到剪贴板')
+  } catch (e) {
+    console.error('复制编码失败:', e)
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
+watch(() => copyFormData.caseCode, (val) => {
+  if (!val) {
+    copyCodeError.value = ''
+    return
+  }
+  if (val.length < 2 || val.length > 50) {
+    copyCodeError.value = '编码长度应为 2 到 50 个字符'
+    return
+  }
+  const pattern = /^[A-Z0-9_-]+$/
+  if (!pattern.test(val)) {
+    copyCodeError.value = '编码只能包含大写字母、数字、下划线和连字符'
+    return
+  }
+  copyCodeError.value = ''
 })
 
 // 复制表单验证规则
@@ -3359,6 +3417,53 @@ onMounted(() => {
   font-size: 12px;
   color: #909399;
   margin-top: 4px;
+}
+
+/* 复制对话框样式 */
+.copy-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(90deg,#fbfdff 0%, #ffffff 100%);
+  border-bottom: 1px solid #eaf3ff;
+}
+.copy-dialog .copy-info {
+  margin-top: 12px;
+}
+.copy-dialog .copy-preview {
+  margin-top: 16px;
+  border: 1px solid #eaf3ff;
+  background: #fff;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 10px 30px rgba(16,24,40,0.04);
+}
+.copy-dialog .preview-header {
+  font-weight: 600;
+  color: #2b3a4b;
+  margin-bottom: 8px;
+}
+.copy-dialog .preview-body .preview-row {
+  display: flex;
+  gap: 12px;
+  padding: 6px 0;
+  align-items: center;
+}
+.copy-dialog .preview-body .label {
+  min-width: 90px;
+  color: #909399;
+  font-size: 13px;
+}
+.copy-dialog .preview-body .value {
+  color: #303133;
+  font-weight: 600;
+}
+.copy-dialog .preview-body .desc .value {
+  font-weight: 400;
+  color: #606266;
+  white-space: pre-wrap;
+}
+.copy-dialog .copy-error {
+  margin-top: 8px;
+  color: #f56c6c;
+  font-size: 13px;
 }
 
 /* 分享对话框样式 */
