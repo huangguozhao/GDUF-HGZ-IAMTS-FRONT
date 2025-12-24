@@ -410,67 +410,178 @@
     <el-dialog
       v-model="executeDialogVisible"
       title="执行测试配置"
-      width="680px"
+      width="720px"
       class="execute-dialog"
       :close-on-click-modal="false"
     >
-      <el-form :model="executeFormData" label-width="120px" class="execute-form">
-        <div class="execute-form-grid">
-        <el-form-item label="执行环境">
-          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境">
-            <el-option label="开发环境 (dev)" value="dev" />
-            <el-option label="测试环境 (test)" value="test" />
-            <el-option label="预发布环境 (staging)" value="staging" />
-            <el-option label="生产环境 (prod)" value="prod" />
-          </el-select>
-        </el-form-item>
-
-          <el-form-item label="执行模式">
-            <el-radio-group v-model="executeFormData.async">
-              <el-radio :label="false">同步</el-radio>
-              <el-radio :label="true">异步</el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <el-form-item label="Base URL" class="full-width">
-          <el-input 
-            v-model="executeFormData.baseUrl" 
-              placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
-          />
-        </el-form-item>
-
-          <el-form-item label="超时时间" class="timeout-item">
-          <el-input-number 
-            v-model="executeFormData.timeout" 
-            :min="1" 
-            :max="300"
-          />
-            <span class="timeout-unit">秒</span>
-        </el-form-item>
-
-          <el-form-item label="执行变量" class="full-width variables-field">
-          <el-input 
-            v-model="executeVariables" 
-            type="textarea"
-              :rows="6"
-              placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
-          />
-            <div v-if="variablesError" class="variables-error">{{ variablesError }}</div>
-            <div v-else class="variables-hint">支持 JSON 格式变量；留空将使用默认值。</div>
-        </el-form-item>
+      <div class="execute-content">
+        <div class="execute-header-section">
+          <div class="execute-header-icon">
+            <el-icon size="24" color="#409eff"><CaretRight /></el-icon>
+          </div>
+          <div class="execute-header-info">
+            <h3 class="execute-title">测试执行设置</h3>
+            <p class="execute-subtitle">配置测试执行参数，准备开始测试</p>
+          </div>
         </div>
-      </el-form>
+
+        <div class="execute-form-section">
+          <el-form :model="executeFormData" label-width="120px" class="execute-form">
+            <div class="execute-form-grid">
+              <el-form-item label="执行环境" prop="environment" class="form-item-enhanced">
+                <el-select
+                  v-model="executeFormData.environment"
+                  placeholder="请选择执行环境"
+                  class="enhanced-select"
+                >
+                  <template #prefix>
+                    <el-icon><Monitor /></el-icon>
+                  </template>
+                  <el-option label="开发环境 (dev)" value="dev">
+                    <div class="option-content">
+                      <span class="option-label">开发环境</span>
+                      <span class="option-desc">用于开发阶段测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="测试环境 (test)" value="test">
+                    <div class="option-content">
+                      <span class="option-label">测试环境</span>
+                      <span class="option-desc">用于功能测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="预发布环境 (staging)" value="staging">
+                    <div class="option-content">
+                      <span class="option-label">预发布环境</span>
+                      <span class="option-desc">用于集成测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="生产环境 (prod)" value="prod">
+                    <div class="option-content">
+                      <span class="option-label">生产环境</span>
+                      <span class="option-desc">生产环境验证</span>
+                    </div>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="执行模式" prop="async" class="form-item-enhanced">
+                <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
+                  <div class="mode-option">
+                    <el-radio :label="false" class="mode-radio">
+                      <div class="mode-content">
+                        <el-icon class="mode-icon"><Clock /></el-icon>
+                        <div class="mode-text">
+                          <div class="mode-title">同步执行</div>
+                          <div class="mode-desc">立即执行并等待结果</div>
+                        </div>
+                      </div>
+                    </el-radio>
+                  </div>
+                  <div class="mode-option">
+                    <el-radio :label="true" class="mode-radio">
+                      <div class="mode-content">
+                        <el-icon class="mode-icon"><Timer /></el-icon>
+                        <div class="mode-text">
+                          <div class="mode-title">异步执行</div>
+                          <div class="mode-desc">后台执行，支持长时间任务</div>
+                        </div>
+                      </div>
+                    </el-radio>
+                  </div>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="Base URL" prop="baseUrl" class="full-width form-item-enhanced">
+                <el-input
+                  v-model="executeFormData.baseUrl"
+                  placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
+                  class="enhanced-input"
+                >
+                  <template #prefix>
+                    <el-icon><Link /></el-icon>
+                  </template>
+                </el-input>
+                <div class="form-tip">
+                  <el-icon class="tip-icon"><InfoFilled /></el-icon>
+                  <span>可选配置，将覆盖环境默认URL</span>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="超时时间" prop="timeout" class="form-item-enhanced">
+                <div class="timeout-input-group">
+                  <el-input-number
+                    v-model="executeFormData.timeout"
+                    :min="1"
+                    :max="300"
+                    class="timeout-input"
+                    controls-position="right"
+                  />
+                  <span class="timeout-unit">秒</span>
+                </div>
+                <div class="form-tip">
+                  <el-icon class="tip-icon"><Timer /></el-icon>
+                  <span>请求超时时间范围：1-300秒</span>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="执行变量" prop="variables" class="full-width variables-field form-item-enhanced">
+                <div class="variables-container">
+                  <div class="variables-header">
+                    <el-icon class="variables-icon"><Document /></el-icon>
+                    <span class="variables-label">JSON变量配置</span>
+                    <el-button
+                      v-if="executeVariables"
+                      size="small"
+                      type="text"
+                      @click="formatVariables"
+                      class="format-btn"
+                    >
+                      <el-icon><MagicStick /></el-icon>
+                      格式化
+                    </el-button>
+                  </div>
+                  <el-input
+                    v-model="executeVariables"
+                    type="textarea"
+                    :rows="6"
+                    placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
+                    class="variables-textarea"
+                  />
+                  <div v-if="variablesError" class="variables-error">
+                    <el-icon class="error-icon"><Warning /></el-icon>
+                    <span>{{ variablesError }}</span>
+                  </div>
+                  <div v-else class="variables-hint">
+                    <el-icon class="hint-icon"><InfoFilled /></el-icon>
+                    <span>支持 JSON 格式变量；留空将使用默认值</span>
+                  </div>
+                </div>
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </div>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="executeDialogVisible = false">取消</el-button>
-          <el-button 
-            type="primary" 
-            @click="handleConfirmExecute" 
-            :loading="executing"
-          >
-            {{ executing ? '执行中...' : '开始执行' }}
-          </el-button>
+        <div class="execute-dialog-footer">
+          <div class="footer-left">
+            <el-button @click="executeDialogVisible = false" plain>
+              <el-icon><CircleClose /></el-icon>
+              <span>取消</span>
+            </el-button>
+          </div>
+          <div class="footer-right">
+            <el-button
+              type="primary"
+              @click="handleConfirmExecute"
+              :loading="executing"
+              class="execute-btn"
+              :disabled="!executeFormData.environment"
+            >
+              <el-icon v-if="!executing"><CaretRight /></el-icon>
+              <span>{{ executing ? '执行中...' : '开始执行' }}</span>
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -1351,7 +1462,12 @@ import {
   Document,
   Refresh,
   Lock,
-  Key
+  Key,
+  Monitor,
+  Timer,
+  InfoFilled,
+  Warning,
+  MagicStick
 } from '@element-plus/icons-vue'
 import { 
   executeTestCase, 
@@ -4526,53 +4642,526 @@ onMounted(() => {
 }
 
 /* 执行对话框样式优化 */
-.execute-dialog :deep(.el-dialog__header) {
-  background: linear-gradient(90deg,#f5f9ff 0%, #ffffff 100%);
-  border-bottom: 1px solid #e6eefc;
-  border-top-left-radius: 12px;
-  border-top-right-radius: 12px;
-  padding: 14px 24px;
-}
 .execute-dialog .el-dialog__body {
-  padding: 20px 24px;
+  padding: 0;
+  animation: slideIn 0.3s ease-out;
 }
-.execute-form .execute-form-grid {
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.execute-content {
+  padding: 24px;
+}
+
+/* 执行头部区域 */
+.execute-header-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #e3f2fd;
+}
+
+.execute-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #409eff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.execute-header-info {
+  flex: 1;
+}
+
+.execute-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.execute-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+/* 表单区域 */
+.execute-form-section {
+  margin-bottom: 24px;
+}
+
+.execute-form {
+  background: #fafbfc;
+  padding: 20px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.execute-form-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px 20px;
+  gap: 20px;
   align-items: start;
 }
+
 .execute-form .full-width {
   grid-column: 1 / -1;
 }
-.execute-form .timeout-item {
+
+.form-item-enhanced .el-form-item__label {
+  font-weight: 500;
+  color: #303133;
+  padding-bottom: 4px;
+}
+
+.enhanced-input .el-input__prefix,
+.enhanced-select .el-input__prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #909399;
+}
+
+.enhanced-input .el-input__inner,
+.enhanced-select .el-input__inner {
+  border-radius: 6px;
+}
+
+.option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-label {
+  font-weight: 500;
+  color: #303133;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 执行模式选择 */
+.execution-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.mode-option {
+  padding: 12px;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-option::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.05), transparent);
+  transition: left 0.5s ease;
+}
+
+.mode-option:hover::before {
+  left: 100%;
+}
+
+.mode-option:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.mode-option .el-radio__input.is-checked + .el-radio__label {
+  color: #409eff;
+}
+
+.mode-option .el-radio__input.is-checked .el-radio__inner {
+  background: #409eff;
+  border-color: #409eff;
+  animation: radioCheckPulse 0.3s ease;
+}
+
+@keyframes radioCheckPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.mode-radio {
+  width: 100%;
+  margin-right: 0 !important;
+}
+
+.mode-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.mode-icon {
+  color: #409eff;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mode-text {
+  flex: 1;
+}
+
+.mode-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 2px;
+}
+
+.mode-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 超时时间输入 */
+.timeout-input-group {
   display: flex;
   align-items: center;
   gap: 8px;
 }
+
+.timeout-input {
+  flex: 1;
+}
+
 .timeout-unit {
   color: #909399;
+  font-size: 14px;
+  font-weight: 500;
 }
-.variables-hint {
-  margin-top: 8px;
+
+/* 表单提示信息 */
+.form-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
   font-size: 12px;
   color: #909399;
 }
+
+.form-tip .tip-icon {
+  font-size: 14px;
+  color: #e6a23c;
+}
+
+/* 变量配置区域 */
+.variables-container {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.variables-container:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
+}
+
+.variables-container:focus-within {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.variables-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.variables-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.variables-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.format-btn {
+  margin-left: auto;
+  color: #409eff;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.format-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(64, 158, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.format-btn:hover::before {
+  width: 120px;
+  height: 120px;
+}
+
+.format-btn:hover {
+  color: #337ecc;
+  transform: translateY(-1px);
+}
+
+.variables-textarea .el-textarea__inner {
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border: none;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.variables-hint,
 .variables-error {
   margin-top: 8px;
   font-size: 12px;
-  color: #f56c6c;
-  background: #fff6f6;
-  padding: 8px;
+  padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid #ffd6d6;
-  white-space: pre-wrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* 对话框入场动画 */
-.execute-dialog :deep(.el-dialog) {
-  animation: dialogFadeIn .22s ease;
+.variables-hint {
+  background: #f0f9ff;
+  border: 1px solid #d1ecf1;
+  color: #31708f;
 }
+
+.variables-hint .hint-icon {
+  color: #17a2b8;
+}
+
+.variables-error {
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  color: #c53030;
+}
+
+.variables-error .error-icon {
+  color: #e53e3e;
+}
+
+/* 对话框底部 */
+.execute-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #e4e7ed;
+  background: #fafbfc;
+}
+
+.footer-left,
+.footer-right {
+  display: flex;
+  gap: 12px;
+}
+
+.execute-btn {
+  background: linear-gradient(135deg, #409eff 0%, #337ecc 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.execute-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(64, 158, 255, 0.4);
+}
+
+.execute-btn:disabled {
+  background: #c0c4cc;
+  border-color: #c0c4cc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.execute-btn.is-loading {
+  position: relative;
+  overflow: hidden;
+}
+
+.execute-btn.is-loading::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: loadingShimmer 2s infinite;
+}
+
+@keyframes loadingShimmer {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 100%;
+  }
+}
+
+/* 下拉框动画 */
+.enhanced-select .el-select-dropdown {
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  animation: dropdownFadeIn 0.2s ease;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.enhanced-select .el-select-dropdown__item {
+  transition: all 0.2s ease;
+  padding: 8px 16px;
+}
+
+.enhanced-select .el-select-dropdown__item:hover {
+  background: #f0f9ff;
+  color: #409eff;
+}
+
+.enhanced-select .el-select-dropdown__item.selected {
+  background: #409eff;
+  color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .execute-dialog {
+    width: 95% !important;
+    margin: 10px;
+  }
+
+  .execute-content {
+    padding: 16px;
+  }
+
+  .execute-header-section {
+    flex-direction: column;
+    text-align: center;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .execute-header-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .execute-title {
+    font-size: 16px;
+  }
+
+  .execute-subtitle {
+    font-size: 13px;
+  }
+
+  .execute-form-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .execution-mode-group {
+    gap: 8px;
+  }
+
+  .mode-option {
+    padding: 10px;
+  }
+
+  .mode-content {
+    gap: 8px;
+  }
+
+  .mode-icon {
+    font-size: 18px;
+  }
+
+  .variables-container {
+    padding: 12px;
+  }
+
+  .execute-dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .footer-left,
+  .footer-right {
+    justify-content: center;
+    width: 100%;
+  }
+}
+
 @keyframes dialogFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }
