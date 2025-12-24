@@ -14,7 +14,7 @@
   >
     <div class="modal-content">
       <!-- 页面头部 -->
-      <div class="modal-header">
+      <div class="modal-header" ref="headerRef">
         <div class="header-content">
           <div class="header-title">
             <h2>{{ testCaseName }} - 执行历史</h2>
@@ -35,7 +35,7 @@
       </div>
 
       <!-- 筛选工具栏 -->
-      <div class="filter-toolbar" role="region" aria-label="筛选工具栏">
+      <div class="filter-toolbar" role="region" aria-label="筛选工具栏" ref="toolbarRef">
         <div class="toolbar-content">
           <div class="filter-group">
             <el-select 
@@ -143,6 +143,11 @@
           <div class="stat-content">
             <div class="stat-number">{{ (statistics?.avgSuccessRate || 0).toFixed(1) }}%</div>
             <div class="stat-label">成功率</div>
+            <div class="sparkline-wrap" aria-hidden="true">
+              <svg :width="120" :height="30" viewBox="0 0 120 30" class="sparkline-svg" role="img" aria-label="成功率趋势">
+                <path :d="getSparklinePath(getSuccessSeries(12), 120, 28)" fill="none" stroke="#409eff" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
@@ -276,6 +281,7 @@
                 <el-tooltip :content="row.errorMessage" placement="top">
                   <span class="error-text">{{ truncateText(row.errorMessage, 50) }}</span>
                 </el-tooltip>
+                <el-button type="text" size="small" @click.stop="openErrorDetail(row)" class="view-full-btn">查看全部</el-button>
               </div>
               <span v-else class="no-error">-</span>
             </template>
@@ -357,11 +363,25 @@
         @retest="handleRetestFromDetail"
       />
     </el-dialog>
+  
+    <!-- 错误详情侧边栏 -->
+    <el-drawer
+      v-model="errorDrawerVisible"
+      title="错误详情"
+      direction="rtl"
+      :with-header="true"
+      size="40%"
+      :before-close="() => { errorDrawerVisible = false }"
+    >
+      <div class="error-detail-content">
+        <pre class="error-full-text">{{ currentErrorText }}</pre>
+      </div>
+    </el-drawer>
   </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, onMounted } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Refresh,
@@ -418,6 +438,12 @@ const pagination = reactive({
 // 详情对话框
 const detailDialogVisible = ref(false)
 const currentDetail = ref(null)
+const headerRef = ref(null)
+const toolbarRef = ref(null)
+
+// 错误详情侧边栏
+const errorDrawerVisible = ref(false)
+const currentErrorText = ref('')
 
 // 获取用例ID
 const caseId = computed(() => {
@@ -548,6 +574,39 @@ const loadStatistics = async () => {
   }
 }
 
+// 生成用于 sparkline 的成功率序列（最近 N 次）
+const getSuccessSeries = (n = 12) => {
+  const items = executionHistory.value || []
+  if (!items.length) return Array(n).fill(0)
+  const series = items.slice(0, n).map(i => Number(i.successRate || 0)).reverse()
+  // pad to length n
+  if (series.length < n) {
+    const pad = Array(n - series.length).fill(series[0] ?? 0)
+    return pad.concat(series)
+  }
+  return series
+}
+
+// 根据值数组生成 SVG 路径
+const getSparklinePath = (values = [], w = 120, h = 30) => {
+  if (!values || values.length === 0) return ''
+  const max = Math.max(...values)
+  const min = Math.min(...values)
+  const len = values.length
+  const step = w / (len - 1 || 1)
+  const scale = (v) => {
+    if (max === min) return h / 2
+    return h - ((v - min) / (max - min)) * h
+  }
+  let d = ''
+  values.forEach((v, i) => {
+    const x = Math.round(i * step)
+    const y = Math.round(scale(v))
+    d += (i === 0 ? `M ${x} ${y}` : ` L ${x} ${y}`)
+  })
+  return d
+}
+
 // 筛选条件变化
 const handleFilterChange = () => {
   pagination.currentPage = 1
@@ -651,6 +710,31 @@ const getRowClassName = ({ row, rowIndex }) => {
   }
   return ''
 }
+
+// 打开错误详情侧边栏
+const openErrorDetail = (row) => {
+  currentErrorText.value = row.errorMessage || row.error || '无错误信息'
+  errorDrawerVisible.value = true
+}
+
+// 计算并设置 sticky toolbar top 值
+const updateStickyTop = () => {
+  const headerEl = headerRef.value && headerRef.value.$el ? headerRef.value.$el : headerRef.value
+  const toolbarEl = toolbarRef.value && toolbarRef.value.$el ? toolbarRef.value.$el : toolbarRef.value
+  if (headerEl && toolbarEl) {
+    const rect = headerEl.getBoundingClientRect()
+    const top = rect.height + rect.top
+    toolbarEl.style.top = `${top}px`
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('resize', updateStickyTop)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateStickyTop)
+})
 
 // 工具函数
 const formatTime = (time) => {
