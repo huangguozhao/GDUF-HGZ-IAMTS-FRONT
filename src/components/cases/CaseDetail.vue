@@ -4725,6 +4725,62 @@ onMounted(() => {
   grid-column: 1 / -1;
 }
 
+/* 表单项对齐：将 el-form-item 布局为两列（label + control），防止内容混乱与遮挡 */ 
+.execute-form .el-form-item {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  grid-column-gap: 16px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.execute-form .el-form-item__label {
+  justify-self: end;
+  padding-right: 8px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.execute-form .el-form-item__content {
+  width: 100%;
+  min-width: 0;
+}
+
+.execute-form .full-width .el-form-item__label,
+.execute-form .full-width .el-form-item__content {
+  grid-column: auto / span 2;
+}
+
+/* 确保表单控件不会撑出列宽，显示省略或换行处理 */ 
+.execute-form .el-input,
+.execute-form .el-select,
+.execute-form .el-input-number,
+.execute-form .el-radio-group,
+.execute-form .el-input__inner {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.execute-form .el-select .el-input__inner,
+.execute-form .el-input .el-input__inner {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 将提示信息强制放到控件列，避免被遮挡 */ 
+.execute-form .form-tip,
+.execute-form .variables-hint,
+.execute-form .variables-error {
+  grid-column: 2 / 3;
+  margin-top: 8px;
+}
+
 /* 修复输入控件在 CSS Grid 中的溢出问题：允许子项收缩、输入撑满父容器 */
 .execute-form-grid > * {
   min-width: 0;
