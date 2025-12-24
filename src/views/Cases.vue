@@ -1018,12 +1018,25 @@
         </template>
 
         <template v-if="dialogType === 'case'">
+          <div class="case-edit-header">
+            <div class="case-edit-header-icon">
+              <el-icon color="#409eff"><Document /></el-icon>
+            </div>
+            <div class="case-edit-header-info">
+              <h3 class="case-edit-title">编辑测试用例</h3>
+              <p class="case-edit-subtitle">修改用例基本信息、步骤、请求参数与断言</p>
+            </div>
+          </div>
           <el-tabs v-model="caseFormActiveTab" class="case-form-tabs">
             <!-- 基本信息 -->
             <el-tab-pane label="基本信息" name="basic">
               <div class="form-section">
-              <el-form-item label="用例名称" prop="name">
-                <el-input v-model="formData.name" placeholder="请输入用例名称" />
+            <el-form-item label="用例名称" prop="name">
+                <el-input v-model="formData.name" placeholder="请输入用例名称">
+                  <template #prefix>
+                    <el-icon><User /></el-icon>
+                  </template>
+                </el-input>
               </el-form-item>
               
             <el-form-item label="用例编码" prop="case_code">
@@ -1031,7 +1044,11 @@
                 v-model="formData.case_code" 
                 placeholder="留空则自动生成"
                 :disabled="isEdit"
-              />
+              >
+                <template #prefix>
+                  <el-icon><Document /></el-icon>
+                </template>
+              </el-input>
               <span class="form-tip" v-if="!isEdit">用例编码在接口内唯一，留空则自动生成</span>
               <span class="form-tip" v-else>用例编码创建后不可修改</span>
             </el-form-item>
@@ -1350,7 +1367,12 @@ import {
   CircleCloseFilled, 
   WarningFilled, 
   InfoFilled,
-  Delete
+  Delete,
+  Document,
+  Link,
+  User,
+  Timer,
+  Key
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
@@ -4905,6 +4927,43 @@ onDeactivated(() => {
   box-shadow: 0 18px 46px rgba(16,24,40,0.06);
 }
 
+/* Header inside edit dialog */
+.case-edit-dialog .case-edit-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+  padding: 12px 8px;
+  background: linear-gradient(90deg,#fbfdff 0%, #ffffff 100%);
+  border-radius: 8px;
+  border: 1px solid #eef6ff;
+}
+.case-edit-dialog .case-edit-header-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eef9ff;
+  border-radius: 8px;
+}
+.case-edit-dialog .case-edit-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f2937;
+}
+.case-edit-dialog .case-edit-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* Make input prefixes slightly muted and aligned */
+.case-edit-dialog :deep(.el-input__prefix) {
+  color: #909399;
+  margin-right: 6px;
+}
 /* Make form labels slightly stronger and inputs comfortable */
 .case-edit-dialog :deep(.el-form-item__label) {
   font-weight: 600;
