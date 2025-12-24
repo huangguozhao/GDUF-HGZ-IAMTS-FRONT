@@ -1,7 +1,21 @@
 <template>
   <div class="execution-detail-dialog">
+    <!-- 状态横幅 -->
+    <div class="detail-banner" :class="'status-' + executionData.status" role="status" aria-live="polite">
+      <div class="banner-icon">
+        <el-icon v-if="executionData.status === 'completed'"><CircleCheckFilled /></el-icon>
+        <el-icon v-else><CircleCloseFilled /></el-icon>
+      </div>
+      <div class="banner-body">
+        <h3 class="banner-title">
+          {{ executionData.status === 'completed' ? '✓ 测试通过' : executionData.status === 'failed' ? '✗ 测试失败' : getStatusText(executionData.status) }}
+        </h3>
+        <div class="banner-sub">{{ executionData.recordId }}</div>
+      </div>
+    </div>
+
     <!-- 基本信息 -->
-    <div class="detail-section">
+    <div class="detail-section card">
       <h3 class="section-title">基本信息</h3>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="执行ID">
@@ -54,7 +68,7 @@
     </div>
 
     <!-- 执行人详细信息 -->
-    <div class="detail-section" v-if="executionData.executorInfo">
+    <div class="detail-section card" v-if="executionData.executorInfo">
       <h3 class="section-title">执行人信息</h3>
       <el-descriptions :column="2" border>
         <el-descriptions-item label="姓名">
@@ -84,7 +98,7 @@
     </div>
 
     <!-- 执行统计 -->
-    <div class="detail-section" v-if="executionData.totalCases > 0">
+    <div class="detail-section card" v-if="executionData.totalCases > 0">
       <h3 class="section-title">执行统计</h3>
       <el-descriptions :column="3" border>
         <el-descriptions-item label="总用例数">
@@ -118,14 +132,20 @@
     </div>
 
     <!-- 错误信息 -->
-    <div class="detail-section" v-if="executionData.errorMessage">
+    <div class="detail-section card" v-if="executionData.errorMessage">
       <h3 class="section-title">错误信息</h3>
       <el-alert 
         type="error" 
         :closable="false"
         show-icon
       >
-        <pre class="error-message">{{ executionData.errorMessage }}</pre>
+        <div class="error-alert-body">
+          <pre class="error-message">{{ executionData.errorMessage }}</pre>
+          <div class="error-actions">
+            <el-button size="small" type="text" :icon="CopyDocument" @click="copyError">复制</el-button>
+            <el-button size="small" type="text" :icon="Download" @click="downloadError">下载</el-button>
+          </div>
+        </div>
       </el-alert>
     </div>
 
@@ -157,7 +177,8 @@
 </template>
 
 <script setup>
-import { Document, Refresh } from '@element-plus/icons-vue'
+import { Document, Refresh, CircleCheckFilled, CircleCloseFilled, CopyDocument } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps({
   executionData: {
@@ -225,6 +246,41 @@ const handleClose = () => {
 
 const handleRetest = () => {
   emit('retest', props.executionData)
+}
+
+// 复制错误内容
+const copyError = async () => {
+  try {
+    const txt = props.executionData.errorMessage || ''
+    if (!txt) {
+      ElMessage.info('没有错误内容')
+      return
+    }
+    await navigator.clipboard.writeText(txt)
+    ElMessage.success('错误内容已复制')
+  } catch (e) {
+    console.error('复制失败', e)
+    ElMessage.error('复制失败')
+  }
+}
+
+// 下载错误内容
+const downloadError = () => {
+  const txt = props.executionData.errorMessage || ''
+  if (!txt) {
+    ElMessage.info('没有错误内容可下载')
+    return
+  }
+  const blob = new Blob([txt], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `execution_error_${(new Date()).toISOString().replace(/[:.]/g,'-')}.log`
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+  ElMessage.success('下载已开始')
 }
 </script>
 
@@ -308,5 +364,52 @@ const handleRetest = () => {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid #e4e7ed;
+}
+
+/* banner */
+.detail-banner {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  background: linear-gradient(90deg,#f7fbff 0%, #ffffff 100%);
+  box-shadow: 0 10px 30px rgba(16,24,40,0.04);
+  border: 1px solid #eaf3ff;
+}
+.detail-banner .banner-icon {
+  flex-shrink: 0;
+  font-size: 28px;
+  color: #409eff;
+}
+.detail-banner.status-failed .banner-icon {
+  color: #f56c6c;
+}
+.banner-body .banner-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #102a43;
+}
+.banner-sub {
+  font-size: 13px;
+  color: #61748a;
+}
+
+/* section card style */
+.detail-section.card {
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(16,24,40,0.04);
+  border: 1px solid rgba(234,243,255,0.8);
+}
+
+.error-actions {
+  margin-top: 8px;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
 }
 </style>
