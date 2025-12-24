@@ -855,6 +855,7 @@
       :title="dialogTitle"
       :width="dialogType === 'case' ? '900px' : '600px'"
       :close-on-click-modal="false"
+      class="case-edit-dialog"
     >
       <el-form
         ref="formRef"
@@ -4832,5 +4833,96 @@ onDeactivated(() => {
   font-size: 13px;
   color: #606266;
   line-height: 1.6;
+}
+
+/* 编辑对话框样式优化（圆角、阴影、动画） */
+.case-edit-dialog {
+  --dialog-radius: 14px;
+  --dialog-shadow: 0 24px 60px rgba(16,24,40,0.12);
+}
+
+.case-edit-dialog :deep(.el-dialog) {
+  border-radius: var(--dialog-radius);
+  box-shadow: var(--dialog-shadow);
+  overflow: hidden;
+  transition: transform .22s cubic-bezier(.2,.8,.2,1), box-shadow .22s ease;
+  animation: dialogPop .18s cubic-bezier(.2,.8,.2,1) both;
+}
+
+.case-edit-dialog :deep(.el-dialog__header) {
+  background: linear-gradient(90deg, #f7fbff 0%, #ffffff 100%);
+  border-bottom: 1px solid #eef6ff;
+  padding: 14px 24px;
+}
+
+.case-edit-dialog :deep(.el-dialog__body) {
+  padding: 20px 24px;
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+@keyframes dialogPop {
+  0% { transform: translateY(-6px) scale(.995); opacity: 0; }
+  60% { transform: translateY(0) scale(1.02); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Tabs inside edit dialog */
+.case-edit-dialog .case-form-tabs {
+  background: transparent;
+}
+.case-edit-dialog .case-form-tabs .el-tabs__header {
+  margin-bottom: 12px;
+}
+.case-edit-dialog .el-tab-pane {
+  background: transparent;
+  padding: 8px 0 0 0;
+}
+
+/* Group form items into subtle cards for better visual separation */
+.case-edit-dialog .form-section {
+  background: #fff;
+  border: 1px solid #eef6ff;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 8px 24px rgba(16,24,40,0.04);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.case-edit-dialog .form-section:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 18px 46px rgba(16,24,40,0.06);
+}
+
+/* Make form labels slightly stronger and inputs comfortable */
+.case-edit-dialog :deep(.el-form-item__label) {
+  font-weight: 600;
+  color: #334155;
+}
+.case-edit-dialog :deep(.el-input__inner),
+.case-edit-dialog :deep(.el-select .el-input__inner),
+.case-edit-dialog :deep(.el-textarea__inner) {
+  border-radius: 8px;
+  background: #fbfdff;
+  border: 1px solid #e6f0ff;
+  transition: box-shadow .12s ease;
+}
+.case-edit-dialog :deep(.el-input__inner:focus),
+.case-edit-dialog :deep(.el-textarea__inner:focus) {
+  box-shadow: 0 10px 30px rgba(64,158,255,0.06);
+}
+
+/* Dialog footer buttons */
+.case-edit-dialog :deep(.dialog-footer) {
+  padding: 14px 24px;
+  border-top: 1px solid #f0f6ff;
+  background: linear-gradient(90deg,#ffffff 0%, #fbfdff 100%);
+}
+.case-edit-dialog :deep(.dialog-footer .el-button) {
+  border-radius: 8px;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.case-edit-dialog :deep(.dialog-footer .el-button:hover) {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px rgba(16,24,40,0.06);
 }
 </style>
