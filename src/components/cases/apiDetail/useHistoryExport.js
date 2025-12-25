@@ -6,9 +6,6 @@ import { formatDuration, formatTime } from './formatters'
 
 export function useHistoryExport(props, emit, deps = {}) {
   const { resultDialogVisible, executionResult } = deps
-
-export function useHistoryExport(props, emit, deps = {}) {
-  const { resultDialogVisible, executionResult } = deps
   const historySearchText = ref('')
   const historyFilter = reactive({
     period: '7days',

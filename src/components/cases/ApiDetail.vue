@@ -1063,126 +1063,262 @@
     <!-- 执行测试配置对话框 -->
     <el-dialog
       v-model="executeDialogVisible"
-      custom-class="execute-dialog"
-      :title="isExecutingApi ? '执行接口测试配置' : '执行测试用例配置'"
-      width="700px"
+      custom-class="execute-dialog-enhanced"
+      :title="isExecutingApi ? '🚀 执行接口测试' : '🎯 执行测试用例'"
+      width="900px"
       :close-on-click-modal="false"
     >
-      <el-form :model="executeFormData" label-width="120px">
-        <el-form-item label="执行环境">
-          <el-select v-model="executeFormData.environment" placeholder="请选择执行环境" style="width: 100%">
-            <el-option label="开发环境 (dev)" value="dev" />
-            <el-option label="测试环境 (test)" value="test" />
-            <el-option label="预发布环境 (staging)" value="staging" />
-            <el-option label="生产环境 (prod)" value="prod" />
-          </el-select>
-        </el-form-item>
+      <div class="execute-dialog-content">
+        <!-- 基本配置卡片 -->
+        <el-card class="config-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>基本配置</span>
+            </div>
+          </template>
 
-        <el-form-item label="Base URL">
-          <el-input 
-            v-model="executeFormData.baseUrl" 
-            placeholder="留空则使用环境默认URL"
-          />
-        </el-form-item>
+          <el-row :gutter="20">
+            <el-col :span="12">
+              <el-form-item label="执行环境" required>
+                <el-select v-model="executeFormData.environment" placeholder="请选择执行环境" style="width: 100%">
+                  <el-option label="开发环境 (dev)" value="dev">
+                    <div class="option-content">
+                      <span class="option-dot dev"></span>
+                      <span>开发环境</span>
+                      <span class="option-desc">dev</span>
+                    </div>
+                  </el-option>
+                  <el-option label="测试环境 (test)" value="test">
+                    <div class="option-content">
+                      <span class="option-dot test"></span>
+                      <span>测试环境</span>
+                      <span class="option-desc">test</span>
+                    </div>
+                  </el-option>
+                  <el-option label="预发布环境 (staging)" value="staging">
+                    <div class="option-content">
+                      <span class="option-dot staging"></span>
+                      <span>预发布环境</span>
+                      <span class="option-desc">staging</span>
+                    </div>
+                  </el-option>
+                  <el-option label="生产环境 (prod)" value="prod">
+                    <div class="option-content">
+                      <span class="option-dot prod"></span>
+                      <span>生产环境</span>
+                      <span class="option-desc">prod</span>
+                    </div>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+            </el-col>
 
-        <el-form-item label="超时时间">
-          <el-input-number 
-            v-model="executeFormData.timeout" 
-            :min="1" 
-            :max="300"
-            placeholder="秒"
-            style="width: 150px"
-          />
-          <span style="margin-left: 8px; color: #909399;">秒</span>
-        </el-form-item>
+            <el-col :span="12">
+              <el-form-item label="超时时间">
+                <el-input-number
+                  v-model="executeFormData.timeout"
+                  :min="1"
+                  :max="300"
+                  placeholder="30"
+                  style="width: 120px"
+                />
+                <span class="unit-text">秒</span>
+                <el-tooltip content="请求超时时间，建议根据接口复杂度设置" placement="top">
+                  <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </el-tooltip>
+              </el-form-item>
+            </el-col>
+          </el-row>
 
-        <!-- 接口测试独有配置 -->
+          <el-form-item label="Base URL">
+            <el-input
+              v-model="executeFormData.baseUrl"
+              placeholder="留空则使用环境默认URL，如：https://api.example.com"
+              clearable
+            >
+              <template #prefix>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </template>
+            </el-input>
+          </el-form-item>
+        </el-card>
+
+        <!-- 接口测试高级配置 -->
         <template v-if="isExecutingApi">
-          <el-form-item label="并发执行数">
-            <el-input-number 
-              v-model="executeFormData.concurrency" 
-              :min="1" 
-              :max="10"
-              placeholder="并发数"
-              style="width: 150px"
-            />
-            <span style="margin-left: 8px; color: #909399;">最大10个</span>
-          </el-form-item>
+          <el-card class="config-card advanced-card" shadow="never">
+            <template #header>
+              <div class="card-header">
+                <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>测试用例筛选</span>
+                <el-tag size="small" type="info">高级选项</el-tag>
+              </div>
+            </template>
 
-          <el-form-item label="优先级过滤">
-            <el-select 
-              v-model="executeFormData.caseFilter.priority" 
-              multiple 
-              placeholder="选择要执行的优先级"
-              style="width: 100%"
-            >
-              <el-option label="P0（最高优先级）" value="P0" />
-              <el-option label="P1（高优先级）" value="P1" />
-              <el-option label="P2（中等优先级）" value="P2" />
-              <el-option label="P3（低优先级）" value="P3" />
-            </el-select>
-          </el-form-item>
+            <el-row :gutter="20">
+              <el-col :span="12">
+                <el-form-item label="并发执行数">
+                  <el-input-number
+                    v-model="executeFormData.concurrency"
+                    :min="1"
+                    :max="10"
+                    placeholder="1"
+                    style="width: 120px"
+                  />
+                  <span class="unit-text">个并发</span>
+                  <el-tooltip content="同时执行的测试用例数量，过多可能影响性能" placement="top">
+                    <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                      <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                  </el-tooltip>
+                </el-form-item>
+              </el-col>
 
-          <el-form-item label="标签过滤">
-            <el-select 
-              v-model="executeFormData.caseFilter.tags" 
-              multiple 
-              filterable
-              allow-create
-              placeholder="选择或输入标签"
-              style="width: 100%"
-            >
-              <el-option label="冒烟测试" value="冒烟测试" />
-              <el-option label="回归测试" value="回归测试" />
-              <el-option label="功能测试" value="功能测试" />
-            </el-select>
-          </el-form-item>
+              <el-col :span="12">
+                <el-form-item label="执行顺序">
+                  <el-select v-model="executeFormData.executionOrder" placeholder="选择执行顺序" style="width: 100%">
+                    <el-option label="🔥 优先级降序（推荐）" value="priority_desc" />
+                    <el-option label="⬆️ 优先级升序" value="priority_asc" />
+                    <el-option label="📝 名称升序" value="name_asc" />
+                    <el-option label="📝 名称降序" value="name_desc" />
+                  </el-select>
+                </el-form-item>
+              </el-col>
+            </el-row>
 
-          <el-form-item label="执行顺序">
-            <el-select v-model="executeFormData.executionOrder" placeholder="选择执行顺序" style="width: 100%">
-              <el-option label="优先级降序（推荐）" value="priority_desc" />
-              <el-option label="优先级升序" value="priority_asc" />
-              <el-option label="名称升序" value="name_asc" />
-              <el-option label="名称降序" value="name_desc" />
-            </el-select>
-          </el-form-item>
+            <el-form-item label="优先级过滤">
+              <el-select
+                v-model="executeFormData.caseFilter.priority"
+                multiple
+                placeholder="选择要执行的优先级（留空执行全部）"
+                style="width: 100%"
+              >
+                <el-option label="🚨 P0（最高优先级）" value="P0" />
+                <el-option label="⚡ P1（高优先级）" value="P1" />
+                <el-option label="📋 P2（中等优先级）" value="P2" />
+                <el-option label="📄 P3（低优先级）" value="P3" />
+              </el-select>
+            </el-form-item>
 
-          <el-form-item label="仅启用用例">
-            <el-switch v-model="executeFormData.caseFilter.enabledOnly" />
-            <span style="margin-left: 8px; color: #909399;">只执行已启用的测试用例</span>
-          </el-form-item>
+            <el-form-item label="标签过滤">
+              <el-select
+                v-model="executeFormData.caseFilter.tags"
+                multiple
+                filterable
+                allow-create
+                placeholder="选择或输入标签进行过滤"
+                style="width: 100%"
+              >
+                <el-option label="🚀 冒烟测试" value="冒烟测试" />
+                <el-option label="🔄 回归测试" value="回归测试" />
+                <el-option label="✨ 功能测试" value="功能测试" />
+                <el-option label="🐛 缺陷验证" value="缺陷验证" />
+                <el-option label="⚡ 性能测试" value="性能测试" />
+              </el-select>
+            </el-form-item>
+
+            <el-form-item>
+              <el-checkbox v-model="executeFormData.caseFilter.enabledOnly">
+                <span class="checkbox-text">仅执行已启用的测试用例</span>
+                <el-tooltip content="跳过已禁用的测试用例，提高执行效率" placement="top">
+                  <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                </el-tooltip>
+              </el-checkbox>
+            </el-form-item>
+          </el-card>
         </template>
 
-        <el-form-item label="执行模式">
-          <el-radio-group v-model="executeFormData.async">
-            <el-radio :label="false">同步执行</el-radio>
-            <el-radio :label="true">异步执行</el-radio>
-          </el-radio-group>
-          <div style="margin-top: 8px; color: #909399; font-size: 12px;">
-            同步执行会等待结果返回，异步执行会立即返回任务ID
-          </div>
-        </el-form-item>
+        <!-- 执行模式配置 -->
+        <el-card class="config-card mode-card" shadow="never">
+          <template #header>
+            <div class="card-header">
+              <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>执行模式</span>
+            </div>
+          </template>
 
-        <el-form-item label="执行变量">
-          <el-input 
-            v-model="executeVariables" 
-            type="textarea"
-            :rows="4"
-            placeholder='可选，JSON格式的变量，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
-          />
-        </el-form-item>
-      </el-form>
+          <el-form-item label="执行方式">
+            <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
+              <el-radio :label="false" class="mode-option">
+                <div class="mode-content">
+                  <div class="mode-title">⚡ 同步执行</div>
+                  <div class="mode-desc">等待测试完成并返回详细结果</div>
+                </div>
+              </el-radio>
+              <el-radio :label="true" class="mode-option">
+                <div class="mode-content">
+                  <div class="mode-title">🚀 异步执行</div>
+                  <div class="mode-desc">立即返回任务ID，后台执行</div>
+                </div>
+              </el-radio>
+            </el-radio-group>
+          </el-form-item>
+
+          <el-form-item label="执行变量">
+            <el-input
+              v-model="executeVariables"
+              type="textarea"
+              :rows="4"
+              placeholder='可选，JSON格式的变量，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123",&#10;  "token": "your-api-token"&#10;}'
+              class="variables-textarea"
+            >
+              <template #prefix>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </template>
+            </el-input>
+            <div class="variable-hint">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span>变量会覆盖默认值，支持动态参数化测试</span>
+            </div>
+          </el-form-item>
+        </el-card>
+      </div>
 
       <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="executeDialogVisible = false">取消</el-button>
-          <el-button 
-            type="primary" 
-            @click="handleConfirmExecute" 
-            :loading="executing"
-          >
-            {{ executing ? '执行中...' : '开始执行' }}
-          </el-button>
+        <div class="execute-dialog-footer">
+          <div class="footer-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+              <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <span>执行过程中请勿关闭页面，测试结果将自动显示</span>
+          </div>
+          <div class="footer-actions">
+            <el-button @click="executeDialogVisible = false" size="large">取消</el-button>
+            <el-button
+              type="primary"
+              @click="handleConfirmExecute"
+              :loading="executing"
+              size="large"
+              class="execute-btn"
+            >
+              <svg v-if="!executing" width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              {{ executing ? '执行中...' : '🚀 开始执行' }}
+            </el-button>
+          </div>
         </div>
       </template>
     </el-dialog>
@@ -1610,36 +1746,6 @@ const initRequestParams = () => {
   }
 }
 
-// 测试历史相关逻辑已移至 `useHistoryExport` 可组合函数
-import useHistoryExport from './apiDetail/useHistoryExport'
-const {
-  historySearchText,
-  historyFilter,
-  historyPagination,
-  historyTotal,
-  historyRecords,
-  historyLoading,
-  historyDetailDialogVisible,
-  currentHistoryDetail,
-  exportHistoryDialogVisible,
-  exportingHistory,
-  exportHistoryForm,
-  allExportFields,
-  getTimeRange,
-  loadHistoryRecords,
-  filteredHistoryRecords,
-  handleViewHistoryDetail,
-  handleRetestFromHistory,
-  handleDeleteHistory,
-  handleHistorySizeChange,
-  handleHistoryPageChange,
-  suggestedFileName,
-  selectAllFields,
-  clearAllFields,
-  selectRecommendedFields,
-  handleOpenExportHistoryDialog,
-  handleConfirmExportHistory
-} = useHistoryExport(props, emit, { resultDialogVisible, executionResult })
 
 // 导出工具已移至 `src/components/cases/apiDetail/exportUtils.js`
 
@@ -1968,6 +2074,41 @@ const handleSaveTestCase = async () => {
   }
 }
 
+// 初始化执行相关的响应式变量（将在 useExecution 中被赋值）
+const resultDialogVisible = ref(false)
+const executionResult = ref(null)
+
+// 测试历史相关逻辑已移至 `useHistoryExport` 可组合函数
+import useHistoryExport from './apiDetail/useHistoryExport'
+const {
+  historySearchText,
+  historyFilter,
+  historyPagination,
+  historyTotal,
+  historyRecords,
+  historyLoading,
+  historyDetailDialogVisible,
+  currentHistoryDetail,
+  exportHistoryDialogVisible,
+  exportingHistory,
+  exportHistoryForm,
+  allExportFields,
+  getTimeRange,
+  loadHistoryRecords,
+  filteredHistoryRecords,
+  handleViewHistoryDetail,
+  handleRetestFromHistory,
+  handleDeleteHistory,
+  handleHistorySizeChange,
+  handleHistoryPageChange,
+  suggestedFileName,
+  selectAllFields,
+  clearAllFields,
+  selectRecommendedFields,
+  handleOpenExportHistoryDialog,
+  handleConfirmExportHistory
+} = useHistoryExport(props, emit, { resultDialogVisible, executionResult })
+
 // 执行相关逻辑已移至 `useExecution` 可组合函数
 import useExecution from './apiDetail/useExecution'
 const {
@@ -1976,8 +2117,6 @@ const {
   executeVariables,
   isExecutingApi,
   executeFormData,
-  resultDialogVisible,
-  executionResult,
   currentTestCase,
   handleRunTestCase,
   handleConfirmExecute,
@@ -4115,6 +4254,262 @@ onMounted(() => {
   .el-button--danger:hover {
     background: #f78989;
     border-color: #f78989;
+  }
+}
+
+/* 执行弹窗样式优化 */
+.execute-dialog-enhanced {
+  --el-dialog-padding-primary: 24px;
+  --el-dialog-border-radius: 12px;
+}
+
+.execute-dialog-enhanced .el-dialog__header {
+  margin: 0;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.execute-dialog-enhanced .el-dialog__header .el-dialog__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.execute-dialog-enhanced .el-dialog__body {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.execute-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config-card {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.config-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px 0 rgba(64, 158, 255, 0.1);
+}
+
+.config-card .el-card__header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #f5f5f5;
+  background: #fafafa;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.card-header .card-icon {
+  color: #409eff;
+}
+
+.advanced-card .card-header {
+  color: #e6a23c;
+}
+
+.advanced-card .card-icon {
+  color: #e6a23c;
+}
+
+.mode-card .card-header {
+  color: #67c23a;
+}
+
+.mode-card .card-icon {
+  color: #67c23a;
+}
+
+.config-card .el-card__body {
+  padding: 20px;
+}
+
+/* 选项样式 */
+.option-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.option-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.option-dot.dev { background: #67c23a; }
+.option-dot.test { background: #e6a23c; }
+.option-dot.staging { background: #f56c6c; }
+.option-dot.prod { background: #909399; }
+
+.option-desc {
+  color: #909399;
+  font-size: 12px;
+  margin-left: auto;
+}
+
+/* 表单项样式 */
+.unit-text {
+  margin-left: 8px;
+  color: #606266;
+  font-size: 14px;
+}
+
+.info-icon {
+  margin-left: 6px;
+  color: #909399;
+  cursor: help;
+}
+
+.checkbox-text {
+  margin-left: 8px;
+  color: #303133;
+}
+
+/* 执行模式样式 */
+.execution-mode-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+.mode-option {
+  margin: 0;
+  padding: 20px;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  min-height: 80px;
+}
+
+.mode-option:hover {
+  border-color: #409eff;
+  background: #f5f7fa;
+}
+
+.mode-option.is-checked {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.mode-content .mode-title {
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 4px;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.mode-content .mode-desc {
+  font-size: 12px;
+  color: #909399;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+/* 变量输入框样式 */
+.variables-textarea .el-input__inner {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 13px;
+}
+
+.variable-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 底部样式 */
+.execute-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
+  background: #fafafa;
+}
+
+.footer-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #909399;
+  font-size: 13px;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.execute-btn {
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .execute-dialog-enhanced {
+    width: 95vw !important;
+    margin: 5vh auto;
+  }
+
+  .execute-dialog-content {
+    gap: 16px;
+  }
+
+  .config-card .el-card__body {
+    padding: 16px;
+  }
+
+  .el-row {
+    --el-row-gutter: 16px;
+  }
+
+  .execution-mode-group {
+    gap: 8px;
+  }
+
+  .mode-option {
+    padding: 16px;
+    min-height: 70px;
+  }
+
+  .execute-dialog-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .footer-info {
+    justify-content: center;
+  }
+
+  .footer-actions {
+    justify-content: center;
   }
 }
 
