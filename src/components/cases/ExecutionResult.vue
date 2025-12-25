@@ -7,9 +7,9 @@
   >
     <div class="execution-result-container" v-if="executionResult">
       <!-- 结果状态横幅 -->
-      <div class="result-banner" :class="'status-' + executionResult.status">
+      <div class="result-banner" :class="'status-' + getDisplayStatus(executionResult.status)">
         <div class="banner-icon">
-          <el-icon v-if="executionResult.status === 'passed'" :size="60" color="#67c23a">
+          <el-icon v-if="getDisplayStatus(executionResult.status) === 'passed'" :size="60" color="#67c23a">
             <CircleCheckFilled />
           </el-icon>
           <el-icon v-else :size="60" color="#f56c6c">
@@ -18,9 +18,9 @@
         </div>
         <div class="banner-content">
           <h3 class="result-title">
-            {{ executionResult.status === 'passed' ? '✓ 测试通过' : '✗ 测试失败' }}
+            {{ getDisplayStatus(executionResult.status) === 'passed' ? '✓ 测试通过' : '✗ 测试失败' }}
           </h3>
-          <p class="result-subtitle">{{ executionResult.caseName }}</p>
+          <p class="result-subtitle">{{ executionResult.scopeName || '未知' }}</p>
         </div>
       </div>
 
@@ -29,35 +29,32 @@
         <div class="info-grid" :class="{ 'info-grid-api': executionResult.totalCases }">
           <div class="info-card">
             <div class="info-label">执行ID</div>
-            <div class="info-value">{{ executionResult.executionId }}</div>
+            <div class="info-value">{{ executionResult.recordId }}</div>
           </div>
-          <div class="info-card" v-if="!executionResult.totalCases">
-            <div class="info-label">响应状态码</div>
+          <div class="info-card">
+            <div class="info-label">执行环境</div>
             <div class="info-value">
-              <el-tag 
-                :type="executionResult.responseStatus >= 200 && executionResult.responseStatus < 300 ? 'success' : 'danger'"
-                size="small"
-              >
-                {{ executionResult.responseStatus }}
+              <el-tag size="small" type="info">
+                {{ getEnvironmentText(executionResult.environment) }}
               </el-tag>
             </div>
           </div>
           <div class="info-card">
             <div class="info-label">执行耗时</div>
             <div class="info-value highlight">
-              {{ executionResult.duration < 1000 ? executionResult.duration + 'ms' : (executionResult.duration / 1000).toFixed(2) + 's' }}
+              {{ formatDuration(executionResult.durationSeconds) }}
             </div>
           </div>
           <div class="info-card">
-            <div class="info-label">{{ executionResult.totalCases ? '用例数' : '断言结果' }}</div>
+            <div class="info-label">{{ executionResult.totalCases ? '用例数' : '执行类型' }}</div>
             <div class="info-value">
               <template v-if="executionResult.totalCases">
                 <span class="total-count">{{ executionResult.totalCases }} 个</span>
               </template>
               <template v-else>
-              <span class="success-count">{{ executionResult.assertionsPassed }} 通过</span>
-              <span class="divider">/</span>
-              <span class="failed-count">{{ executionResult.assertionsFailed }} 失败</span>
+                <el-tag size="small" type="primary">
+                  {{ getExecutionTypeText(executionResult.executionType) }}
+                </el-tag>
               </template>
             </div>
           </div>
@@ -66,8 +63,8 @@
             <div class="info-card">
               <div class="info-label">通过率</div>
               <div class="info-value highlight">
-                <span :style="{ 
-                  color: executionResult.successRate >= 90 ? '#67c23a' : 
+                <span :style="{
+                  color: executionResult.successRate >= 90 ? '#67c23a' :
                          executionResult.successRate >= 70 ? '#e6a23c' : '#f56c6c'
                 }">
                   {{ executionResult.successRate.toFixed(1) }}%
@@ -77,9 +74,9 @@
             <div class="info-card">
               <div class="info-label">通过/失败</div>
               <div class="info-value">
-                <span class="success-count">{{ executionResult.assertionsPassed }}</span>
+                <span class="success-count">{{ executionResult.passedCases }}</span>
                 <span class="divider">/</span>
-                <span class="failed-count">{{ executionResult.assertionsFailed }}</span>
+                <span class="failed-count">{{ executionResult.failedCases }}</span>
               </div>
             </div>
           </template>
@@ -96,92 +93,77 @@
           <span class="time-label">结束时间：</span>
           <span class="time-value">{{ formatTime(executionResult.endTime) }}</span>
         </div>
+        <div class="time-item" v-if="executionResult.executorInfo">
+          <span class="time-label">执行人：</span>
+          <span class="time-value">{{ executionResult.executorInfo.name }}</span>
+        </div>
+        <div class="time-item">
+          <span class="time-label">执行范围：</span>
+          <span class="time-value">{{ executionResult.executionScope === 'api' ? '接口测试' : executionResult.executionScope }}</span>
+        </div>
       </div>
 
       <!-- 失败信息（如果有） -->
-      <div class="result-failure-section" v-if="executionResult.status === 'failed' && executionResult.failureMessage">
+      <div class="result-failure-section" v-if="executionResult.status === 'failed' && executionResult.errorMessage">
         <div class="failure-title">失败原因</div>
-        <div class="failure-message">{{ executionResult.failureMessage }}</div>
+        <div class="failure-message">{{ executionResult.errorMessage }}</div>
       </div>
 
-      <!-- 用例执行明细（接口测试） -->
-      <div class="case-results-section" v-if="executionResult.caseResults && executionResult.caseResults.length > 0">
-        <div class="case-results-title">用例执行明细</div>
-        <el-table 
-          :data="executionResult.caseResults" 
-          class="case-results-table"
-          border
-          stripe
-        >
-          <el-table-column label="用例编码" width="150" prop="case_code">
-            <template #default="{ row }">
-              <span class="case-code">{{ row.case_code || row.caseCode || '-' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="用例名称" min-width="200">
-            <template #default="{ row }">
-              <span class="case-name">{{ row.case_name || row.caseName }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="执行状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag 
-                :type="row.status === 'passed' ? 'success' : row.status === 'failed' ? 'danger' : 'info'" 
-                size="small"
-              >
-                {{ row.status === 'passed' ? '通过' : row.status === 'failed' ? '失败' : '跳过' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="响应状态码" width="120" align="center">
-            <template #default="{ row }">
-              <el-tag 
-                v-if="row.response_status || row.responseStatus"
-                :type="(row.response_status || row.responseStatus) >= 200 && (row.response_status || row.responseStatus) < 300 ? 'success' : 'danger'" 
-                size="small"
-              >
-                {{ row.response_status || row.responseStatus }}
-              </el-tag>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="执行耗时" width="120" align="center">
-            <template #default="{ row }">
-              <span class="duration-text">{{ row.duration }}ms</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="失败原因" min-width="200">
-            <template #default="{ row }">
-              <span 
-                v-if="row.failure_message || row.failureMessage" 
-                class="failure-text"
-              >
-                {{ row.failure_message || row.failureMessage }}
-              </span>
-              <span v-else class="success-text">✓ 执行成功</span>
-            </template>
-          </el-table-column>
-        </el-table>
+      <!-- 测试统计详情（接口测试） -->
+      <div class="test-stats-section" v-if="executionResult.totalCases">
+        <div class="test-stats-title">测试统计详情</div>
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-label">总用例数</div>
+            <div class="stat-value total">{{ executionResult.totalCases }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">已执行</div>
+            <div class="stat-value executed">{{ executionResult.executedCases }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">通过</div>
+            <div class="stat-value passed">{{ executionResult.passedCases }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">失败</div>
+            <div class="stat-value failed">{{ executionResult.failedCases }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">跳过</div>
+            <div class="stat-value skipped">{{ executionResult.skippedCases }}</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">成功率</div>
+            <div class="stat-value rate" :class="{
+              'rate-high': executionResult.successRate >= 90,
+              'rate-medium': executionResult.successRate >= 70 && executionResult.successRate < 90,
+              'rate-low': executionResult.successRate < 70
+            }">
+              {{ executionResult.successRate.toFixed(1) }}%
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- 操作链接 -->
       <div class="result-links-section">
-        <el-button 
-          type="primary" 
+        <el-button
+          type="primary"
           :icon="Document"
           @click="$emit('view-logs')"
-          v-if="executionResult.logsLink"
+          v-if="executionResult.logFilePath"
         >
           查看执行日志
         </el-button>
-        <el-button 
+        <el-button
           :icon="DocumentCopy"
           @click="$emit('view-report')"
-          v-if="executionResult.reportId"
+          v-if="executionResult.reportUrl"
         >
           查看测试报告
         </el-button>
-        <el-button 
+        <el-button
           :icon="Refresh"
           @click="$emit('retest')"
         >
@@ -215,6 +197,47 @@ const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v)
 })
+
+// 获取显示状态（将后端状态转换为前端显示状态）
+const getDisplayStatus = (backendStatus) => {
+  return backendStatus === 'completed' ? 'passed' : backendStatus
+}
+
+// 获取环境文本
+const getEnvironmentText = (env) => {
+  const envMap = {
+    'dev': '开发环境',
+    'test': '测试环境',
+    'staging': '预发布环境',
+    'prod': '生产环境'
+  }
+  return envMap[env] || env || '未知环境'
+}
+
+// 获取执行类型文本
+const getExecutionTypeText = (type) => {
+  const typeMap = {
+    'manual': '手动执行',
+    'auto': '自动执行',
+    'scheduled': '定时任务',
+    'trigger': '触发执行'
+  }
+  return typeMap[type] || type || '未知类型'
+}
+
+// 格式化时长
+const formatDuration = (seconds) => {
+  if (!seconds && seconds !== 0) return '-'
+  if (seconds < 1) {
+    return `${Math.round(seconds * 1000)}ms`
+  }
+  if (seconds < 60) {
+    return `${seconds.toFixed(2)}s`
+  }
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}m ${remainingSeconds.toFixed(0)}s`
+}
 </script>
 
 <style scoped>
@@ -410,6 +433,59 @@ const visible = computed({
   color: #409eff;
   font-weight: 600;
 }
+
+.test-stats-section {
+  margin-bottom: 24px;
+}
+
+.test-stats-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 16px;
+}
+
+.stat-item {
+  background: #fafafa;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.stat-value.total { color: #409eff; }
+.stat-value.executed { color: #909399; }
+.stat-value.passed { color: #67c23a; }
+.stat-value.failed { color: #f56c6c; }
+.stat-value.skipped { color: #e6a23c; }
+
+.stat-value.rate {
+  font-size: 20px;
+  color: #f56c6c;
+}
+
+.stat-value.rate.rate-high { color: #67c23a; }
+.stat-value.rate.rate-medium { color: #e6a23c; }
 </style>
 
 

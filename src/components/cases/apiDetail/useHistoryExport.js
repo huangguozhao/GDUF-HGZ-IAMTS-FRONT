@@ -4,7 +4,11 @@ import { getExecutionRecords, getExecutionRecordById, deleteExecutionRecord, exe
 import { exportToExcel, exportToJson, exportToCsv } from './exportUtils'
 import { formatDuration, formatTime } from './formatters'
 
-export function useHistoryExport(props, emit) {
+export function useHistoryExport(props, emit, deps = {}) {
+  const { resultDialogVisible, executionResult } = deps
+
+export function useHistoryExport(props, emit, deps = {}) {
+  const { resultDialogVisible, executionResult } = deps
   const historySearchText = ref('')
   const historyFilter = reactive({
     period: '7days',
@@ -147,8 +151,31 @@ export function useHistoryExport(props, emit) {
     try {
       const response = await getExecutionRecordById(record.recordId)
       if (response.code === 1 && response.data) {
-        currentHistoryDetail.value = response.data
-        historyDetailDialogVisible.value = true
+        // 设置执行结果数据，用于显示在ExecutionResult组件中
+        executionResult.value = {
+          recordId: response.data.recordId,
+          executionScope: response.data.executionScope,
+          refId: response.data.refId,
+          scopeName: response.data.scopeName,
+          executorInfo: response.data.executorInfo,
+          executionType: response.data.executionType,
+          environment: response.data.environment,
+          status: response.data.status,
+          startTime: response.data.startTime,
+          endTime: response.data.endTime,
+          durationSeconds: response.data.durationSeconds,
+          totalCases: response.data.totalCases,
+          executedCases: response.data.executedCases,
+          passedCases: response.data.passedCases,
+          failedCases: response.data.failedCases,
+          skippedCases: response.data.skippedCases,
+          successRate: response.data.successRate,
+          reportUrl: response.data.reportUrl,
+          errorMessage: response.data.errorMessage,
+          browser: response.data.browser,
+          appVersion: response.data.appVersion
+        }
+        resultDialogVisible.value = true
       } else {
         ElMessage.error(response.msg || '获取详情失败')
       }

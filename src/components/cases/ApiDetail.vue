@@ -1639,7 +1639,7 @@ const {
   selectRecommendedFields,
   handleOpenExportHistoryDialog,
   handleConfirmExportHistory
-} = useHistoryExport(props, emit)
+} = useHistoryExport(props, emit, { resultDialogVisible, executionResult })
 
 // 导出工具已移至 `src/components/cases/apiDetail/exportUtils.js`
 
