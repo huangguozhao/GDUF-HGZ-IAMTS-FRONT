@@ -579,23 +579,28 @@
         <div class="cases-toolbar">
           <div class="toolbar-left">
             <el-select v-model="casesFilter.type" placeholder="所有测试类型" size="small" style="width: 150px;" clearable>
-              <el-option label="所有测试类型" value="" />
-              <el-option label="功能测试" value="functional" />
-              <el-option label="边界测试" value="boundary" />
-              <el-option label="异常测试" value="exception" />
-              <el-option label="安全测试" value="security" />
+              <el-option
+                v-for="option in getTestTypeOptions()"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
             </el-select>
             <el-select v-model="casesFilter.priority" placeholder="所有优先级" size="small" style="width: 130px;" clearable>
-              <el-option label="所有优先级" value="" />
-              <el-option label="高" value="high" />
-              <el-option label="中" value="medium" />
-              <el-option label="低" value="low" />
+              <el-option
+                v-for="option in getPriorityOptions()"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
             </el-select>
             <el-select v-model="casesFilter.sortBy" placeholder="默认排序" size="small" style="width: 130px;">
-              <el-option label="默认排序" value="default" />
-              <el-option label="按名称排序" value="name" />
-              <el-option label="按创建时间" value="created" />
-              <el-option label="按更新时间" value="updated" />
+              <el-option
+                v-for="option in getSortOptions()"
+                :key="option.value"
+                :label="option.label"
+                :value="option.value"
+              />
             </el-select>
           </div>
           <div class="toolbar-right">
@@ -1318,6 +1323,7 @@ import {
   formatDuration,
   formatTime
 } from './apiDetail/formatters'
+import useCasesFilter from './apiDetail/useCasesFilter'
 
 // 复制路径到剪贴板
 const copyApiPath = async () => {
@@ -1639,11 +1645,21 @@ const {
 
 // 测试用例数据
 const casesSearchText = ref('')
-const casesFilter = reactive({
-  type: '',
-  priority: '',
-  sortBy: 'default'
-})
+
+// 使用用例筛选 composable
+const casesList = computed(() => props.relatedCases.length > 0 ? props.relatedCases : testCasesList.value)
+const {
+  filterOptions: casesFilter,
+  filteredCases,
+  resetFilters,
+  getFilterStats,
+  getTestTypeText,
+  getTestTypeTagType,
+  getPriorityTagType,
+  getTestTypeOptions,
+  getPriorityOptions,
+  getSortOptions
+} = useCasesFilter(casesList, casesSearchText)
 
 const casesPagination = reactive({
   currentPage: 1,
@@ -1658,7 +1674,7 @@ const testCasesList = ref([
     id: 1,
     name: '正常用户信息更新',
     caseType: 'functional',
-    priority: '高',
+    priority: 'P1', // 高优先级
     testData: '有效的用户ID和完整更新信息（50字符以内的姓名、符合规则的电子邮箱和手机号码）',
     expectedResult: '状态码 200，更新成功'
   },
@@ -1666,7 +1682,7 @@ const testCasesList = ref([
     id: 2,
     name: '字段长度边界测试',
     caseType: 'boundary',
-    priority: '中',
+    priority: 'P2', // 中等优先级
     testData: '用户名长度为最大允许值（…）',
     expectedResult: '响应包含验证错误信息'
   },
@@ -1674,7 +1690,7 @@ const testCasesList = ref([
     id: 3,
     name: '缺少必填字段测试',
     caseType: 'exception',
-    priority: '高',
+    priority: 'P0', // 最高优先级
     testData: '缺少email、phone等关键字段',
     expectedResult: '状态码 400，参数错误'
   },
@@ -1682,7 +1698,7 @@ const testCasesList = ref([
     id: 4,
     name: '无权限用户操作测试',
     caseType: 'security',
-    priority: '高',
+    priority: 'P0', // 最高优先级
     testData: '使用无权限用户的Token访问',
     expectedResult: '状态码 403，权限拒绝'
   },
@@ -1690,7 +1706,7 @@ const testCasesList = ref([
     id: 5,
     name: 'XSS注入测试',
     caseType: 'security',
-    priority: '中',
+    priority: 'P2', // 中等优先级
     testData: '在各个字段中注入XSS代码',
     expectedResult: '状态码 400，参数错误'
   },
@@ -1698,87 +1714,13 @@ const testCasesList = ref([
     id: 6,
     name: '大数据量测试',
     caseType: 'boundary',
-    priority: '低',
+    priority: 'P3', // 低优先级
     testData: '提交包含大量数据的请求',
     expectedResult: '响应时间 < 2秒'
   }
 ])
 
-// 过滤后的用例
-const filteredCases = computed(() => {
-  let cases = props.relatedCases.length > 0 ? props.relatedCases : testCasesList.value
-  
-  // 类型过滤
-  if (casesFilter.type) {
-    cases = cases.filter(c => c.caseType === casesFilter.type)
-  }
-  
-  // 优先级过滤
-  if (casesFilter.priority) {
-    cases = cases.filter(c => c.priority === casesFilter.priority)
-  }
-  
-  // 搜索过滤
-  if (casesSearchText.value) {
-    const keyword = casesSearchText.value.toLowerCase()
-    cases = cases.filter(c => 
-      c.name.toLowerCase().includes(keyword) ||
-      (c.testData && c.testData.toLowerCase().includes(keyword))
-    )
-  }
-  
-  return cases
-})
 
-// 获取测试类型标签颜色
-const getTestTypeTagType = (type) => {
-  const typeMap = {
-    'functional': 'primary',     // 蓝色 - 功能测试
-    'boundary': 'warning',       // 橙色 - 边界测试
-    'exception': 'danger',       // 红色 - 异常测试
-    'security': 'success',       // 绿色 - 安全测试
-    'performance': 'info',       // 灰色 - 性能测试
-    'integration': 'primary',    // 蓝色 - 集成测试
-    'smoke': 'success',          // 绿色 - 冒烟测试
-    'regression': 'warning'      // 橙色 - 回归测试
-  }
-  return typeMap[type] || ''
-}
-
-// 获取测试类型文本
-const getTestTypeText = (type) => {
-  const textMap = {
-    'functional': '功能测试',
-    'boundary': '边界测试',
-    'exception': '异常测试',
-    'security': '安全测试',
-    'performance': '性能测试',
-    'integration': '集成测试',
-    'smoke': '冒烟测试',
-    'regression': '回归测试'
-  }
-  return textMap[type] || type || '未分类'
-}
-
-// 兼容旧函数名
-const getCaseTypeTagType = getTestTypeTagType
-const getCaseTypeText = getTestTypeText
-
-// 获取优先级标签颜色
-const getPriorityTagType = (priority) => {
-  const priorityMap = {
-    // P0-P3 优先级映射
-    'P0': 'danger',    // 红色 - 最高优先级（严重/紧急）
-    'P1': 'warning',   // 橙色 - 高优先级（重要）
-    'P2': '',          // 灰色 - 中等优先级（正常）
-    'P3': 'info',      // 蓝色 - 低优先级（次要）
-    // 兼容中文优先级
-    '高': 'danger',
-    '中': 'warning',
-    '低': 'info'
-  }
-  return priorityMap[priority] || ''
-}
 
 // 文本截断与格式化函数已抽离到 `src/components/cases/apiDetail/formatters.js`
 

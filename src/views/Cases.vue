@@ -37,7 +37,7 @@
               :key="project.id"
               :node="project"
               level="project"
-              :default-expanded="expandedNodes.has(project.id)"
+              :default-expanded="false"
               :is-selected="selectedNode?.id === project.id && selectedLevel === 'project'"
               @add-module="handleAddModule"
               @edit="handleEdit"
@@ -50,7 +50,8 @@
                 :key="module.id"
                 :node="module"
                 level="module"
-                :default-expanded="false"
+              :default-expanded="false"
+              @toggle-expand="handleToggleExpand(module.id)"
                 :is-selected="selectedNode?.id === module.id && selectedLevel === 'module'"
                 @add-api="handleAddApi"
                 @edit="handleEdit"
@@ -63,7 +64,8 @@
                   :key="subModule.id"
                   :node="subModule"
                   level="module"
-                  :default-expanded="false"
+                  :default-expanded="expandedNodes.has(subModule.id)"
+                  @toggle-expand="handleToggleExpand(subModule.id)"
                   :is-selected="selectedNode?.id === subModule.id && selectedLevel === 'module'"
                   @add-api="handleAddApi"
                   @edit="handleEdit"
@@ -76,7 +78,8 @@
                     :key="api.id"
                     :node="api"
                     level="api"
-                    :default-expanded="false"
+                    :default-expanded="expandedNodes.has(api.id)"
+                    @toggle-expand="handleToggleExpand(api.id)"
                     :is-selected="selectedNode?.id === api.id && selectedLevel === 'api'"
                     @edit="handleEdit"
                     @delete="handleDeleteApi"
@@ -1482,190 +1485,9 @@ const selectedNode = ref(null)
 const selectedLevel = ref(null) // 'project' | 'module' | 'api' | 'case'
 const executionHistory = ref([])
 const projects = ref([])
-
-// 状态持久化相关
-const STATE_STORAGE_KEY = 'cases_page_state'
 const expandedNodes = ref(new Set()) // 记录展开的节点ID
 
-// 保存页面状态
-const savePageState = () => {
-  const state = {
-    selectedNodeId: selectedNode.value?.id || selectedNode.value?.case_id || selectedNode.value?.caseId,
-    selectedLevel: selectedLevel.value,
-    expandedNodes: Array.from(expandedNodes.value),
-    sidebarCollapsed: sidebarCollapsed.value,
-    searchKeyword: searchKeyword.value,
-    timestamp: Date.now()
-  }
-  
-  try {
-    localStorage.setItem(STATE_STORAGE_KEY, JSON.stringify(state))
-    console.log('页面状态已保存:', state)
-  } catch (error) {
-    console.error('保存页面状态失败:', error)
-  }
-}
 
-// 恢复页面状态
-const restorePageState = () => {
-  try {
-    const savedState = localStorage.getItem(STATE_STORAGE_KEY)
-    if (!savedState) return false
-    
-    const state = JSON.parse(savedState)
-    
-    // 检查状态是否过期（超过1小时）
-    const now = Date.now()
-    if (now - state.timestamp > 60 * 60 * 1000) {
-      localStorage.removeItem(STATE_STORAGE_KEY)
-      return false
-    }
-    
-    // 恢复状态
-    sidebarCollapsed.value = state.sidebarCollapsed || false
-    searchKeyword.value = state.searchKeyword || ''
-    expandedNodes.value = new Set(state.expandedNodes || [])
-    
-    console.log('页面状态已恢复:', state)
-    return state
-  } catch (error) {
-    console.error('恢复页面状态失败:', error)
-    return false
-  }
-}
-
-// 清除页面状态
-const clearPageState = () => {
-  try {
-    localStorage.removeItem(STATE_STORAGE_KEY)
-    console.log('页面状态已清除')
-  } catch (error) {
-    console.error('清除页面状态失败:', error)
-  }
-}
-
-// 根据展开的节点ID恢复展开状态
-const restoreExpandedNodes = async (expandedNodeIds) => {
-  for (const nodeId of expandedNodeIds) {
-    // 尝试找到对应的节点并展开
-    await expandNodeById(nodeId)
-  }
-}
-
-// 根据ID展开节点
-const expandNodeById = async (nodeId) => {
-  // 查找节点
-  const findNodeById = (nodes) => {
-    for (const node of nodes) {
-      if (node.id === nodeId || node.project_id === nodeId || node.module_id === nodeId || node.api_id === nodeId) {
-        return node
-      }
-      
-      if (node.modules) {
-        const found = findNodeById(node.modules)
-        if (found) return found
-      }
-    }
-    return null
-  }
-  
-  const node = findNodeById(projects.value)
-  if (node) {
-    // 如果是项目节点，加载模块
-    if (node.project_id && !node.modules?.length) {
-      await loadProjectModules(node)
-    }
-    // 如果是模块节点，加载接口
-    else if (node.module_id && !node.apis?.length) {
-      await loadModuleApis(node)
-    }
-    
-    // 添加到展开列表
-    expandedNodes.value.add(nodeId)
-  }
-}
-
-// 恢复选中的节点
-const restoreSelectedNode = async (savedState) => {
-  if (!savedState.selectedNodeId || !savedState.selectedLevel) {
-    return
-  }
-  
-  try {
-    // 根据保存的节点ID和层级查找对应的节点
-    const findNodeById = (nodes, nodeId, level) => {
-      for (const node of nodes) {
-        // 检查当前节点
-        if ((node.id === nodeId || node.case_id === nodeId || node.caseId === nodeId) && 
-            getNodeLevel(node) === level) {
-          return node
-        }
-        
-        // 递归查找子节点
-        if (node.modules) {
-          const found = findNodeById(node.modules, nodeId, level)
-          if (found) return found
-        }
-        if (node.children) {
-          const found = findNodeById(node.children, nodeId, level)
-          if (found) return found
-        }
-        if (node.apis) {
-          const found = findNodeById(node.apis, nodeId, level)
-          if (found) return found
-        }
-        if (node.cases) {
-          const found = findNodeById(node.cases, nodeId, level)
-          if (found) return found
-        }
-      }
-      return null
-    }
-    
-    // 获取节点层级的辅助函数
-    const getNodeLevel = (node) => {
-      if (node.project_id !== undefined) return 'project'
-      if (node.module_id !== undefined) return 'module'
-      if (node.api_id !== undefined) return 'api'
-      if (node.case_id !== undefined || node.caseId !== undefined) return 'case'
-      return null
-    }
-    
-    const foundNode = findNodeById(projects.value, savedState.selectedNodeId, savedState.selectedLevel)
-    
-    if (foundNode) {
-      console.log('找到保存的节点，正在恢复:', foundNode)
-      
-      // 恢复选中状态
-      selectedNode.value = foundNode
-      selectedLevel.value = savedState.selectedLevel
-      
-      // 如果需要，加载相关数据
-      if (savedState.selectedLevel === 'project') {
-        await loadProjectModules(foundNode)
-      } else if (savedState.selectedLevel === 'module') {
-        await loadModuleApis(foundNode)
-      } else if (savedState.selectedLevel === 'api') {
-        await loadApiTestCases(foundNode)
-      }
-      
-      console.log('节点状态已恢复')
-    } else {
-      console.log('未找到保存的节点，可能已被删除')
-      // 清理无效的状态
-      selectedNode.value = null
-      selectedLevel.value = null
-      // 清除保存的状态
-      clearPageState()
-    }
-  } catch (error) {
-    console.error('恢复选中节点失败:', error)
-    // 出错时清理状态
-    selectedNode.value = null
-    selectedLevel.value = null
-    clearPageState()
-  }
-}
 
 // 对话框相关
 const dialogVisible = ref(false)
@@ -1919,10 +1741,7 @@ const refreshTree = async () => {
 const handleSelectNode = async (node, level) => {
   selectedNode.value = node
   selectedLevel.value = level
-  
-  // 保存页面状态
-  savePageState()
-  
+
   // 如果是项目，按需加载模块
   if (level === 'project') {
     await loadProjectModules(node)
@@ -1959,8 +1778,6 @@ const handleToggleExpand = (nodeId) => {
     // 如果已收起，则展开
     expandedNodes.value.add(nodeId)
   }
-  // 使用 nextTick 批量保存，减少频繁 localStorage 写操作
-  nextTick(savePageState)
 }
 
 // 加载项目模块
@@ -2299,10 +2116,7 @@ const handleDeleteApi = async (apiId) => {
     
     // 等待 DOM 更新，确保右侧详情页被清空
     await nextTick()
-    
-    // 保存清空后的状态到 localStorage
-    savePageState()
-    
+
     // 在树结构中找到并移除对应的接口节点（不重新加载，保持展开状态）
     let found = false
     projects.value.forEach(project => {
@@ -3004,9 +2818,6 @@ const handleDeleteModule = async (module) => {
           console.warn('在项目树中未找到对应的模块节点')
           ElMessage.warning('模块已删除，请刷新页面')
         }
-        
-        // 保存状态
-        savePageState()
       } else {
         ElMessage.error(response.msg || '删除模块失败')
       }
@@ -3186,9 +2997,6 @@ const handleDeleteCase = async (testCase) => {
                 })
               })
             }
-            
-            // 保存新的状态
-            savePageState()
           }
         }
       } else {
@@ -3767,32 +3575,21 @@ const loadProjectTree = async () => {
 }
 
 onMounted(async () => {
-  // 先恢复页面状态
-  const savedState = restorePageState()
-  
   // 加载项目树
   if (USE_REAL_API) {
     await loadProjectTree()
   } else {
     initMockData()
   }
-  
-  // 数据加载完成后，恢复选中的节点
-  if (savedState) {
-    await restoreSelectedNode(savedState)
+})
+
+onMounted(async () => {
+  // 加载项目树
+  if (USE_REAL_API) {
+    await loadProjectTree()
+  } else {
+    initMockData()
   }
-})
-
-// 页面激活时保存状态
-onActivated(() => {
-  console.log('用例管理页面激活')
-  // 可以在这里添加额外的激活逻辑
-})
-
-// 页面失活时保存状态
-onDeactivated(() => {
-  console.log('用例管理页面失活，保存状态')
-  savePageState()
 })
 </script>
 
