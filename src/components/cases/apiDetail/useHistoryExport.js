@@ -68,10 +68,20 @@ export function useHistoryExport(props, emit) {
     try {
       historyLoading.value = true
       const timeRange = getTimeRange()
+      // 转换前端状态值为后端期望的值
+      let apiStatus = undefined
+      if (historyFilter.status) {
+        if (historyFilter.status === 'passed') {
+          apiStatus = 'completed'
+        } else {
+          apiStatus = historyFilter.status
+        }
+      }
+
       const params = {
         execution_scope: 'api',
         ref_id: props.api?.api_id || props.api?.id,
-        status: historyFilter.status || undefined,
+        status: apiStatus,
         start_time_begin: timeRange.start,
         start_time_end: timeRange.end,
         search_keyword: historySearchText.value || undefined,
@@ -94,7 +104,7 @@ export function useHistoryExport(props, emit) {
           executorAvatar: item.executorInfo?.avatarUrl || '',
           responseTime: formatDuration(item.durationSeconds),
           durationSeconds: item.durationSeconds,
-          status: item.status === 'completed' ? 'passed' : (item.status || ''),
+          status: item.status === 'completed' ? 'passed' : item.status,
           executionStatus: item.status,
           executionType: item.executionType,
           environment: item.environment,
