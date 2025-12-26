@@ -477,3 +477,273 @@ export const getSystemStatistics = () => {
     method: 'get'
   })
 }
+
+/**
+ * 获取通知模板列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getNotificationTemplates = (params = {}) => {
+  return request({
+    url: '/settings/notification-templates',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 创建通知模板
+ * @param {Object} data - 模板数据
+ * @returns {Promise}
+ */
+export const createNotificationTemplate = (data) => {
+  return request({
+    url: '/settings/notification-templates',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更新通知模板
+ * @param {string} id - 模板ID
+ * @param {Object} data - 更新数据
+ * @returns {Promise}
+ */
+export const updateNotificationTemplate = (id, data) => {
+  return request({
+    url: `/settings/notification-templates/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除通知模板
+ * @param {string} id - 模板ID
+ * @returns {Promise}
+ */
+export const deleteNotificationTemplate = (id) => {
+  return request({
+    url: `/settings/notification-templates/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取通知规则列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getNotificationRules = (params = {}) => {
+  return request({
+    url: '/settings/notification-rules',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 创建通知规则
+ * @param {Object} data - 规则数据
+ * @returns {Promise}
+ */
+export const createNotificationRule = (data) => {
+  return request({
+    url: '/settings/notification-rules',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更新通知规则
+ * @param {string} id - 规则ID
+ * @param {Object} data - 更新数据
+ * @returns {Promise}
+ */
+export const updateNotificationRule = (id, data) => {
+  return request({
+    url: `/settings/notification-rules/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除通知规则
+ * @param {string} id - 规则ID
+ * @returns {Promise}
+ */
+export const deleteNotificationRule = (id) => {
+  return request({
+    url: `/settings/notification-rules/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 切换通知规则状态
+ * @param {string} id - 规则ID
+ * @param {boolean} enabled - 是否启用
+ * @returns {Promise}
+ */
+export const toggleNotificationRuleStatus = (id, enabled) => {
+  return request({
+    url: `/settings/notification-rules/${id}/status`,
+    method: 'put',
+    data: { enabled }
+  })
+}
+
+/**
+ * 获取通知历史记录
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getNotificationHistory = (params = {}) => {
+  return request({
+    url: '/settings/notification-history',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 重发通知
+ * @param {string} id - 历史记录ID
+ * @returns {Promise}
+ */
+export const resendNotification = (id) => {
+  return request({
+    url: `/settings/notification-history/${id}/resend`,
+    method: 'post'
+  })
+}
+
+/**
+ * 导出通知历史
+ * @param {Object} params - 导出参数
+ * @returns {Promise}
+ */
+export const exportNotificationHistory = (params = {}) => {
+  return request({
+    url: '/settings/notification-history/export',
+    method: 'get',
+    params,
+    responseType: 'blob'
+  })
+}
+
+/**
+ * 获取集成服务列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getIntegrationServices = (params = {}) => {
+  return request({
+    url: '/settings/integration-services',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 添加集成服务
+ * @param {Object} data - 服务数据
+ * @returns {Promise}
+ */
+export const addIntegrationService = (data) => {
+  return request({
+    url: '/settings/integration-services',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更新集成服务
+ * @param {string} id - 服务ID
+ * @param {Object} data - 更新数据
+ * @returns {Promise}
+ */
+export const updateIntegrationService = (id, data) => {
+  return request({
+    url: `/settings/integration-services/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除集成服务
+ * @param {string} id - 服务ID
+ * @returns {Promise}
+ */
+export const deleteIntegrationService = (id) => {
+  return request({
+    url: `/settings/integration-services/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 切换集成服务状态
+ * @param {string} id - 服务ID
+ * @param {boolean} enabled - 是否启用
+ * @returns {Promise}
+ */
+export const toggleIntegrationStatus = (id, enabled) => {
+  return request({
+    url: `/settings/integration-services/${id}/status`,
+    method: 'put',
+    data: { enabled }
+  })
+}
+
+/**
+ * 测试集成连接
+ * @param {string} id - 服务ID
+ * @returns {Promise}
+ */
+export const testIntegrationConnection = (id) => {
+  return request({
+    url: `/settings/integration-services/${id}/test`,
+    method: 'post'
+  })
+}
+
+/**
+ * 获取集成日志
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getIntegrationLogs = (params = {}) => {
+  return request({
+    url: '/settings/integration-logs',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 获取集成服务类型列表
+ * @returns {Promise}
+ */
+export const getIntegrationServiceTypes = () => {
+  return request({
+    url: '/settings/integration-service-types',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取集成统计信息
+ * @returns {Promise}
+ */
+export const getIntegrationStatistics = () => {
+  return request({
+    url: '/settings/integration-statistics',
+    method: 'get'
+  })
+}

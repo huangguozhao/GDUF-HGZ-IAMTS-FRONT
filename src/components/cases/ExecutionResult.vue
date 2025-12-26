@@ -1,6 +1,7 @@
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="visible"
+    @update:model-value="handleVisibleChange"
     title="测试执行结果"
     width="800px"
     :close-on-click-modal="false"
@@ -237,6 +238,11 @@ const formatDuration = (seconds) => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
   return `${minutes}m ${remainingSeconds.toFixed(0)}s`
+}
+
+// 处理对话框可见性变化
+const handleVisibleChange = (value) => {
+  emit('update:modelValue', value)
 }
 </script>
 

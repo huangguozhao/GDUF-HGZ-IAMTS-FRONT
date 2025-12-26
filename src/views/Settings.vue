@@ -268,23 +268,17 @@
 
       <!-- 通知设置标签页 -->
       <el-tab-pane label="通知设置" name="notification">
-        <div class="tab-content">
-          <div class="notification-section">
-            <h3>通知设置</h3>
-            <p>这里将显示通知设置相关功能</p>
-            <!-- TODO: 实现通知设置功能 -->
-          </div>
-        </div>
+        <NotificationSettingsMain />
       </el-tab-pane>
 
       <!-- 集成管理标签页 -->
       <el-tab-pane label="集成管理" name="integration">
         <div class="tab-content">
-          <div class="integration-section">
-            <h3>集成管理</h3>
-            <p>这里将显示集成管理相关功能</p>
-            <!-- TODO: 实现集成管理功能 -->
-          </div>
+          <IntegrationManagementMain
+            :settings="integrationSettings"
+            :loading="integrationLoading"
+            @update="handleIntegrationUpdate"
+          />
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -315,10 +309,13 @@ import {
 } from '@element-plus/icons-vue'
 import {
   getBasicSettings,
-  updateBasicSettings
+  updateBasicSettings,
+  getIntegrationSettings
 } from '../api/settings'
 import SystemConfigMain from '../components/settings/SystemConfigMain.vue'
 import PermissionSettingsMain from '../components/settings/PermissionSettingsMain.vue'
+import NotificationSettingsMain from '../components/settings/NotificationSettingsMain.vue'
+import IntegrationManagementMain from '../components/settings/IntegrationManagementMain.vue'
 
 // 当前标签页
 const activeTab = ref('basic')
@@ -356,6 +353,38 @@ const basicSettings = reactive({
   logPath: '/var/log/apiops/'
 })
 
+// 集成管理设置
+const integrationSettings = reactive({
+  apiIntegration: {
+    enableApiIntegration: false,
+    apiVersion: 'v2.0',
+    requestTimeout: 30,
+    maxRetries: 3,
+    authType: 'none',
+    responseFormat: 'json'
+  }
+})
+
+const integrationLoading = ref(false)
+
+// 获取集成设置
+const fetchIntegrationSettings = async () => {
+  integrationLoading.value = true
+  try {
+    const response = await getIntegrationSettings()
+    Object.assign(integrationSettings, response.data || {})
+  } catch (error) {
+    console.error('获取集成设置失败:', error)
+    // 使用默认设置
+  } finally {
+    integrationLoading.value = false
+  }
+}
+
+// 处理集成设置更新
+const handleIntegrationUpdate = (newSettings) => {
+  Object.assign(integrationSettings, newSettings)
+}
 
 // 获取基本设置
 const fetchBasicSettings = async () => {
@@ -437,6 +466,7 @@ const handleRestoreDefaults = async () => {
 // 组件挂载时加载数据
 onMounted(() => {
   fetchBasicSettings()
+  fetchIntegrationSettings()
 })
 </script>
 
