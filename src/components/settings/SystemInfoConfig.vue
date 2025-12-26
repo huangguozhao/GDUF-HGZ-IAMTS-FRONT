@@ -313,12 +313,28 @@ const saveAdvancedConfig = async () => {
 const loadSystemInfo = async () => {
   try {
     const response = await getSystemInfo()
-    Object.assign(systemInfo, response.data.systemInfo || {})
-    Object.assign(systemStatus, response.data.systemStatus || {})
-    Object.assign(licenseInfo, response.data.licenseInfo || {})
+    // 处理API返回的数据结构，支持多种可能的返回格式
+    const data = response.data || {}
+
+    // 如果API返回成功的数据结构
+    if (data.systemInfo) {
+      Object.assign(systemInfo, data.systemInfo)
+    }
+    if (data.systemStatus) {
+      Object.assign(systemStatus, data.systemStatus)
+    }
+    if (data.licenseInfo) {
+      Object.assign(licenseInfo, data.licenseInfo)
+    }
+
+    // 如果API直接返回系统信息（兼容旧格式）
+    if (data.name || data.version) {
+      Object.assign(systemInfo, data)
+    }
+
   } catch (error) {
     console.error('获取系统信息失败:', error)
-    // 使用默认数据
+    // 使用默认数据，不显示错误提示
   }
 }
 

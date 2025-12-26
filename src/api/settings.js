@@ -87,6 +87,99 @@ export const deleteSystemConfig = (id) => {
 }
 
 /**
+ * 获取角色列表
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getRoles = (params) => {
+  return request({
+    url: '/settings/roles',
+    method: 'get',
+    params
+  })
+}
+
+/**
+ * 创建角色
+ * @param {Object} data - 角色数据
+ * @returns {Promise}
+ */
+export const createRole = (data) => {
+  return request({
+    url: '/settings/roles',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更新角色
+ * @param {string} id - 角色ID
+ * @param {Object} data - 更新数据
+ * @returns {Promise}
+ */
+export const updateRole = (id, data) => {
+  return request({
+    url: `/settings/roles/${id}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除角色
+ * @param {string} id - 角色ID
+ * @returns {Promise}
+ */
+export const deleteRole = (id) => {
+  return request({
+    url: `/settings/roles/${id}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 分配角色权限
+ * @param {string} roleId - 角色ID
+ * @param {Array} permissions - 权限列表
+ * @returns {Promise}
+ */
+export const assignRolePermissions = (roleId, permissions) => {
+  return request({
+    url: `/settings/roles/${roleId}/permissions`,
+    method: 'put',
+    data: { permissions }
+  })
+}
+
+/**
+ * 分配用户角色
+ * @param {string} userId - 用户ID
+ * @param {Array} roleIds - 角色ID列表
+ * @returns {Promise}
+ */
+export const assignUserRoles = (userId, roleIds) => {
+  return request({
+    url: `/settings/users/${userId}/roles`,
+    method: 'put',
+    data: { roleIds }
+  })
+}
+
+/**
+ * 获取权限日志
+ * @param {Object} params - 查询参数
+ * @returns {Promise}
+ */
+export const getPermissionLogs = (params) => {
+  return request({
+    url: '/settings/permission-logs',
+    method: 'get',
+    params
+  })
+}
+
+/**
  * 获取权限设置
  * @returns {Promise}
  */
@@ -107,6 +200,18 @@ export const updatePermissionSettings = (data) => {
     url: '/settings/permissions',
     method: 'put',
     data
+  })
+}
+
+/**
+ * 导出权限配置
+ * @returns {Promise}
+ */
+export const exportPermissions = () => {
+  return request({
+    url: '/settings/permissions/export',
+    method: 'get',
+    responseType: 'blob'
   })
 }
 

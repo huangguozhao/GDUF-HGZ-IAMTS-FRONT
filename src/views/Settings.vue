@@ -263,13 +263,7 @@
 
       <!-- 权限设置标签页 -->
       <el-tab-pane label="权限设置" name="permission">
-        <div class="tab-content">
-          <div class="permission-section">
-            <h3>权限设置</h3>
-            <p>这里将显示权限设置相关功能</p>
-            <!-- TODO: 实现权限设置功能 -->
-          </div>
-        </div>
+        <PermissionSettingsMain />
       </el-tab-pane>
 
       <!-- 通知设置标签页 -->
@@ -324,6 +318,7 @@ import {
   updateBasicSettings
 } from '../api/settings'
 import SystemConfigMain from '../components/settings/SystemConfigMain.vue'
+import PermissionSettingsMain from '../components/settings/PermissionSettingsMain.vue'
 
 // 当前标签页
 const activeTab = ref('basic')
