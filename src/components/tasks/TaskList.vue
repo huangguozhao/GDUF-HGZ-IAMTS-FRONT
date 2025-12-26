@@ -13,10 +13,17 @@
       </div>
     </div>
 
+    <div class="bulk-actions" v-if="selectedRows.length">
+      <span>已选 {{ selectedRows.length }} 项</span>
+      <button @click="bulkEnable">批量启用</button>
+      <button @click="bulkDisable">批量停用</button>
+      <button @click="bulkDelete">批量删除</button>
+    </div>
+
     <table class="tasks-table">
       <thead>
         <tr>
-          <th></th>
+          <th><input type="checkbox" :checked="selectAll" @change="toggleSelectAll" /></th>
           <th>ID</th>
           <th>任务名称</th>
           <th>执行计划/下次执行时间</th>
@@ -25,13 +32,14 @@
         </tr>
       </thead>
       <tbody>
+        <template v-if="filteredTasks.length">
         <tr
           v-for="task in filteredTasks"
           :key="task.id"
           :class="{ selected: task.id === selectedId }"
           @click="select(task)"
         >
-          <td><input type="checkbox" v-model="selectedRows" :value="task.id" /></td>
+          <td><input type="checkbox" v-model="selectedRows" :value="task.id" @click.stop /></td>
           <td>{{ task.code }}</td>
           <td>{{ task.name }}</td>
           <td>
@@ -44,9 +52,21 @@
             </span>
           </td>
           <td>
-            <button @click.stop="edit(task)">编辑</button>
-            <button @click.stop="toggleEnable(task)">{{ task.enabled ? '停用' : '启用' }}</button>
+            <div class="row-actions">
+              <button @click.stop="edit(task)">编辑</button>
+              <button @click.stop="toggleEnable(task)">{{ task.enabled ? '停用' : '启用' }}</button>
+              <button class="menu-btn" @click.stop="openRowMenu(task.id)">⋯</button>
+              <div v-if="rowMenuOpenId === task.id" class="row-menu" @click.stop>
+                <button @click="edit(task)">编辑</button>
+                <button @click="toggleEnable(task)">{{ task.enabled ? '停用' : '启用' }}</button>
+                <button @click="() => { selectedRows.push(task.id); bulkDelete(); }">删除</button>
+              </div>
+            </div>
           </td>
+        </tr>
+        </template>
+        <tr v-else class="empty-row">
+          <td colspan="6" class="empty-cell">未找到匹配的任务</td>
         </tr>
       </tbody>
     </table>
@@ -63,6 +83,7 @@
 import { computed, reactive, ref, watch } from 'vue';
 import { defineProps, defineEmits } from 'vue';
 import TaskFilters from './TaskFilters.vue';
+import EditTaskModal from './EditTaskModal.vue';
 
 const props = defineProps({
   filters: { type: Object, default: () => ({}) }
@@ -86,6 +107,10 @@ const tasks = ref([
 
 const selectedId = ref(null);
 const selectedRows = ref([]);
+const selectAll = ref(false);
+const editingTask = ref(null);
+const showEditModal = ref(false);
+const rowMenuOpenId = ref(null);
 
 const filteredTasks = computed(() => {
   let list = tasks.value.slice();
@@ -112,8 +137,8 @@ function select(task) {
 }
 
 function edit(task) {
-  // placeholder: open edit modal later
-  emit('selectTask', task);
+  editingTask.value = task;
+  showEditModal.value = true;
 }
 
 function toggleEnable(task) {
@@ -126,6 +151,61 @@ function prevPage() {
 function nextPage() {
   page.value += 1;
 }
+
+function toggleSelectAll() {
+  if (!selectAll.value) {
+    // select currently visible tasks
+    selectedRows.value = filteredTasks.value.map(t => t.id);
+    selectAll.value = true;
+  } else {
+    selectedRows.value = [];
+    selectAll.value = false;
+  }
+}
+
+function bulkEnable() {
+  tasks.value.forEach(t => {
+    if (selectedRows.value.includes(t.id)) t.enabled = true;
+  });
+  selectedRows.value = [];
+  selectAll.value = false;
+}
+function bulkDisable() {
+  tasks.value.forEach(t => {
+    if (selectedRows.value.includes(t.id)) t.enabled = false;
+  });
+  selectedRows.value = [];
+  selectAll.value = false;
+}
+function bulkDelete() {
+  const toDelete = new Set(selectedRows.value);
+  tasks.value = tasks.value.filter(t => !toDelete.has(t.id));
+  selectedRows.value = [];
+  selectAll.value = false;
+}
+
+function openRowMenu(id) {
+  rowMenuOpenId.value = rowMenuOpenId.value === id ? null : id;
+}
+
+function handleRowEdit(updated) {
+  const idx = tasks.value.findIndex(t => t.id === updated.id);
+  if (idx !== -1) {
+    tasks.value[idx] = { ...tasks.value[idx], ...updated };
+  }
+  showEditModal.value = false;
+  editingTask.value = null;
+}
+</script>
+
+<template v-if="showEditModal">
+  <edit-task-modal
+    v-model:visible="showEditModal"
+    :task="editingTask"
+    @updated="handleRowEdit"
+  />
+</template>
+
 
 watch(() => props.filters, (newF) => {
   localFilters.keyword = newF.keyword || '';
@@ -152,6 +232,15 @@ watch(() => props.filters, (newF) => {
 .status.on { color: #2f8f3f; }
 .status.off { color: #999; }
 .pagination { margin-top: 12px; display:flex; gap:8px; align-items:center; }
+.tasks-table tbody tr { transition: background .12s ease, transform .08s ease; cursor:pointer; }
+.tasks-table tbody tr:hover { background:#f8fbff; transform:translateY(-2px); }
+.empty-row .empty-cell { text-align:center; color:#888; padding:24px 0; }
+
+@media (max-width: 900px) {
+  .task-list { padding:8px; }
+  .list-header { flex-direction:column; align-items:flex-start; gap:8px; }
+  .tasks-table th:nth-child(2), .tasks-table td:nth-child(2) { display:none; }
+}
 </style>
 
 

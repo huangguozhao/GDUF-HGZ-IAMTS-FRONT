@@ -78,6 +78,11 @@ function handleTaskCreated(newTask) {
   padding: 32px;
   text-align: center;
 }
+
+@media (max-width: 1000px) {
+  .content-grid { flex-direction:column; }
+  .left-column, .center-column { width:100%; min-width:0; }
+}
 </style>
 
 

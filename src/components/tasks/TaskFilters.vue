@@ -52,6 +52,23 @@ watch([project, status, period, keyword], () => {
 .quick-filters button.active { background:#eaf4ff; border-color:#cfe9ff; }
 .actions { margin-left:auto; }
 .search-row input { flex:1; padding:8px; }
+
+@media (max-width: 900px) {
+  .top-row { flex-direction:column; align-items:stretch; }
+  .search-row { flex-direction:column; align-items:stretch; }
+  .actions { margin-left:0; display:flex; justify-content:flex-end; }
+}
+</style>
+</script>
+
+<style scoped>
+.task-filters { padding:12px; background:#fff; border-radius:8px; margin-bottom:12px; }
+.top-row { display:flex; gap:8px; align-items:center; margin-bottom:8px; }
+.search-row { display:flex; gap:8px; align-items:center; }
+.quick-filters button { padding:6px 8px; border-radius:4px; background:#f5f7fa; border:1px solid #e6eef8; }
+.quick-filters button.active { background:#eaf4ff; border-color:#cfe9ff; }
+.actions { margin-left:auto; }
+.search-row input { flex:1; padding:8px; }
 </style>
 
 
