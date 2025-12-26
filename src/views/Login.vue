@@ -372,6 +372,33 @@ onMounted(() => {
   display: flex;
   height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.login-page::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 20% 80%, rgba(255,255,255,0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(255,255,255,0.05) 0%, transparent 50%);
+  animation: backgroundFloat 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes backgroundFloat {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(10px, -10px) scale(1.02);
+  }
+  66% {
+    transform: translate(-10px, 10px) scale(0.98);
+  }
 }
 
 /* 左侧信息面板 */
@@ -386,18 +413,57 @@ onMounted(() => {
   overflow: hidden;
 }
 
+.login-page__info-panel::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 30%, transparent 70%);
+  animation: infoPanelRotate 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes infoPanelRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
 .info-panel__content {
   color: white;
   text-align: center;
   z-index: 2;
   position: relative;
+  animation: contentFadeIn 1s ease-out;
+}
+
+@keyframes contentFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .info-panel__title {
   font-size: 48px;
   font-weight: bold;
   margin: 0 0 20px 0;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: titleGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes titleGlow {
+  from {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  to {
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2), 0 0 20px rgba(255,255,255,0.3);
+  }
 }
 
 .info-panel__subtitle {
@@ -405,28 +471,89 @@ onMounted(() => {
   margin: 0 0 40px 0;
   opacity: 0.9;
   line-height: 1.6;
+  animation: subtitleSlideIn 0.8s ease-out 0.3s both;
+}
+
+@keyframes subtitleSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .info-panel__features {
   text-align: left;
   max-width: 400px;
   margin: 0 auto 40px;
+  animation: featuresFadeIn 0.8s ease-out 0.6s both;
+}
+
+@keyframes featuresFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .feature-item {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
   font-size: 16px;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: featureItemSlideIn 0.6s ease-out calc(0.8s + var(--delay, 0)) both;
+}
+
+.feature-item:hover {
+  transform: translateY(-2px) scale(1.02);
+  background: rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.feature-item:nth-child(1) { --delay: 0s; }
+.feature-item:nth-child(2) { --delay: 0.1s; }
+.feature-item:nth-child(3) { --delay: 0.2s; }
+.feature-item:nth-child(4) { --delay: 0.3s; }
+
+@keyframes featureItemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .feature-item__icon {
-  margin-right: 12px;
-  font-size: 18px;
+  margin-right: 16px;
+  font-size: 20px;
+  transition: transform 0.3s ease;
+}
+
+.feature-item:hover .feature-item__icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .feature-item__text {
   flex: 1;
+  font-weight: 400;
 }
 
 .info-panel__chart {
@@ -444,23 +571,73 @@ onMounted(() => {
 /* 右侧表单面板 */
 .login-page__form-panel {
   flex: 1;
-  background: white;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 40px;
+  position: relative;
+}
+
+.login-page__form-panel::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 0;
+  pointer-events: none;
 }
 
 .form-panel__content {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 24px;
+  padding: 40px;
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  position: relative;
+  animation: formSlideIn 0.8s ease-out 0.4s both;
+}
+
+@keyframes formSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* 头部 */
 .form-panel__header {
   display: flex;
   align-items: center;
-  margin-bottom: 40px;
+  justify-content: center;
+  margin-bottom: 32px;
+  animation: headerFadeIn 0.6s ease-out 0.6s both;
+}
+
+@keyframes headerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .header__logo {
@@ -468,16 +645,35 @@ onMounted(() => {
 }
 
 .logo-icon {
-  width: 48px;
-  height: 48px;
-  background: #409eff;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
   color: white;
-  border-radius: 8px;
+  border-radius: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 28px;
   font-weight: bold;
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: logoFloat 4s ease-in-out infinite;
+}
+
+.logo-icon:hover {
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 12px 32px rgba(64, 158, 255, 0.4);
+}
+
+@keyframes logoFloat {
+  0%, 100% {
+    transform: translateY(0px);
+    box-shadow: 0 8px 24px rgba(64, 158, 255, 0.3);
+  }
+  50% {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(64, 158, 255, 0.4);
+  }
 }
 
 .header__title {
@@ -485,11 +681,25 @@ onMounted(() => {
   font-weight: 600;
   color: #409eff;
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
 /* 欢迎信息 */
 .form-panel__welcome {
   margin-bottom: 32px;
+  text-align: center;
+  animation: welcomeFadeIn 0.8s ease-out 0.8s both;
+}
+
+@keyframes welcomeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .welcome__title {
@@ -497,17 +707,31 @@ onMounted(() => {
   font-weight: 600;
   color: #303133;
   margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
 }
 
 .welcome__subtitle {
   font-size: 14px;
   color: #909399;
   margin: 0;
+  font-weight: 400;
 }
 
 /* 登录表单 */
 .login-form {
   margin-bottom: 32px;
+  animation: formFadeIn 0.8s ease-out 1s both;
+}
+
+@keyframes formFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .login-form .el-form-item {
@@ -515,17 +739,43 @@ onMounted(() => {
 }
 
 .login-form .el-input {
-  height: 48px;
+  height: 52px;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-form .el-input__wrapper {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(193, 194, 197, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.login-form .el-input__wrapper:hover {
+  border-color: rgba(64, 158, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
+}
+
+.login-form .el-input__wrapper.is-focus {
+  border-color: #409eff;
+  box-shadow:
+    0 0 0 3px rgba(64, 158, 255, 0.1),
+    0 4px 16px rgba(64, 158, 255, 0.15);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .password-toggle {
   cursor: pointer;
   color: #c0c4cc;
-  transition: color 0.3s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .password-toggle:hover {
   color: #409eff;
+  transform: scale(1.1);
 }
 
 .form-options {
@@ -533,17 +783,61 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  animation: optionsFadeIn 0.6s ease-out 1.2s both;
+}
+
+@keyframes optionsFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .forgot-password {
   font-size: 14px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.forgot-password:hover {
+  color: #409eff !important;
+  transform: translateY(-1px);
 }
 
 .login-button {
   width: 100%;
-  height: 48px;
+  height: 52px;
   font-size: 16px;
   font-weight: 600;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: buttonPulse 2s ease-in-out infinite;
+}
+
+.login-button:hover:not(.is-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(64, 158, 255, 0.4);
+  background: linear-gradient(135deg, #66b1ff 0%, #99d6ff 100%);
+}
+
+.login-button:active:not(.is-disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.3);
+}
+
+@keyframes buttonPulse {
+  0%, 100% {
+    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(64, 158, 255, 0.4);
+  }
 }
 
 /* 版权信息 */
@@ -567,79 +861,165 @@ onMounted(() => {
   .login-page {
     flex-direction: column;
   }
-  
+
   .login-page__info-panel {
     flex: none;
     height: 40vh;
     padding: 40px 20px;
   }
-  
+
   .info-panel__title {
     font-size: 32px;
   }
-  
+
   .info-panel__subtitle {
     font-size: 16px;
   }
-  
+
   .info-panel__features {
     max-width: 300px;
   }
-  
+
   .feature-item {
     font-size: 14px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    border-radius: 12px;
   }
-  
+
   .chart-icon {
     font-size: 80px;
   }
-  
+
   .login-page__form-panel {
     flex: none;
     height: 60vh;
     padding: 20px;
+    background: rgba(255, 255, 255, 0.98);
   }
-  
+
   .form-panel__content {
     max-width: 100%;
+    padding: 32px 24px;
+    border-radius: 20px;
+    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
   }
-  
+
+  .header__logo {
+    margin-right: 12px;
+  }
+
+  .logo-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+    border-radius: 12px;
+  }
+
+  .header__title {
+    font-size: 20px;
+  }
+
   .welcome__title {
     font-size: 24px;
+  }
+
+  .login-form .el-input {
+    height: 48px;
+  }
+
+  .login-button {
+    height: 48px;
+    font-size: 15px;
   }
 }
 
 @media (max-width: 480px) {
+  .login-page {
+    overflow-y: auto;
+  }
+
   .login-page__info-panel {
     padding: 20px;
+    height: 35vh;
   }
-  
+
   .info-panel__title {
     font-size: 28px;
+    margin-bottom: 16px;
   }
-  
+
   .info-panel__subtitle {
     font-size: 14px;
+    margin-bottom: 24px;
   }
-  
+
   .info-panel__features {
     max-width: 250px;
   }
-  
+
+  .feature-item {
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+
   .login-page__form-panel {
     padding: 16px;
+    height: 65vh;
   }
-  
+
+  .form-panel__content {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
   .form-panel__header {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
-  
+
   .header__title {
-    font-size: 20px;
+    font-size: 18px;
   }
-  
+
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+
   .welcome__title {
     font-size: 20px;
+    margin-bottom: 6px;
+  }
+
+  .welcome__subtitle {
+    font-size: 13px;
+  }
+
+  .login-form .el-form-item {
+    margin-bottom: 20px;
+  }
+
+  .login-form .el-input {
+    height: 46px;
+  }
+
+  .form-options {
+    margin-bottom: 20px;
+  }
+
+  .login-button {
+    height: 46px;
+    font-size: 14px;
+  }
+
+  .form-panel__footer {
+    margin-top: 16px;
+  }
+
+  .copyright {
+    font-size: 11px;
   }
 }
 </style>
