@@ -207,6 +207,19 @@ export const checkSystemUpdate = () => {
 }
 
 /**
+ * 更新系统信息
+ * @param {Object} data - 系统信息数据
+ * @returns {Promise}
+ */
+export const updateSystemInfo = (data) => {
+  return request({
+    url: '/settings/system-info',
+    method: 'put',
+    data
+  })
+}
+
+/**
  * 执行系统更新
  * @param {string} version - 目标版本
  * @returns {Promise}

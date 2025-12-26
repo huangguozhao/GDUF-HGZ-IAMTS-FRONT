@@ -258,54 +258,7 @@
 
       <!-- 系统配置标签页 -->
       <el-tab-pane label="系统配置" name="system">
-        <div class="tab-content">
-          <!-- 系统配置说明 -->
-          <el-alert
-            title="关于系统配置"
-            type="info"
-            :closable="false"
-            class="config-alert"
-          >
-            <template #default>
-              系统配置用于管理整个系统的基础设置，包括系统名称、数据备份策略、文件上传限制等。这些设置会影响系统的整体运行和用户体验。
-            </template>
-          </el-alert>
-
-          <!-- 配置列表 -->
-          <div class="config-section">
-            <div class="config-header">
-              <h3>配置列表</h3>
-              <el-button type="primary" :icon="Plus" @click="showAddConfigDialog">
-                添加配置
-              </el-button>
-            </div>
-
-            <el-table :data="configList" class="config-table">
-              <el-table-column prop="name" label="配置项" width="200" />
-              <el-table-column prop="value" label="当前值" />
-              <el-table-column label="操作" width="150">
-                <template #default="scope">
-                  <el-button 
-                    link 
-                    type="primary" 
-                    :icon="Edit"
-                    @click="handleEditConfig(scope.row)"
-                  >
-                    编辑
-                  </el-button>
-                  <el-button 
-                    link 
-                    type="danger" 
-                    :icon="Delete"
-                    @click="handleDeleteConfig(scope.row)"
-                  >
-                    删除
-                  </el-button>
-                </template>
-              </el-table-column>
-            </el-table>
-          </div>
-        </div>
+        <SystemConfigMain />
       </el-tab-pane>
 
       <!-- 权限设置标签页 -->
@@ -352,79 +305,6 @@
       </el-button>
     </div>
 
-    <!-- 添加配置对话框 -->
-    <el-dialog
-      v-model="addConfigDialogVisible"
-      title="添加配置"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="addConfigFormRef"
-        :model="addConfigForm"
-        :rules="addConfigRules"
-        label-width="100px"
-      >
-        <el-form-item label="配置项" prop="name">
-          <el-input v-model="addConfigForm.name" placeholder="请输入配置项名称" />
-        </el-form-item>
-        <el-form-item label="配置值" prop="value">
-          <el-input v-model="addConfigForm.value" placeholder="请输入配置值" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input 
-            v-model="addConfigForm.description" 
-            type="textarea" 
-            :rows="3"
-            placeholder="请输入配置描述"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="addConfigDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleAddConfig">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
-
-    <!-- 编辑配置对话框 -->
-    <el-dialog
-      v-model="editConfigDialogVisible"
-      title="编辑配置"
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-form
-        ref="editConfigFormRef"
-        :model="editConfigForm"
-        :rules="editConfigRules"
-        label-width="100px"
-      >
-        <el-form-item label="配置项" prop="name">
-          <el-input v-model="editConfigForm.name" placeholder="请输入配置项名称" />
-        </el-form-item>
-        <el-form-item label="配置值" prop="value">
-          <el-input v-model="editConfigForm.value" placeholder="请输入配置值" />
-        </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input 
-            v-model="editConfigForm.description" 
-            type="textarea" 
-            :rows="3"
-            placeholder="请输入配置描述"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="editConfigDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleUpdateConfig">确定</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -439,14 +319,11 @@ import {
   Document,
   FolderOpened
 } from '@element-plus/icons-vue'
-import { 
-  getBasicSettings, 
-  updateBasicSettings, 
-  getSystemConfigs, 
-  addSystemConfig, 
-  updateSystemConfig, 
-  deleteSystemConfig 
+import {
+  getBasicSettings,
+  updateBasicSettings
 } from '../api/settings'
+import SystemConfigMain from '../components/settings/SystemConfigMain.vue'
 
 // 当前标签页
 const activeTab = ref('basic')
@@ -484,45 +361,6 @@ const basicSettings = reactive({
   logPath: '/var/log/apiops/'
 })
 
-// 系统配置
-const configList = ref([])
-
-// 添加配置对话框
-const addConfigDialogVisible = ref(false)
-const addConfigFormRef = ref()
-const addConfigForm = reactive({
-  name: '',
-  value: '',
-  description: ''
-})
-
-const addConfigRules = {
-  name: [
-    { required: true, message: '请输入配置项名称', trigger: 'blur' }
-  ],
-  value: [
-    { required: true, message: '请输入配置值', trigger: 'blur' }
-  ]
-}
-
-// 编辑配置对话框
-const editConfigDialogVisible = ref(false)
-const editConfigFormRef = ref()
-const editConfigForm = reactive({
-  id: '',
-  name: '',
-  value: '',
-  description: ''
-})
-
-const editConfigRules = {
-  name: [
-    { required: true, message: '请输入配置项名称', trigger: 'blur' }
-  ],
-  value: [
-    { required: true, message: '请输入配置值', trigger: 'blur' }
-  ]
-}
 
 // 获取基本设置
 const fetchBasicSettings = async () => {
@@ -535,65 +373,6 @@ const fetchBasicSettings = async () => {
   }
 }
 
-// 获取系统配置
-const fetchSystemConfigs = async () => {
-  try {
-    const response = await getSystemConfigs()
-    configList.value = response.data || []
-  } catch (error) {
-    console.error('获取系统配置失败:', error)
-    // 使用模拟数据
-    configList.value = getMockConfigData()
-  }
-}
-
-// 模拟配置数据
-const getMockConfigData = () => {
-  return [
-    {
-      id: 1,
-      name: '系统名称',
-      value: '企业管理系统V2.0',
-      description: '系统显示名称'
-    },
-    {
-      id: 2,
-      name: '系统语言',
-      value: '简体中文',
-      description: '系统界面语言'
-    },
-    {
-      id: 3,
-      name: '数据备份周期',
-      value: '每日',
-      description: '数据备份频率'
-    },
-    {
-      id: 4,
-      name: '最大文件上传大小',
-      value: '50 MB',
-      description: '单个文件上传大小限制'
-    },
-    {
-      id: 5,
-      name: '允许的文件类型',
-      value: '.jpg, .png, .pdf, .doc, .xls',
-      description: '允许上传的文件格式'
-    },
-    {
-      id: 6,
-      name: '账号闲置锁定时间',
-      value: '30分钟',
-      description: '用户无操作后锁定时间'
-    },
-    {
-      id: 7,
-      name: '密码过期时间',
-      value: '90天',
-      description: '用户密码有效期'
-    }
-  ]
-}
 
 // 保存设置
 const handleSaveSettings = async () => {
@@ -659,85 +438,10 @@ const handleRestoreDefaults = async () => {
   }
 }
 
-// 显示添加配置对话框
-const showAddConfigDialog = () => {
-  addConfigDialogVisible.value = true
-  Object.assign(addConfigForm, {
-    name: '',
-    value: '',
-    description: ''
-  })
-}
-
-// 添加配置
-const handleAddConfig = async () => {
-  try {
-    await addConfigFormRef.value.validate()
-    
-    await addSystemConfig(addConfigForm)
-    ElMessage.success('配置添加成功')
-    addConfigDialogVisible.value = false
-    fetchSystemConfigs()
-  } catch (error) {
-    console.error('添加配置失败:', error)
-    ElMessage.error('添加配置失败，请稍后重试')
-  }
-}
-
-// 编辑配置
-const handleEditConfig = (config) => {
-  editConfigDialogVisible.value = true
-  Object.assign(editConfigForm, {
-    id: config.id,
-    name: config.name,
-    value: config.value,
-    description: config.description
-  })
-}
-
-// 更新配置
-const handleUpdateConfig = async () => {
-  try {
-    await editConfigFormRef.value.validate()
-    
-    await updateSystemConfig(editConfigForm.id, editConfigForm)
-    ElMessage.success('配置更新成功')
-    editConfigDialogVisible.value = false
-    fetchSystemConfigs()
-  } catch (error) {
-    console.error('更新配置失败:', error)
-    ElMessage.error('更新配置失败，请稍后重试')
-  }
-}
-
-// 删除配置
-const handleDeleteConfig = async (config) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除配置"${config.name}"吗？`,
-      '删除确认',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }
-    )
-    
-    await deleteSystemConfig(config.id)
-    ElMessage.success('配置删除成功')
-    fetchSystemConfigs()
-  } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除配置失败:', error)
-      ElMessage.error('删除配置失败，请稍后重试')
-    }
-  }
-}
 
 // 组件挂载时加载数据
 onMounted(() => {
   fetchBasicSettings()
-  fetchSystemConfigs()
 })
 </script>
 
@@ -901,31 +605,6 @@ onMounted(() => {
   gap: 8px;
 }
 
-.config-alert {
-  margin-bottom: 24px;
-}
-
-.config-section {
-  margin-bottom: 24px;
-}
-
-.config-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.config-header h3 {
-  margin: 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.config-table {
-  margin-bottom: 20px;
-}
 
 .permission-section,
 .notification-section,
