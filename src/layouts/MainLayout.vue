@@ -7,7 +7,7 @@
         <p class="system-subtitle">API AutoOps</p>
       </div>
       <div class="header-right">
-        <el-link href="#" class="nav-link hover-scale">首页</el-link>
+        <el-link class="nav-link hover-scale" @click.prevent="router.push('/')">首页</el-link>
         <div class="search-wrapper">
           <el-input
             v-model="searchText"
