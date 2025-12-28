@@ -33,7 +33,7 @@
           class="filter-menu"
           :default-active="activeFilter"
           @select="handleFilterSelect"
-          router={false}
+          :router="false"
         >
           <el-menu-item index="all">全部</el-menu-item>
           <el-menu-item index="unread">未读</el-menu-item>
