@@ -1,10 +1,21 @@
 <template>
-  <el-card class="message-item" shadow="hover" :aria-label="message.title + (message.read ? ' 已读' : ' 未读')">
+  <el-card
+    class="message-item"
+    shadow="hover"
+    :aria-label="message.title + (message.read ? ' 已读' : ' 未读')"
+    role="article"
+  >
     <div class="item-row">
       <div class="left">
         <div class="title-row">
           <span class="title">{{ message.title }}</span>
-          <el-tag v-if="!message.read" type="danger" size="mini" class="unread-tag">未读</el-tag>
+          <el-tag
+            v-if="!message.read"
+            type="danger"
+            size="mini"
+            class="unread-tag unread-tag-accessible"
+            aria-hidden="false"
+          >未读</el-tag>
         </div>
         <div class="preview" v-html="message.content"></div>
       </div>

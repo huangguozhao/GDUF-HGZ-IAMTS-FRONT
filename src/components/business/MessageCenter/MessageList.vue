@@ -1,5 +1,5 @@
 <template>
-  <div class="message-list" tabindex="-1">
+  <div class="message-list" tabindex="-1" role="list" aria-label="Message list">
     <div
       v-for="msg in messages"
       :key="msg.id"
@@ -7,9 +7,10 @@
       :class="{ unread: !msg.read }"
       @click="select(msg)"
       @keydown.enter.prevent="select(msg)"
-      role="button"
+      role="listitem"
       tabindex="0"
-      :aria-pressed="msg.read ? 'false' : 'true'"
+      :aria-label="msg.title"
+      :aria-current="!msg.read ? 'false' : 'true'"
     >
       <MessageItem
         :message="msg"

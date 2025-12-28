@@ -1,7 +1,8 @@
 <template>
   <div class="message-center">
     <div class="header-row" role="banner" aria-label="消息中心头部">
-      <h2>消息中心</h2>
+      <a href="#main-messages" class="sr-only">跳转到消息列表</a>
+      <h2 id="main-messages">消息中心</h2>
       <div class="actions">
         <el-input
           v-model="searchKeyword"
@@ -46,7 +47,7 @@
         </div>
       </aside>
 
-      <div class="list-column" aria-label="消息列表">
+      <div class="list-column" aria-label="消息列表" id="messages-list">
         <MessageList
           :messages="pagedMessages"
           @select="handleSelect"
