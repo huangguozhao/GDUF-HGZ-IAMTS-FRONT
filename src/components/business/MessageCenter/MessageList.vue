@@ -11,7 +11,11 @@
       tabindex="0"
       :aria-pressed="msg.read ? 'false' : 'true'"
     >
-      <MessageItem :message="msg" />
+      <MessageItem
+        :message="msg"
+        @mark="(m) => emit('mark', m)"
+        @delete="(m) => emit('delete', m)"
+      />
     </div>
   </div>
 </template>

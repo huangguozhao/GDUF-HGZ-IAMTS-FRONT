@@ -10,18 +10,43 @@
       </div>
       <div class="right">
         <div class="time">{{ message.time }}</div>
+        <div class="actions" role="group" aria-label="message actions">
+          <el-button
+            type="text"
+            size="small"
+            title="Toggle read"
+            @click.stop="emit('mark', message)"
+            aria-label="Toggle read"
+          >
+            <el-icon><CircleCheck /></el-icon>
+          </el-button>
+          <el-button
+            type="text"
+            size="small"
+            title="Delete message"
+            @click.stop="emit('delete', message)"
+            aria-label="Delete message"
+          >
+            <el-icon><Delete /></el-icon>
+          </el-button>
+        </div>
       </div>
     </div>
   </el-card>
 </template>
 
 <script setup>
+import { ElIcon } from 'element-plus'
+import { CircleCheck, Delete } from '@element-plus/icons-vue'
+
 const props = defineProps({
   message: {
     type: Object,
     required: true
   }
 })
+
+const emit = defineEmits(['mark', 'delete'])
 </script>
 
 <style scoped>
