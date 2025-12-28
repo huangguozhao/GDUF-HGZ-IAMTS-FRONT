@@ -62,6 +62,5 @@ const props = defineProps({
   margin-left: 6px;
 }
 </style>
-</style>
 
 
