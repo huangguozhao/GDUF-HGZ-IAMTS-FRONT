@@ -67,6 +67,15 @@ const routes = [
     }
   },
   {
+    path: '/messages',
+    name: 'Messages',
+    component: () => import('../views/Messages.vue'),
+    meta: {
+      title: '消息中心',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/share/testcase/:shareId',
     name: 'ShareTestCase',
     component: () => import('../views/ShareTestCase.vue'),

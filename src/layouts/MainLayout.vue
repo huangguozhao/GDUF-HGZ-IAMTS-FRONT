@@ -16,7 +16,14 @@
             :prefix-icon="Search"
           />
         </div>
-        <div class="notification-wrapper glass-btn hover-lift" @click="handleNotificationClick">
+        <div
+          class="notification-wrapper glass-btn hover-lift"
+          @click="handleNotificationClick"
+          role="button"
+          aria-label="Open message center"
+          tabindex="0"
+          @keydown.enter.prevent="handleNotificationClick"
+        >
           <el-badge :value="3" class="notification-badge">
             <el-icon class="notification-icon">
               <Bell />
@@ -139,8 +146,8 @@ const handleMenuSelect = (index) => {
 }
 
 const handleNotificationClick = () => {
-  // TODO: 处理通知点击事件
-  console.log('点击了通知')
+  // 跳转到消息中心页面（静态实现）
+  router.push('/messages')
 }
 
 const handleUserClick = async () => {
