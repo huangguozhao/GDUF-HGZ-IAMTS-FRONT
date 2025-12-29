@@ -224,6 +224,8 @@ defineExpose({
   height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
 }
+
+.toast-item {
   transform: translateX(100%);
   animation: slideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
   transition: all 0.2s ease;
