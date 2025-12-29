@@ -203,45 +203,76 @@ defineExpose({
   min-width: 300px;
   max-width: 500px;
   margin-bottom: 12px;
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 20px rgba(0, 0, 0, 0.08),
+    0 2px 8px rgba(0, 0, 0, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
+  position: relative;
+}
+
+.toast-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+}
   transform: translateX(100%);
-  animation: slideIn 0.3s ease-out forwards;
+  animation: slideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.toast-item:hover {
+  transform: translateX(0) scale(1.02);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.12),
+    0 4px 16px rgba(0, 0, 0, 0.06);
 }
 
 .toast-item--success {
-  background: rgba(67, 192, 58, 0.95);
+  background: linear-gradient(135deg, rgba(67, 192, 58, 0.85), rgba(67, 192, 58, 0.75));
   color: white;
+  border-left: 4px solid rgba(67, 192, 58, 0.95);
 }
 
 .toast-item--error {
-  background: rgba(245, 108, 108, 0.95);
+  background: linear-gradient(135deg, rgba(245, 108, 108, 0.85), rgba(245, 108, 108, 0.75));
   color: white;
+  border-left: 4px solid rgba(245, 108, 108, 0.95);
 }
 
 .toast-item--warning {
-  background: rgba(230, 162, 60, 0.95);
+  background: linear-gradient(135deg, rgba(230, 162, 60, 0.85), rgba(230, 162, 60, 0.75));
   color: white;
+  border-left: 4px solid rgba(230, 162, 60, 0.95);
 }
 
 .toast-item--info {
-  background: rgba(24, 144, 255, 0.95);
+  background: linear-gradient(135deg, rgba(24, 144, 255, 0.85), rgba(24, 144, 255, 0.75));
   color: white;
+  border-left: 4px solid rgba(24, 144, 255, 0.95);
 }
 
 .toast-content {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 16px;
+  padding: 16px 20px;
+  position: relative;
 }
 
 .toast-icon {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: 1px;
+  opacity: 0.9;
 }
 
 .toast-text {
@@ -253,12 +284,16 @@ defineExpose({
   font-weight: 600;
   font-size: 14px;
   margin-bottom: 4px;
+  letter-spacing: -0.01em;
+  opacity: 0.95;
 }
 
 .toast-message {
   font-size: 14px;
   line-height: 1.4;
   word-wrap: break-word;
+  opacity: 0.9;
+  font-weight: 400;
 }
 
 .toast-close {
@@ -267,49 +302,74 @@ defineExpose({
   border: none;
   color: currentColor;
   cursor: pointer;
-  padding: 2px;
-  opacity: 0.8;
-  transition: opacity 0.2s;
+  padding: 4px;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin: -4px;
 }
 
 .toast-close:hover {
-  opacity: 1;
+  opacity: 0.9;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .toast-progress {
   height: 3px;
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 0 0 8px 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 0 0 12px 12px;
   transition: width 0.1s linear;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: progressShimmer 2s ease-in-out infinite;
+}
+
+@keyframes progressShimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
 }
 
 /* 动画 */
 @keyframes slideIn {
   from {
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
     opacity: 1;
   }
 }
 
 .toast-enter-active {
-  animation: slideIn 0.3s ease-out;
+  animation: slideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .toast-leave-active {
-  animation: slideOut 0.3s ease-in;
+  animation: slideOut 0.3s cubic-bezier(0.55, 0.06, 0.68, 0.19);
 }
 
 @keyframes slideOut {
   from {
-    transform: translateX(0);
+    transform: translateX(0) scale(1);
     opacity: 1;
   }
   to {
-    transform: translateX(100%);
+    transform: translateX(100%) scale(0.95);
     opacity: 0;
   }
 }
@@ -317,7 +377,7 @@ defineExpose({
 /* 响应式 */
 @media (max-width: 768px) {
   .toast-container {
-    top: 16px;
+    top: 20px;
     right: 16px;
     left: 16px;
     width: auto;
@@ -326,20 +386,59 @@ defineExpose({
   .toast-item {
     min-width: auto;
     max-width: none;
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+  }
+
+  .toast-item:hover {
+    transform: translateX(0) scale(1.01);
   }
 
   .toast-content {
-    padding: 12px;
+    padding: 14px 16px;
     gap: 10px;
   }
 
   .toast-title {
     font-size: 13px;
+    font-weight: 500;
   }
 
   .toast-message {
     font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .toast-close {
+    padding: 3px;
+    margin: -3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .toast-container {
+    top: 16px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .toast-item {
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+
+  .toast-content {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .toast-title {
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+
+  .toast-message {
+    font-size: 12px;
   }
 }
 </style>
