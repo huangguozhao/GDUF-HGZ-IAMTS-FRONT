@@ -117,7 +117,6 @@ const handleProjectAction = (data) => {
 
 const handleCreateProject = () => {
   emit('create-project')
-  toast.info('正在跳转到项目创建页面...')
 }
 </script>
 

@@ -255,7 +255,6 @@ onMounted(async () => {
 
 const handleViewTasks = () => {
   console.log('查看待处理任务')
-  toast.info('正在跳转到任务管理页面...')
   // TODO: 跳转到任务管理页面
 }
 </script>
