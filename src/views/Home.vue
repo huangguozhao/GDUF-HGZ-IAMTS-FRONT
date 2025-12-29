@@ -21,9 +21,11 @@
           <ContentSection
             :projects="recentProjects"
             :time-range="timeRange"
+            :loading="loadingProjects"
             @view-all-projects="handleViewAllProjects"
             @project-action="handleProjectAction"
             @time-range-change="handleTimeRangeChange"
+            @create-project="handleCreateProject"
           />
         </transition>
 
@@ -41,15 +43,20 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Container from '@/components/ui/Container.vue'
 import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
 import NotificationSection from '@/components/home/NotificationSection.vue'
 import ContentSection from '@/components/home/ContentSection.vue'
 import BottomSection from '@/components/home/BottomSection.vue'
+import toast from '@/utils/toast'
 
 const timeRange = ref('7days')
+const loading = ref(false)
+const loadingProjects = ref(true)
+const loadingResources = ref(true)
+const loadingActivities = ref(true)
 
 // 指标数据
 const metricsData = computed(() => [
@@ -120,6 +127,7 @@ const recentProjects = computed(() => [
 
 // 处理查看全部项目
 const handleViewAllProjects = () => {
+  toast.info('正在跳转到项目列表页面...')
   console.log('查看全部项目')
   // TODO: 导航到项目列表页面
 }
@@ -130,36 +138,124 @@ const handleProjectAction = ({ command, project }) => {
   // TODO: 根据命令执行相应操作
 }
 
+// 处理创建项目
+const handleCreateProject = () => {
+  toast.info('正在跳转到项目创建页面...')
+  console.log('创建新项目')
+  // TODO: 导航到项目创建页面
+}
+
 // 处理时间范围变化
-const handleTimeRangeChange = (value) => {
+const handleTimeRangeChange = async (value) => {
   timeRange.value = value
-  // TODO: 根据时间范围重新加载图表数据
+  toast.info('正在更新图表数据...')
+
+  try {
+    // 模拟重新加载数据
+    await new Promise(resolve => setTimeout(resolve, 800))
+    toast.success('图表数据已更新')
+  } catch (error) {
+    toast.error('更新图表数据失败')
+  }
+
   console.log('时间范围变化:', value)
 }
 
 // 系统资源数据（示例，可改为从 API 获取）
-const resourceData = computed(() => ([
-  { label: 'CPU使用率', value: '28%', percent: 28, color: 'linear-gradient(90deg, #67c23a 28%, #f0f0f0 28%)' },
-  { label: '内存使用率', value: '45%', percent: 45, color: 'linear-gradient(90deg, #409eff 45%, #f0f0f0 45%)' },
-  { label: '磁盘空间', value: '62%', percent: 62, color: 'linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%)' }
-]))
+const resourceData = computed(() => {
+  if (loadingResources.value) return []
+  return [
+    { label: 'CPU使用率', value: '28%', percent: 28, color: 'linear-gradient(90deg, #67c23a 28%, #f0f0f0 28%)' },
+    { label: '内存使用率', value: '45%', percent: 45, color: 'linear-gradient(90deg, #409eff 45%, #f0f0f0 45%)' },
+    { label: '磁盘空间', value: '62%', percent: 62, color: 'linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%)' }
+  ]
+})
 
 // 最近活动数据（示例）
-const recentActivities = computed(() => ([
-  { id: 1, time: '10:30', title: 'API接口自动化测试执行', desc: '成功执行了支付系统的20个测试用例', origin: '系统自动' },
-  { id: 2, time: '09:15', title: '新建测试用例', desc: '用户中心-权限校验接口测试用例', origin: '李测试' },
-  { id: 3, time: '昨天', title: '系统部署更新', desc: '自动化测试引擎升级至v2.4.5', origin: '系统管理员' },
-  { id: 4, time: '昨天', title: '接口变更检测', desc: '检测到用户服务3个接口参数变更', origin: '变更监控' },
-  { id: 5, time: '3天前', title: '定时测试任务执行失败', desc: '物流系统接口连接超时', origin: '系统自动' }
-]))
+const recentActivities = computed(() => {
+  if (loadingActivities.value) return []
+  return [
+    { id: 1, time: '10:30', title: 'API接口自动化测试执行', desc: '成功执行了支付系统的20个测试用例', origin: '系统自动' },
+    { id: 2, time: '09:15', title: '新建测试用例', desc: '用户中心-权限校验接口测试用例', origin: '李测试' },
+    { id: 3, time: '昨天', title: '系统部署更新', desc: '自动化测试引擎升级至v2.4.5', origin: '系统管理员' },
+    { id: 4, time: '昨天', title: '接口变更检测', desc: '检测到用户服务3个接口参数变更', origin: '变更监控' },
+    { id: 5, time: '3天前', title: '定时测试任务执行失败', desc: '物流系统接口连接超时', origin: '系统自动' }
+  ]
+})
 
 const handleViewMoreActivities = () => {
+  toast.info('正在跳转到活动历史页面...')
   console.log('查看更多活动')
   // TODO: 跳转到活动详情或历史页面
 }
 
+// 模拟数据加载
+const loadProjects = async () => {
+  loadingProjects.value = true
+  try {
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    // 这里可以调用实际的API
+  } catch (error) {
+    toast.error('加载项目数据失败')
+    console.error('Load projects error:', error)
+  } finally {
+    loadingProjects.value = false
+  }
+}
+
+const loadResources = async () => {
+  loadingResources.value = true
+  try {
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 1000))
+    // 这里可以调用实际的API
+  } catch (error) {
+    toast.error('加载资源数据失败')
+    console.error('Load resources error:', error)
+  } finally {
+    loadingResources.value = false
+  }
+}
+
+const loadActivities = async () => {
+  loadingActivities.value = true
+  try {
+    // 模拟API调用
+    await new Promise(resolve => setTimeout(resolve, 1200))
+    // 这里可以调用实际的API
+  } catch (error) {
+    toast.error('加载活动数据失败')
+    console.error('Load activities error:', error)
+  } finally {
+    loadingActivities.value = false
+  }
+}
+
+// 页面加载时获取数据
+onMounted(async () => {
+  loading.value = true
+  toast.info('正在加载首页数据...')
+
+  try {
+    // 并行加载数据
+    await Promise.all([
+      loadProjects(),
+      loadResources(),
+      loadActivities()
+    ])
+
+    toast.success('数据加载完成')
+  } catch (error) {
+    toast.error('数据加载失败，请刷新页面重试')
+  } finally {
+    loading.value = false
+  }
+})
+
 const handleViewTasks = () => {
   console.log('查看待处理任务')
+  toast.info('正在跳转到任务管理页面...')
   // TODO: 跳转到任务管理页面
 }
 </script>

@@ -9,8 +9,10 @@
         <div class="content-card glass-card rounded-xl">
           <RecentProjects
             :projects="projects"
+            :loading="loading"
             @view-all="$emit('view-all-projects')"
             @project-action="$emit('project-action', $event)"
+            @create-project="$emit('create-project')"
           />
         </div>
       </transition>
@@ -40,10 +42,14 @@ defineProps({
   timeRange: {
     type: String,
     default: '7days'
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['view-all-projects', 'project-action', 'time-range-change'])
+defineEmits(['view-all-projects', 'project-action', 'time-range-change', 'create-project'])
 </script>
 
 <style scoped>

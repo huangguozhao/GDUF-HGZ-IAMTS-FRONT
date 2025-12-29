@@ -24,7 +24,7 @@
           </div>
         </div>
         <div class="notification-actions">
-          <el-button type="primary" size="small" plain @click="$emit('view-tasks')">
+          <el-button type="primary" size="small" plain @click="handleViewTasks">
             查看详情
           </el-button>
         </div>
@@ -34,7 +34,9 @@
 </template>
 
 <script setup>
-defineProps({
+import toast from '@/utils/toast'
+
+const props = defineProps({
   pendingTasks: {
     type: [Number, String],
     default: 5
@@ -45,7 +47,12 @@ defineProps({
   }
 })
 
-defineEmits(['view-tasks'])
+const emit = defineEmits(['view-tasks'])
+
+const handleViewTasks = () => {
+  emit('view-tasks')
+  toast.info('正在跳转到任务管理页面...')
+}
 </script>
 
 <style scoped>
