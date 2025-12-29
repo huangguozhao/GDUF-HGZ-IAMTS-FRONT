@@ -92,36 +92,27 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed } from 'vue'
+import { reactive, ref, computed, watch } from 'vue'
 import MessageList from './MessageList.vue'
 
-// Mock 数据（静态页面）
-const messages = reactive([
-  {
-    id: 'm1',
-    title: '测试报告生成完成',
-    content: '<p>您的测试报告 <strong>#2025-12-28</strong> 已生成，点击查看详情。</p>',
-    time: '2025-12-28 21:05',
-    read: false,
-    type: 'system'
-  },
-  {
-    id: 'm2',
-    title: '用例执行失败提醒',
-    content: '<p>用例 <em>支付流程-退款</em> 执行失败，错误代码 500，请排查。</p>',
-    time: '2025-12-27 18:20',
-    read: true,
-    type: 'alerts'
-  },
-  {
-    id: 'm3',
-    title: '权限变更通知',
-    content: '<p>您已被添加到项目 <strong>电商支付系统</strong> 的测试成员组。</p>',
-    time: '2025-12-25 09:12',
-    read: false,
-    type: 'system'
+const props = defineProps({
+  initialMessages: {
+    type: Array,
+    default: () => []
   }
-])
+})
+
+const emit = defineEmits(['messages-updated'])
+
+// 使用传入的初始消息或默认消息
+const messages = reactive([...props.initialMessages])
+
+// 监听props变化，更新本地消息
+watch(() => props.initialMessages, (newMessages) => {
+  if (newMessages && newMessages.length > 0) {
+    messages.splice(0, messages.length, ...newMessages)
+  }
+}, { deep: true })
 
 const selectedMessage = ref(null)
 const activeFilter = ref('all')
@@ -152,12 +143,16 @@ const pagedMessages = computed(() => {
 
 const handleSelect = (msg) => {
   const target = messages.find(m => m.id === msg.id)
-  if (target) target.read = true
+  if (target) {
+    target.read = true
+    emit('messages-updated', messages)
+  }
   selectedMessage.value = target
 }
 
 const markAllRead = () => {
   messages.forEach(m => { m.read = true })
+  emit('messages-updated', messages)
 }
 
 const handleFilterSelect = (key) => {
@@ -180,7 +175,10 @@ const handlePageSizeChange = (size) => {
 
 const handleMark = (msg) => {
   const target = messages.find(m => m.id === msg.id)
-  if (target) target.read = !target.read
+  if (target) {
+    target.read = !target.read
+    emit('messages-updated', messages)
+  }
 }
 
 const handleDelete = (msg) => {
@@ -190,6 +188,7 @@ const handleDelete = (msg) => {
     if (selectedMessage.value && selectedMessage.value.id === msg.id) {
       selectedMessage.value = null
     }
+    emit('messages-updated', messages)
   }
 }
 </script>
@@ -198,29 +197,60 @@ const handleDelete = (msg) => {
 .message-center {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 20px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
 }
+
 .header-row {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
+
 .content-row {
   display: flex;
-  gap: 20px;
+  gap: 24px;
+  min-height: 500px;
 }
+
 .list-column {
-  width: 360px;
+  width: 380px;
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
 .detail-column {
   flex: 1;
+  background: rgba(248, 250, 252, 0.6);
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
+
+.detail-card {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
 .detail-card.empty {
-  min-height: 200px;
+  min-height: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #909399;
+  background: rgba(255, 255, 255, 0.7);
 }
 .detail-title {
   display: flex;
@@ -240,16 +270,97 @@ const handleDelete = (msg) => {
   border-radius: 8px;
 }
 
-/* 响应式：小屏幕堆叠 */
+/* 响应式设计 */
+@media (max-width: 1024px) {
+  .message-center {
+    padding: 20px;
+    gap: 16px;
+  }
+
+  .content-row {
+    gap: 20px;
+  }
+
+  .list-column {
+    width: 340px;
+  }
+
+  .sidebar-filters {
+    width: 180px;
+  }
+}
+
 @media (max-width: 900px) {
   .content-row {
     flex-direction: column;
+    gap: 16px;
   }
-  .list-column {
-    width: 100%;
-  }
+
+  .list-column,
   .detail-column {
     width: 100%;
+  }
+
+  .sidebar-filters {
+    width: 100%;
+    order: -1;
+  }
+
+  .header-row {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .search-input {
+    width: 100%;
+    margin-bottom: 0;
+    margin-right: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .message-center {
+    padding: 16px;
+    border-radius: 12px;
+    gap: 16px;
+  }
+
+  .content-row {
+    gap: 12px;
+  }
+
+  .list-column,
+  .detail-column {
+    padding: 16px;
+  }
+
+  .sidebar-filters {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .message-center {
+    padding: 12px;
+    border-radius: 8px;
+  }
+
+  .header-row {
+    gap: 12px;
+  }
+
+  .content-row {
+    gap: 8px;
+  }
+
+  .list-column,
+  .detail-column {
+    padding: 12px;
+  }
+
+  .sidebar-filters {
+    padding: 8px;
   }
 }
 
@@ -260,35 +371,51 @@ const handleDelete = (msg) => {
   align-items: flex-start;
 }
 .sidebar-filters {
-  width: 180px;
-  background: #fff;
-  border-radius: 8px;
-  padding: 12px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  width: 200px;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
   height: auto;
 }
+
 .filter-menu {
   border-right: none;
+  background: transparent;
 }
+
 .filters-footer {
-  margin-top: 12px;
+  margin-top: 16px;
   text-align: center;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
 }
+
 .search-input {
-  width: 280px;
-  margin-right: 12px;
+  width: 100%;
+  margin-bottom: 12px;
 }
+
 .pagination-wrapper {
-  margin-top: 12px;
+  margin-top: 16px;
   display: flex;
   justify-content: center;
 }
+
 .empty-illustration {
-  font-size: 36px;
-  margin-bottom: 8px;
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.6;
 }
+
 .empty-text {
   color: #909399;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
 }
 </style>
 
