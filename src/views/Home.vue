@@ -1,44 +1,64 @@
 <template>
-  <div class="home-page">
-    <!-- 欢迎区域 -->
-    <WelcomeSection />
-    
-    <!-- 指标卡片区域 -->
-    <div class="summary-section">
-      <div class="summary-text">
-        您有5个待处理任务,2个高优先级问题待解决
-      </div>
-      <MetricsGrid :metrics="metricsData" />
+  <transition name="page-fade" appear>
+    <div class="home-page">
+      <!-- 欢迎区域 -->
+      <transition name="welcome-slide" appear>
+        <WelcomeSection />
+      </transition>
+
+      <!-- 指标卡片区域 -->
+      <transition name="summary-fade" appear>
+        <div class="summary-section">
+          <transition name="summary-text-slide" appear>
+            <div class="summary-text">
+              您有5个待处理任务,2个高优先级问题待解决
+            </div>
+          </transition>
+          <MetricsGrid :metrics="metricsData" />
+        </div>
+      </transition>
+
+      <transition name="content-grid-fade" appear>
+        <div class="content-grid">
+          <transition name="left-section-slide" appear>
+            <div class="left-section glass-card rounded-xl">
+              <RecentProjects
+                :projects="recentProjects"
+                @view-all="handleViewAllProjects"
+                @project-action="handleProjectAction"
+              />
+            </div>
+          </transition>
+
+          <transition name="right-section-slide" appear>
+            <div class="right-section glass-card rounded-xl">
+              <TestExecutionChart
+                :time-range="timeRange"
+                @time-range-change="handleTimeRangeChange"
+              />
+            </div>
+          </transition>
+        </div>
+      </transition>
+
+      <transition name="bottom-grid-fade" appear>
+        <div class="bottom-grid">
+          <transition name="bottom-left-slide" appear>
+            <div class="bottom-left">
+              <h3>系统资源状态</h3>
+              <ResourceList :resources="resourceData" />
+            </div>
+          </transition>
+
+          <transition name="bottom-right-slide" appear>
+            <div class="bottom-right">
+              <RecentActivities :activities="recentActivities" @view-more="handleViewMoreActivities" />
+            </div>
+          </transition>
+        </div>
+      </transition>
     </div>
-
-    <div class="content-grid">
-      <div class="left-section glass-card rounded-xl">
-        <RecentProjects 
-          :projects="recentProjects" 
-          @view-all="handleViewAllProjects"
-          @project-action="handleProjectAction"
-        />
-      </div>
-
-      <div class="right-section glass-card rounded-xl">
-        <TestExecutionChart
-          :time-range="timeRange"
-          @time-range-change="handleTimeRangeChange"
-        />
-      </div>
-    </div>
-
-    <div class="bottom-grid">
-      <div class="bottom-left">
-        <h3>系统资源状态</h3>
-        <ResourceList :resources="resourceData" />
-      </div>
-
-      <div class="bottom-right">
-        <RecentActivities :activities="recentActivities" @view-more="handleViewMoreActivities" />
-      </div>
-    </div>
-  </div>
+  </transition>
 </template>
 
 <script setup>
@@ -59,6 +79,7 @@ const metricsData = computed(() => [
     value: '587',
     change: '+12',
     changeUnit: '',
+    subtitle: '较上周增长',
     showChart: false
   },
   {
@@ -66,6 +87,7 @@ const metricsData = computed(() => [
     value: '92.7%',
     change: '+1.5',
     changeUnit: '%',
+    subtitle: '质量持续提升',
     showChart: false
   },
   {
@@ -73,6 +95,7 @@ const metricsData = computed(() => [
     value: '14',
     change: '+0',
     changeUnit: '',
+    subtitle: '项目稳定运行',
     showChart: false
   },
   {
@@ -80,6 +103,7 @@ const metricsData = computed(() => [
     value: '86.3%',
     change: '+0.8',
     changeUnit: '%',
+    subtitle: '覆盖率稳步上升',
     showChart: false
   }
 ])
@@ -295,5 +319,167 @@ const handleViewMoreActivities = () => {
 .activity-origin {
   font-size: 12px;
   color: #909399;
+}
+
+/* ============================================
+   页面进入动画
+   ============================================ */
+
+/* 页面整体淡入 */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* 欢迎区域滑入 */
+.welcome-slide-enter-active,
+.welcome-slide-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.welcome-slide-enter-from {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+.welcome-slide-leave-to {
+  opacity: 0;
+  transform: translateY(-30px);
+}
+
+/* 摘要区域淡入 */
+.summary-fade-enter-active,
+.summary-fade-leave-active {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-fade-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.summary-fade-leave-to {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+/* 摘要文字滑入 */
+.summary-text-slide-enter-active,
+.summary-text-slide-leave-active {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.summary-text-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+.summary-text-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-20px);
+}
+
+/* 内容网格淡入 */
+.content-grid-fade-enter-active,
+.content-grid-fade-leave-active {
+  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.content-grid-fade-enter-from {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+.content-grid-fade-leave-to {
+  opacity: 0;
+  transform: translateY(30px);
+}
+
+/* 左侧区域滑入 */
+.left-section-slide-enter-active,
+.left-section-slide-leave-active {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.left-section-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+.left-section-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-40px);
+}
+
+/* 右侧区域滑入 */
+.right-section-slide-enter-active,
+.right-section-slide-leave-active {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.2s;
+}
+
+.right-section-slide-enter-from {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+.right-section-slide-leave-to {
+  opacity: 0;
+  transform: translateX(40px);
+}
+
+/* 底部网格淡入 */
+.bottom-grid-fade-enter-active,
+.bottom-grid-fade-leave-active {
+  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bottom-grid-fade-enter-from {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.bottom-grid-fade-leave-to {
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+/* 底部左侧滑入 */
+.bottom-left-slide-enter-active,
+.bottom-left-slide-leave-active {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.1s;
+}
+
+.bottom-left-slide-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+.bottom-left-slide-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+/* 底部右侧滑入 */
+.bottom-right-slide-enter-active,
+.bottom-right-slide-leave-active {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transition-delay: 0.3s;
+}
+
+.bottom-right-slide-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.bottom-right-slide-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 </style>

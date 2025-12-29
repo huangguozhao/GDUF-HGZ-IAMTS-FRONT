@@ -167,14 +167,14 @@
           />
         </el-form-item>
       </el-form>
-      
+
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="forgotPasswordDialogVisible = false">
             取消
           </el-button>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             :loading="isForgotPasswordLoading"
             @click="handleRequestPasswordReset"
           >
@@ -183,6 +183,15 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 登录成功加载动画 -->
+    <LoadingTransition
+      v-model:visible="showLoadingTransition"
+      title="欢迎回来"
+      subtitle="正在为您准备系统..."
+      :duration="2500"
+      @complete="handleLoadingComplete"
+    />
   </div>
 </template>
 
@@ -200,6 +209,7 @@ import {
 } from '@element-plus/icons-vue'
 import { useUserStore } from '../stores/useUserStore'
 import { authApi } from '../api/auth'
+import LoadingTransition from '../components/common/LoadingTransition.vue'
 
 // 路由和状态管理
 const router = useRouter()
@@ -214,6 +224,7 @@ const isLoading = ref(false)
 const showPassword = ref(false)
 const forgotPasswordDialogVisible = ref(false)
 const isForgotPasswordLoading = ref(false)
+const showLoadingTransition = ref(false)
 
 // 登录表单数据
 const loginForm = reactive({
@@ -288,16 +299,16 @@ const handleLogin = async () => {
 
     if (result.success) {
       ElMessage.success(result.message || '登录成功')
-      
+
       // 如果选择记住我，保存邮箱
       if (loginForm.rememberMe) {
         localStorage.setItem('rememberedEmail', loginForm.email)
       } else {
         localStorage.removeItem('rememberedEmail')
       }
-      
-      // 跳转到首页
-      router.push('/')
+
+      // 显示加载动画，准备跳转到首页
+      showLoadingTransition.value = true
     } else {
       ElMessage.error(result.message || '登录失败')
     }
@@ -321,14 +332,14 @@ const handleForgotPassword = () => {
  */
 const handleRequestPasswordReset = async () => {
   if (!forgotPasswordFormRef.value) return
-  
+
   try {
     // 表单验证
     const valid = await forgotPasswordFormRef.value.validate()
     if (!valid) return
 
     isForgotPasswordLoading.value = true
-    
+
     // 调用密码重置API
     const response = await authApi.requestPasswordReset({
       account: forgotPasswordForm.email,
@@ -348,6 +359,15 @@ const handleRequestPasswordReset = async () => {
   } finally {
     isForgotPasswordLoading.value = false
   }
+}
+
+/**
+ * 处理加载动画完成
+ */
+const handleLoadingComplete = () => {
+  showLoadingTransition.value = false
+  // 跳转到首页
+  router.push('/')
 }
 
 // 生命周期
