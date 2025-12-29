@@ -1,13 +1,38 @@
 <template>
   <teleport to="body">
-    <transition-group name="toast" tag="div" class="toast-container">
+    <transition-group
+      name="toast"
+      tag="div"
+      class="toast-container"
+      :class="{ 'toast-container--stacked': !isExpanded && toasts.length > 1 }"
+      @mouseenter="handleMouseEnter"
+      @mouseleave="handleMouseLeave"
+    >
+      <!-- 堆叠计数指示器 -->
       <div
-        v-for="toast in toasts"
+        v-if="!isExpanded && toasts.length > 4"
+        class="toast-stack-counter"
+        @mouseenter="handleMouseEnter"
+      >
+        <span class="counter-text">+{{ toasts.length - 4 }}</span>
+      </div>
+      <div
+        v-for="(toast, index) in toasts"
         :key="toast.id"
         class="toast-item"
-        :class="`toast-item--${toast.type}`"
-        @mouseenter="pauseTimer(toast.id)"
-        @mouseleave="resumeTimer(toast.id)"
+        :class="[
+          `toast-item--${toast.type}`,
+          {
+            'toast-item--stacked': !isExpanded && toasts.length > 1 && index > 0 && index < 4
+          }
+        ]"
+        :style="{
+          transform: getToastTransform(index),
+          opacity: getToastOpacity(index),
+          zIndex: getToastZIndex(index)
+        }"
+        @mouseenter="handleToastMouseEnter(toast.id)"
+        @mouseleave="handleToastMouseLeave(toast.id)"
       >
         <div class="toast-content">
           <!-- 图标 -->
@@ -114,6 +139,8 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
  */
 
 const toasts = ref([])
+const isExpanded = ref(false)
+const isHovered = ref(false)
 let toastCounter = 0
 
 const addToast = (options) => {
@@ -166,6 +193,73 @@ const progressWidth = (toast) => {
   return `${percentage}%`
 }
 
+const handleMouseEnter = () => {
+  if (toasts.value.length > 1) {
+    isExpanded.value = true
+    isHovered.value = true
+  }
+}
+
+const handleMouseLeave = () => {
+  isHovered.value = false
+  // 延迟收起，让用户有时间移动到其他Toast上
+  setTimeout(() => {
+    if (!isHovered.value) {
+      isExpanded.value = false
+    }
+  }, 300)
+}
+
+const handleToastMouseEnter = (toastId) => {
+  pauseTimer(toastId)
+  isHovered.value = true
+  if (toasts.value.length > 1) {
+    isExpanded.value = true
+  }
+}
+
+const handleToastMouseLeave = (toastId) => {
+  resumeTimer(toastId)
+}
+
+const getToastTransform = (index) => {
+  if (isExpanded.value) {
+    // 展开状态：垂直排列，每个Toast间隔68px
+    return `translateY(${index * 68}px)`
+  } else if (toasts.value.length > 1) {
+    // 堆叠状态：像扑克牌一样堆叠
+    if (index === 0) {
+      // 第一个Toast（最上面的）
+      return 'translateY(0) rotate(0deg)'
+    } else if (index < 4) {
+      // 前4个Toast创建堆叠效果
+      const offsetY = (index - 1) * 6 // 垂直偏移
+      const offsetX = (index - 1) * 4 // 水平偏移，创建层次感
+      const rotation = (index - 1) * 2 // 轻微旋转
+      return `translate(${offsetX}px, ${offsetY}px) rotate(${rotation}deg)`
+    } else {
+      // 隐藏超过4个的Toast，但显示在堆叠中
+      return `translate(12px, 18px) rotate(6deg) scale(0.9)`
+    }
+  }
+  return 'translateY(0)'
+}
+
+const getToastOpacity = (index) => {
+  if (isExpanded.value) {
+    return 1
+  } else if (toasts.value.length > 1) {
+    // 在堆叠状态下，只有前4个Toast可见
+    return index < 4 ? 1 : 0
+  }
+  return 1
+}
+
+const getToastZIndex = (index) => {
+  return toasts.value.length - index
+}
+
+
 // 清理函数
 const clearAll = () => {
   toasts.value = []
@@ -194,6 +288,11 @@ defineExpose({
   right: 20px;
   z-index: 10000;
   pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toast-container--stacked {
+  /* 堆叠状态的样式 */
 }
 
 .toast-item {
@@ -213,6 +312,8 @@ defineExpose({
   border: 1px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
   position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-origin: top right;
 }
 
 .toast-item::before {
@@ -233,10 +334,26 @@ defineExpose({
 }
 
 .toast-item:hover {
-  transform: translateX(0) scale(1.02);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.12),
-    0 4px 16px rgba(0, 0, 0, 0.06);
+    0 4px 16px rgba(0, 0, 0, 0.06),
+    0 0 0 2px rgba(255, 255, 255, 0.15);
+  transform: scale(1.02) !important;
+}
+
+/* 堆叠状态的特殊样式 */
+.toast-item--stacked {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.toast-item--stacked:hover {
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.15),
+    0 2px 8px rgba(0, 0, 0, 0.1),
+    0 0 0 1px rgba(255, 255, 255, 0.1);
 }
 
 .toast-item--success {
@@ -374,6 +491,41 @@ defineExpose({
     transform: translateX(100%) scale(0.95);
     opacity: 0;
   }
+}
+
+/* 堆叠计数器 */
+.toast-stack-counter {
+  position: absolute;
+  top: 48px;
+  right: 16px;
+  width: 60px;
+  height: 32px;
+  background: rgba(24, 144, 255, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px 16px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  z-index: 10001;
+  transform: translateY(0);
+}
+
+.toast-stack-counter:hover {
+  background: rgba(24, 144, 255, 1);
+  transform: translateY(6px) scale(1.05);
+  box-shadow: 0 6px 16px rgba(24, 144, 255, 0.4);
+}
+
+.counter-text {
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 1;
 }
 
 /* 响应式 */
