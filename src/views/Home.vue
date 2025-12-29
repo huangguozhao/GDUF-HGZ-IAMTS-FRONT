@@ -1,100 +1,53 @@
 <template>
   <transition name="page-fade" appear>
-    <div class="home-page">
-      <!-- 欢迎区域 -->
-      <transition name="welcome-slide" appear>
-        <WelcomeSection />
-      </transition>
+    <Container type="inline-size" max-width="1400px" padding="20px" class="home-container">
+      <div class="home-page">
+        <!-- 欢迎区域 -->
+        <transition name="welcome-slide" appear>
+          <WelcomeSection />
+        </transition>
 
-      <!-- 指标卡片区域 -->
-      <transition name="summary-fade" appear>
-        <div class="summary-section">
-          <!-- 通知提醒区域 -->
-          <transition name="notification-slide" appear>
-            <div class="notification-card glass-card hover-lift">
-              <div class="notification-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 2L13.09 5.26L16.5 4.27L15.51 7.68L18.74 8.91L15.51 10.14L16.5 13.55L13.09 12.56L12 15.82L10.91 12.56L7.5 13.55L8.49 10.14L5.26 8.91L8.49 7.68L7.5 4.27L10.91 5.26L12 2Z" fill="#E6A23C"/>
-                  <circle cx="12" cy="16" r="3" fill="#F56C6C"/>
-                  <path d="M12 18V20" stroke="#F56C6C" stroke-width="2" stroke-linecap="round"/>
-                </svg>
-              </div>
-              <div class="notification-content">
-                <h3 class="notification-title">待处理事项提醒</h3>
-                <div class="notification-stats">
-                  <div class="stat-item">
-                    <span class="stat-number">5</span>
-                    <span class="stat-label">待处理任务</span>
-                  </div>
-                  <div class="stat-divider">•</div>
-                  <div class="stat-item stat-urgent">
-                    <span class="stat-number">2</span>
-                    <span class="stat-label">高优先级问题</span>
-                  </div>
-                </div>
-              </div>
-              <div class="notification-actions">
-                <el-button type="primary" size="small" plain @click="handleViewTasks">
-                  查看详情
-                </el-button>
-              </div>
-            </div>
-          </transition>
-          <MetricsGrid :metrics="metricsData" />
-        </div>
-      </transition>
+        <!-- 指标卡片区域 -->
+        <transition name="summary-fade" appear>
+          <div class="summary-section">
+            <!-- 通知提醒区域 -->
+            <NotificationSection @view-tasks="handleViewTasks" />
+            <MetricsGrid :metrics="metricsData" />
+          </div>
+        </transition>
 
-      <transition name="content-grid-fade" appear>
-        <div class="content-grid">
-          <transition name="left-section-slide" appear>
-            <div class="left-section glass-card rounded-xl">
-              <RecentProjects
-                :projects="recentProjects"
-                @view-all="handleViewAllProjects"
-                @project-action="handleProjectAction"
-              />
-            </div>
-          </transition>
+        <!-- 主内容区域 -->
+        <transition name="content-grid-fade" appear>
+          <ContentSection
+            :projects="recentProjects"
+            :time-range="timeRange"
+            @view-all-projects="handleViewAllProjects"
+            @project-action="handleProjectAction"
+            @time-range-change="handleTimeRangeChange"
+          />
+        </transition>
 
-          <transition name="right-section-slide" appear>
-            <div class="right-section glass-card rounded-xl">
-              <TestExecutionChart
-                :time-range="timeRange"
-                @time-range-change="handleTimeRangeChange"
-              />
-            </div>
-          </transition>
-        </div>
-      </transition>
-
-      <transition name="bottom-grid-fade" appear>
-        <div class="bottom-grid">
-          <transition name="bottom-left-slide" appear>
-            <div class="bottom-left">
-              <h3>系统资源状态</h3>
-              <ResourceList :resources="resourceData" />
-            </div>
-          </transition>
-
-          <transition name="bottom-right-slide" appear>
-            <div class="bottom-right">
-              <RecentActivities :activities="recentActivities" @view-more="handleViewMoreActivities" />
-            </div>
-          </transition>
-        </div>
-      </transition>
-    </div>
+        <!-- 底部区域 -->
+        <transition name="bottom-grid-fade" appear>
+          <BottomSection
+            :resources="resourceData"
+            :activities="recentActivities"
+            @view-more-activities="handleViewMoreActivities"
+          />
+        </transition>
+      </div>
+    </Container>
   </transition>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue'
+import Container from '@/components/ui/Container.vue'
 import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
-import RecentProjects from '@/components/home/RecentProjects.vue'
-import TestExecutionChart from '@/components/home/TestExecutionChart.vue'
-import ResourceList from '@/components/home/ResourceList.vue'
-import RecentActivities from '@/components/home/RecentActivities.vue'
+import NotificationSection from '@/components/home/NotificationSection.vue'
+import ContentSection from '@/components/home/ContentSection.vue'
+import BottomSection from '@/components/home/BottomSection.vue'
 
 const timeRange = ref('7days')
 
@@ -213,296 +166,46 @@ const handleViewTasks = () => {
 
 <style scoped>
 .home-page {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  min-height: 100vh;
 }
 
 .summary-section {
   margin-bottom: 32px;
 }
 
-/* 通知卡片样式 */
-.notification-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow:
-    0 40px 50px -32px rgba(0, 0, 0, 0.05),
-    inset 0 0 20px rgba(255, 255, 255, 0.25);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.notification-card:hover {
-  transform: translateY(-2px);
-  box-shadow:
-    0 8px 25px rgba(0, 0, 0, 0.1),
-    inset 0 0 20px rgba(255, 255, 255, 0.3);
-}
-
-.notification-icon {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.notification-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.notification-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0 0 8px 0;
-  letter-spacing: -0.2px;
-}
-
-.notification-stats {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.stat-item {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.stat-number {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1890ff;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-label {
-  font-size: 13px;
-  color: #606266;
-  font-weight: 400;
-}
-
-.stat-item.stat-urgent .stat-number {
-  color: #f56c6c;
-}
-
-.stat-divider {
-  color: #c0c4cc;
-  font-size: 14px;
-  margin: 0 2px;
-}
-
-.notification-actions {
-  flex-shrink: 0;
-}
-
-.notification-actions .el-button {
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.notification-actions .el-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
-}
-
-.content-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
-}
-
-.left-section {
-  min-height: 400px;
-}
-
-/* 通知卡片响应式 */
-@media (max-width: 768px) {
-  .notification-card {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
-    padding: 16px 20px;
-  }
-
-  .notification-icon {
-    width: 40px;
-    height: 40px;
-  }
-
-  .notification-icon svg {
-    width: 20px;
-    height: 20px;
-  }
-
-  .notification-title {
-    font-size: 15px;
-  }
-
-  .stat-number {
-    font-size: 16px;
-  }
-
-  .stat-label {
-    font-size: 12px;
-  }
-
-  .notification-actions .el-button {
-    width: 100%;
-    padding: 8px 16px;
+/* 容器查询自适应 */
+@container (max-width: 1024px) {
+  .summary-section {
+    margin-bottom: 28px;
   }
 }
 
-@media (max-width: 480px) {
-  .notification-card {
-    padding: 14px 16px;
-  }
-
-  .notification-stats {
-    justify-content: center;
-    gap: 12px;
-  }
-
-  .stat-item {
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
+@container (max-width: 768px) {
+  .summary-section {
+    margin-bottom: 24px;
   }
 }
 
-/* 响应式 */
-@media (max-width: 1024px) {
-  .content-grid {
-    grid-template-columns: 1fr;
+@container (max-width: 480px) {
+  .summary-section {
+    margin-bottom: 20px;
   }
 }
 
-.right-section {
-  min-height: 400px;
+/* 横屏优化 */
+@container (orientation: landscape) and (max-height: 500px) {
+  .home-page {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+
+  .summary-section {
+    margin-bottom: 16px;
+  }
 }
 
-.bottom-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 30px;
-}
 
-.bottom-left h3 {
-  margin: 0 0 20px 0;
-  font-size: 18px;
-  color: #303133;
-}
-
-.resource-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.resource-item {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  padding: 15px;
-  background: #fff;
-  border-radius: 4px;
-}
-
-.resource-label {
-  font-size: 14px;
-  color: #606266;
-  min-width: 80px;
-}
-
-.resource-value {
-  font-size: 16px;
-  font-weight: 500;
-  color: #303133;
-  min-width: 50px;
-}
-
-.resource-chart {
-  flex: 1;
-  height: 20px;
-  border-radius: 10px;
-  background: #f0f0f0;
-}
-
-.cpu-chart {
-  background: linear-gradient(90deg, #67c23a 28%, #f0f0f0 28%);
-}
-
-.memory-chart {
-  background: linear-gradient(90deg, #409eff 45%, #f0f0f0 45%);
-}
-
-.disk-chart {
-  background: linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%);
-}
-
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
-
-.activity-item {
-  display: flex;
-  gap: 15px;
-  padding: 15px;
-  background: #fff;
-  border-radius: 4px;
-}
-
-.activity-time {
-  font-size: 12px;
-  color: #909399;
-  min-width: 50px;
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-title {
-  font-size: 14px;
-  font-weight: 500;
-  color: #303133;
-  margin-bottom: 5px;
-}
-
-.activity-desc {
-  font-size: 13px;
-  color: #606266;
-  margin-bottom: 5px;
-}
-
-.activity-origin {
-  font-size: 12px;
-  color: #909399;
-}
 
 /* ============================================
    页面进入动画
@@ -551,118 +254,4 @@ const handleViewTasks = () => {
   transform: translateY(20px);
 }
 
-/* 通知卡片滑入 */
-.notification-slide-enter-active,
-.notification-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.notification-slide-enter-from {
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
-}
-
-.notification-slide-leave-to {
-  opacity: 0;
-  transform: translateY(20px) scale(0.95);
-}
-
-/* 内容网格淡入 */
-.content-grid-fade-enter-active,
-.content-grid-fade-leave-active {
-  transition: all 1s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.content-grid-fade-enter-from {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-.content-grid-fade-leave-to {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-/* 左侧区域滑入 */
-.left-section-slide-enter-active,
-.left-section-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.left-section-slide-enter-from {
-  opacity: 0;
-  transform: translateX(-40px);
-}
-
-.left-section-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-40px);
-}
-
-/* 右侧区域滑入 */
-.right-section-slide-enter-active,
-.right-section-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  transition-delay: 0.2s;
-}
-
-.right-section-slide-enter-from {
-  opacity: 0;
-  transform: translateX(40px);
-}
-
-.right-section-slide-leave-to {
-  opacity: 0;
-  transform: translateX(40px);
-}
-
-/* 底部网格淡入 */
-.bottom-grid-fade-enter-active,
-.bottom-grid-fade-leave-active {
-  transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.bottom-grid-fade-enter-from {
-  opacity: 0;
-  transform: translateY(40px);
-}
-
-.bottom-grid-fade-leave-to {
-  opacity: 0;
-  transform: translateY(40px);
-}
-
-/* 底部左侧滑入 */
-.bottom-left-slide-enter-active,
-.bottom-left-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  transition-delay: 0.1s;
-}
-
-.bottom-left-slide-enter-from {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
-.bottom-left-slide-leave-to {
-  opacity: 0;
-  transform: translateX(-30px);
-}
-
-/* 底部右侧滑入 */
-.bottom-right-slide-enter-active,
-.bottom-right-slide-leave-active {
-  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  transition-delay: 0.3s;
-}
-
-.bottom-right-slide-enter-from {
-  opacity: 0;
-  transform: translateX(30px);
-}
-
-.bottom-right-slide-leave-to {
-  opacity: 0;
-  transform: translateX(30px);
-}
 </style>

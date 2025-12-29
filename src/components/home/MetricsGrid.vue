@@ -35,9 +35,10 @@ defineProps({
   grid-template-columns: repeat(4, 1fr);
   gap: 20px;
   margin-bottom: 32px;
+  width: 100%;
 }
 
-/* 响应式 */
+/* 传统媒体查询 */
 @media (max-width: 1200px) {
   .metrics-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -48,6 +49,29 @@ defineProps({
   .metrics-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+}
+
+/* 容器查询支持 */
+@container (max-width: 1100px) {
+  .metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+}
+
+@container (max-width: 700px) {
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+}
+
+@container (max-width: 400px) {
+  .metrics-grid {
+    gap: 12px;
+    margin-bottom: 20px;
   }
 }
 </style>
