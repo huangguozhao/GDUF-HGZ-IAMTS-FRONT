@@ -100,30 +100,31 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
-// Toast配置接口
-export interface ToastOptions {
-  id?: string
-  type?: 'success' | 'error' | 'warning' | 'info'
-  title?: string
-  message: string
-  duration?: number
-  showClose?: boolean
-  showProgress?: boolean
-  position?: 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center'
-}
+// Toast配置接口（使用JSDoc注释）
+/**
+ * @typedef {Object} ToastOptions
+ * @property {string} [id] - Toast唯一标识
+ * @property {'success'|'error'|'warning'|'info'} [type] - Toast类型
+ * @property {string} [title] - Toast标题
+ * @property {string} message - Toast消息内容
+ * @property {number} [duration] - 显示时长（毫秒）
+ * @property {boolean} [showClose] - 是否显示关闭按钮
+ * @property {boolean} [showProgress] - 是否显示进度条
+ * @property {'top-right'|'top-left'|'bottom-right'|'bottom-left'|'top-center'} [position] - 位置
+ */
 
-const toasts = ref<Array<ToastOptions & { id: string; startTime: number }>>([])
+const toasts = ref([])
 let toastCounter = 0
 
-const addToast = (options: ToastOptions) => {
+const addToast = (options) => {
   const id = options.id || `toast-${++toastCounter}`
   const toast = {
     id,
-    type: 'info' as const,
+    type: 'info',
     duration: 3000,
     showClose: true,
     showProgress: true,
-    position: 'top-right' as const,
+    position: 'top-right',
     startTime: Date.now(),
     ...options
   }
@@ -140,22 +141,22 @@ const addToast = (options: ToastOptions) => {
   return id
 }
 
-const removeToast = (id: string) => {
+const removeToast = (id) => {
   const index = toasts.value.findIndex(toast => toast.id === id)
   if (index > -1) {
     toasts.value.splice(index, 1)
   }
 }
 
-const pauseTimer = (id: string) => {
+const pauseTimer = (id) => {
   // 可以在这里暂停计时器
 }
 
-const resumeTimer = (id: string) => {
+const resumeTimer = (id) => {
   // 可以在这里恢复计时器
 }
 
-const progressWidth = (toast: any) => {
+const progressWidth = (toast) => {
   if (!toast.showProgress || toast.duration <= 0) return '0%'
 
   const elapsed = Date.now() - toast.startTime
@@ -175,13 +176,13 @@ defineExpose({
   add: addToast,
   remove: removeToast,
   clear: clearAll,
-  success: (message: string, options?: Partial<ToastOptions>) =>
+  success: (message, options = {}) =>
     addToast({ ...options, type: 'success', message }),
-  error: (message: string, options?: Partial<ToastOptions>) =>
+  error: (message, options = {}) =>
     addToast({ ...options, type: 'error', message }),
-  warning: (message: string, options?: Partial<ToastOptions>) =>
+  warning: (message, options = {}) =>
     addToast({ ...options, type: 'warning', message }),
-  info: (message: string, options?: Partial<ToastOptions>) =>
+  info: (message, options = {}) =>
     addToast({ ...options, type: 'info', message })
 })
 </script>
