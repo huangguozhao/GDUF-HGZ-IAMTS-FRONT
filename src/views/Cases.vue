@@ -174,50 +174,61 @@
           </div>
 
       <!-- 右侧内容区 -->
-          <div class="main-area">
+      <div class="main-area">
+        <!-- 内容过渡动画 -->
+        <transition-group
+          name="content-transition"
+          mode="out-in"
+          class="content-transition-container"
+          :key="contentTransitionKey"
+        >
           <!-- 项目/模块层级 - 显示统计信息 -->
-          <LevelStats
-          v-if="(selectedLevel === 'project' || selectedLevel === 'module') && selectedNode"
-          :node="selectedNode"
-          :level="selectedLevel"
-          @edit="handleEdit"
-          @delete="handleDelete"
-          @add="handleAddChild"
-          @edit-child="handleEditChild"
-          @delete-child="handleDeleteChild"
-          @select-child="handleSelectChild"
-          @config-environment="handleConfigEnvironment"
-        />
+          <div class="content-item content-project" v-if="(selectedLevel === 'project' || selectedLevel === 'module') && selectedNode">
+            <LevelStats
+              :node="selectedNode"
+              :level="selectedLevel"
+              @edit="handleEdit"
+              @delete="handleDelete"
+              @add="handleAddChild"
+              @edit-child="handleEditChild"
+              @delete-child="handleDeleteChild"
+              @select-child="handleSelectChild"
+              @config-environment="handleConfigEnvironment"
+            />
+          </div>
 
-        <!-- 接口层级 - 显示接口详情 -->
-        <ApiDetail
-          v-else-if="selectedLevel === 'api' && selectedNode"
-          :api="selectedNode"
-          :related-cases="selectedNode.cases || []"
-          @select-case="handleSelectCase"
-          @edit-case="handleEditCase"
-          @refresh="handleRefreshApi"
-          @delete-api="handleDeleteApi"
-          @delete-case="handleDeleteCase"
-          @refresh-cases="handleRefreshCases"
-        />
+          <!-- 接口层级 - 显示接口详情 -->
+          <div class="content-item content-api" v-else-if="selectedLevel === 'api' && selectedNode">
+            <ApiDetail
+              :api="selectedNode"
+              :related-cases="selectedNode.cases || []"
+              @select-case="handleSelectCase"
+              @edit-case="handleEditCase"
+              @refresh="handleRefreshApi"
+              @delete-api="handleDeleteApi"
+              @delete-case="handleDeleteCase"
+              @refresh-cases="handleRefreshCases"
+            />
+          </div>
 
-        <!-- 用例层级 - 显示用例详情 -->
-        <CaseDetail
-          v-else-if="selectedLevel === 'case' && selectedNode"
-          :test-case="selectedNode"
-          :execution-history="executionHistory"
-          @close="selectedNode = null"
-          @edit="handleEditCase"
-          @delete="handleDeleteCase"
-          @refresh="handleRefreshTestCase"
-        />
+          <!-- 用例层级 - 显示用例详情 -->
+          <div class="content-item content-case" v-else-if="selectedLevel === 'case' && selectedNode">
+            <CaseDetail
+              :test-case="selectedNode"
+              :execution-history="executionHistory"
+              @close="selectedNode = null"
+              @edit="handleEditCase"
+              @delete="handleDeleteCase"
+              @refresh="handleRefreshTestCase"
+            />
+          </div>
 
-        <!-- 默认空状态 -->
-        <div v-else class="empty-placeholder">
-          <div class="empty-icon">📋</div>
-          <div class="empty-text">请从左侧选择项目、模块、接口或用例</div>
-        </div>
+          <!-- 默认空状态 -->
+          <div v-else class="empty-placeholder content-item content-empty">
+            <div class="empty-icon">📋</div>
+            <div class="empty-text">请从左侧选择项目、模块、接口或用例</div>
+          </div>
+        </transition-group>
       </div>
     </div>
 
@@ -1469,6 +1480,7 @@ const loading = ref(false)
 const pageEntered = ref(false) // 页面进入动画状态
 const sidebarCollapsed = ref(false)
 const searchKeyword = ref('')
+const contentTransitionKey = ref(0) // 内容过渡动画key
 
 // 错开动画项目配置
 const staggeredItems = ref([
@@ -1760,6 +1772,9 @@ const refreshTree = async () => {
 const handleSelectNode = async (node, level) => {
   selectedNode.value = node
   selectedLevel.value = level
+
+  // 触发内容过渡动画
+  contentTransitionKey.value++
 
   // 如果是项目，按需加载模块
   if (level === 'project') {
@@ -3907,6 +3922,93 @@ onMounted(async () => {
 .tree-list::-webkit-scrollbar-track,
 .sidebar-content::-webkit-scrollbar-track {
   background: transparent;
+}
+
+/* 内容过渡动画容器 */
+.content-transition-container {
+  width: 100%;
+  height: 100%;
+}
+
+/* 内容过渡动画 */
+.content-transition-enter-active,
+.content-transition-leave-active {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.content-transition-enter-from,
+.content-transition-leave-to {
+  opacity: 0;
+}
+
+.content-transition-enter-to,
+.content-transition-leave-from {
+  opacity: 1;
+}
+
+/* 项目/模块内容 - 从左侧滑入 */
+.content-project {
+  animation: slideInFromLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 接口内容 - 从右侧滑入 */
+.content-api {
+  animation: slideInFromRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 用例内容 - 从底部滑入 */
+.content-case {
+  animation: slideInFromBottom 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 空状态 - 淡入效果 */
+.content-empty {
+  animation: fadeInScale 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* 动画定义 */
+@keyframes slideInFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideInFromRight {
+  0% {
+    opacity: 0;
+    transform: translateX(40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+@keyframes slideInFromBottom {
+  0% {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* 主内容区 */
