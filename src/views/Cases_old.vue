@@ -1,9 +1,33 @@
 <template>
-  <div class="cases-page">
-    <div class="cases-container">
-      <!-- 左侧树形结构区 -->
-      <div class="sidebar" :class="{ collapsed: sidebarCollapsed }">
-            <div class="sidebar-header">
+  <CasesPageTransition
+    :loading="pageLoading"
+    @entered="onPageTransitionEntered"
+    @ready="onPageTransitionReady"
+  >
+    <CasesLayout
+      :loading="loading"
+      :content-loading="contentLoading"
+      :projects="projects"
+      :selected-node="selectedNode"
+      :selected-level="selectedLevel"
+      :search-keyword="searchKeyword"
+      :expanded-nodes="expandedNodes"
+      @create-project="handleCreateProject"
+      @edit="handleEdit"
+      @delete-project="handleDeleteProject"
+      @delete-module="handleDeleteModule"
+      @delete-api="handleDeleteApi"
+      @add-module="handleAddModule"
+      @add-api="handleAddApi"
+      @node-click="handleSelectNode"
+      @toggle-expand="handleToggleExpand"
+      @refresh="handleRefresh"
+      @search="handleSearch"
+      @create-case="handleCreateCase"
+      @execute="handleExecuteTestCase"
+    />
+  </CasesPageTransition>
+        <div class="sidebar-header">
           <h3 class="sidebar-title" v-if="!sidebarCollapsed">项目结构</h3>
           <button class="collapse-btn" @click="toggleSidebar" :title="sidebarCollapsed ? '展开' : '收起'">
             <span class="collapse-icon">{{ sidebarCollapsed ? '»' : '«' }}</span>
@@ -171,12 +195,12 @@
             </TreeNode>
           </div>
         </div>
-          </div>
+      </div>
 
       <!-- 右侧内容区 -->
-          <div class="main-area">
-          <!-- 项目/模块层级 - 显示统计信息 -->
-          <LevelStats
+      <div class="main-area">
+        <!-- 项目/模块层级 - 显示统计信息 -->
+        <LevelStats
           v-if="(selectedLevel === 'project' || selectedLevel === 'module') && selectedNode"
           :node="selectedNode"
           :level="selectedLevel"
@@ -851,8 +875,9 @@
         </div>
       </template>
     </el-dialog>
+  </CasesPageTransition>
 
-    <!-- 新建/编辑对话框 -->
+  <!-- 新建/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
       :title="dialogTitle"
@@ -1359,16 +1384,16 @@
         </div>
       </template>
     </el-dialog>
-    </div>
+  </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  CircleCheckFilled, 
-  CircleCloseFilled, 
-  WarningFilled, 
+import {
+  CircleCheckFilled,
+  CircleCloseFilled,
+  WarningFilled,
   InfoFilled,
   Delete,
   Document,
@@ -1377,14 +1402,13 @@ import {
   Timer,
   Key
 } from '@element-plus/icons-vue'
-import TreeNode from '../components/cases/TreeNode.vue'
+import CasesPageTransition from '../components/cases/CasesPageTransition.vue'
+import CasesLayout from '../components/cases/CasesLayout.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
 import ApiDetail from '../components/cases/ApiDetail.vue'
 import LevelStats from '../components/cases/LevelStats.vue'
 import EnvironmentConfigDialog from '../components/cases/EnvironmentConfigDialog.vue'
 import EditDialog from '../components/cases/EditDialog.vue'
-import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
-import StaggeredReveal from '../components/ui/StaggeredReveal.vue'
 import {
   getProjects,
   getModulesByProject,
@@ -1440,17 +1464,17 @@ const MAX_API_ERRORS = 3 // 最大错误次数，超过后自动切换到演示�
 const handleAPIError = (error, operation = '操作') => {
   API_ERROR_COUNT++
   console.error(`${operation}失败:`, error)
-  
+
   if (API_ERROR_COUNT >= MAX_API_ERRORS) {
     USE_REAL_API = false
     ElMessage.warning('后端服务异常，已自动切换到演示模式')
     console.log('已切换到演示模式')
   }
-  
+
   // 检查是否是系统异常错误
   if (error.msg && error.msg.includes('系统异常')) {
     ElMessage.error('后端服务异常，请检查后端服务状态')
-  } 
+  }
   // 检查是否是删除功能不支持的错误
   else if (error.msg && (error.msg.includes('不支持删除') || error.msg.includes('请联系管理员'))) {
     ElMessage.warning({
@@ -1464,27 +1488,23 @@ const handleAPIError = (error, operation = '操作') => {
   }
 }
 
+// 页面过渡事件处理
+const onPageTransitionReady = () => {
+  // 页面过渡组件准备就绪
+}
+
+const onPageTransitionEntered = () => {
+  // 页面过渡动画完成，开始加载数据
+  pageLoading.value = false
+  loadProjects()
+}
+
 // 响应式数据
 const loading = ref(false)
-const pageEntered = ref(false) // 页面进入动画状态
+const contentLoading = ref(false)
+const pageLoading = ref(true) // 页面过渡加载状态
 const sidebarCollapsed = ref(false)
 const searchKeyword = ref('')
-
-// 错开动画项目配置
-const staggeredItems = ref([
-  {
-    key: 'sidebar',
-    class: 'stagger-item-sidebar',
-    component: 'div',
-    props: { class: 'sidebar-wrapper' }
-  },
-  {
-    key: 'main-area',
-    class: 'stagger-item-main',
-    component: 'div',
-    props: { class: 'main-area-wrapper' }
-  }
-])
 // 防抖搜索：输入节流，减少过滤计算频率
 const debouncedSearch = ref('')
 let searchDebounceTimer = null
@@ -3600,31 +3620,19 @@ onMounted(async () => {
   } else {
     initMockData()
   }
+})
 
-  // 数据加载完成后，延迟一帧触发页面进入动画
-  await nextTick()
-  setTimeout(() => {
-    pageEntered.value = true
-  }, 100)
+onMounted(async () => {
+  // 加载项目树
+  if (USE_REAL_API) {
+    await loadProjectTree()
+  } else {
+    initMockData()
+  }
 })
 </script>
 
 <style scoped>
-/* 错开动画样式 */
-.stagger-item-sidebar {
-  transform-origin: left center;
-}
-
-.stagger-item-main {
-  transform-origin: right center;
-}
-
-.sidebar-wrapper,
-.main-area-wrapper {
-  height: 100%;
-  overflow: hidden;
-}
-
 .cases-page {
   height: 100%;
   background: #f5f7fa;

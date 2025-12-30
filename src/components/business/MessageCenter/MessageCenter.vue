@@ -29,23 +29,14 @@
     </div>
 
     <div class="content-row" role="region" aria-label="消息列表与详情">
-      <aside class="sidebar-filters" aria-label="消息筛选">
-        <el-menu
-          class="filter-menu"
-          :default-active="activeFilter"
-          @select="handleFilterSelect"
-          :router="false"
-        >
-          <el-menu-item index="all">全部</el-menu-item>
-          <el-menu-item index="unread">未读</el-menu-item>
-          <el-menu-item index="read">已读</el-menu-item>
-          <el-menu-item index="system">系统</el-menu-item>
-          <el-menu-item index="alerts">告警</el-menu-item>
-        </el-menu>
-        <div class="filters-footer">
-          <small class="muted">共 {{ messages.length }} 条消息</small>
-        </div>
-      </aside>
+      <FilterSidebar
+        :active="activeFilter"
+        :total="messages.length"
+        :counts="{ unread: messages.filter(m => !m.read).length }"
+        @select="handleFilterSelect"
+        @clear="() => { activeFilter = 'all'; currentPage = 1 }"
+        @mark-all="markAllRead"
+      />
 
       <div class="list-column" aria-label="消息列表" id="messages-list">
         <MessageList
@@ -69,23 +60,12 @@
         </div>
       </div>
 
-      <div class="detail-column" v-if="selectedMessage">
-        <el-card class="detail-card">
-          <div class="detail-title">
-            <h3>{{ selectedMessage.title }}</h3>
-            <div class="meta">{{ selectedMessage.time }}</div>
-          </div>
-          <div class="detail-body" v-html="selectedMessage.content"></div>
-        </el-card>
-      </div>
-
-      <div class="detail-column placeholder" v-else>
-        <el-card class="detail-card empty">
-          <div class="empty-illustration">📭</div>
-          <div class="empty-text">
-            当前没有选中的消息。点击左侧或列表中的消息以查看详情。
-          </div>
-        </el-card>
+      <div class="detail-column">
+        <MessageDetailPane
+          :message="selectedMessage"
+          @mark="handleMark"
+          @delete="handleDelete"
+        />
       </div>
     </div>
   </div>
@@ -94,6 +74,8 @@
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import MessageList from './MessageList.vue'
+import FilterSidebar from './FilterSidebar.vue'
+import MessageDetailPane from './MessageDetailPane.vue'
 
 const props = defineProps({
   initialMessages: {

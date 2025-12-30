@@ -122,10 +122,13 @@ const emit = defineEmits(['mark', 'delete'])
 
 .unread-tag {
   margin-left: 6px;
-  background: linear-gradient(135deg, #f56c6c, #ff7875);
+  background: rgba(24, 144, 255, 0.12);
+  color: #1890ff;
   border: none;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.2px;
+  padding: 2px 8px;
+  border-radius: 6px;
 }
 
 .actions {
@@ -141,10 +144,9 @@ const emit = defineEmits(['mark', 'delete'])
 
 /* 未读消息样式 */
 .message-item[data-read="false"] {
-  background: linear-gradient(135deg,
-    rgba(24, 144, 255, 0.08) 0%,
-    rgba(67, 192, 58, 0.04) 100%);
-  border-left: 3px solid #1890ff;
+  /* 仅使用左侧高亮条和轻微蓝色阴影，避免覆盖背景造成“套盒”视觉 */
+  border-left: 4px solid rgba(24, 144, 255, 0.95);
+  box-shadow: 0 6px 18px rgba(24, 144, 255, 0.04), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .message-item[data-read="false"] .title {

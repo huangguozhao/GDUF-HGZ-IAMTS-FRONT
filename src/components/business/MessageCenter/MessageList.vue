@@ -46,8 +46,10 @@ const select = (msg) => {
   gap: 8px;
 }
 .message-row.unread {
-  background: rgba(24,144,255,0.06);
-  border-left: 3px solid #1890ff;
+  /* 移除外层的左侧高亮，避免与 MessageItem 内部的高亮重复显示。
+     高亮效果由 MessageItem[data-read="false"] 负责（左侧高亮条 + 阴影）。 */
+  background: transparent;
+  border-left: none;
   border-radius: 6px;
 }
 .message-row {
