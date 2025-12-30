@@ -2208,7 +2208,7 @@ const exportFormRules = {
 
 // 执行测试
 const handleExecute = () => {
-  executeDialogVisible.value = true
+  emit('execute', props.testCase)
 }
 
 // 确认执行测试

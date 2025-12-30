@@ -220,6 +220,7 @@
               @edit="handleEditCase"
               @delete="handleDeleteCase"
               @refresh="handleRefreshTestCase"
+              @execute="handleExecuteCase"
             />
           </div>
 
@@ -1370,6 +1371,299 @@
         </div>
       </template>
     </el-dialog>
+
+    <!-- 执行测试配置对话框 -->
+    <el-dialog
+      v-model="executeDialogVisible"
+      title="执行测试配置"
+      width="720px"
+      class="execute-dialog"
+      :close-on-click-modal="false"
+    >
+      <div class="execute-content">
+        <div class="execute-header-section">
+          <div class="execute-header-icon">
+            <el-icon size="24" color="#409eff"><CaretRight /></el-icon>
+          </div>
+          <div class="execute-header-info">
+            <h3 class="execute-title">测试执行设置</h3>
+            <p class="execute-subtitle">配置测试执行参数，准备开始测试</p>
+          </div>
+        </div>
+
+        <div class="execute-form-section">
+          <el-form :model="executeFormData" label-width="120px" class="execute-form">
+            <div class="execute-form-grid">
+              <el-form-item label="执行环境" prop="environment" class="form-item-enhanced">
+                <el-select
+                  v-model="executeFormData.environment"
+                  placeholder="请选择执行环境"
+                  class="enhanced-select"
+                >
+                  <template #prefix>
+                    <el-icon><Monitor /></el-icon>
+                  </template>
+                  <el-option label="开发环境 (dev)" value="dev">
+                    <div class="option-content">
+                      <span class="option-label">开发环境</span>
+                      <span class="option-desc">用于开发阶段测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="测试环境 (test)" value="test">
+                    <div class="option-content">
+                      <span class="option-label">测试环境</span>
+                      <span class="option-desc">用于功能测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="预发布环境 (staging)" value="staging">
+                    <div class="option-content">
+                      <span class="option-label">预发布环境</span>
+                      <span class="option-desc">用于集成测试</span>
+                    </div>
+                  </el-option>
+                  <el-option label="生产环境 (prod)" value="prod">
+                    <div class="option-content">
+                      <span class="option-label">生产环境</span>
+                      <span class="option-desc">生产环境验证</span>
+                    </div>
+                  </el-option>
+                </el-select>
+              </el-form-item>
+
+              <el-form-item label="执行模式" prop="async" class="form-item-enhanced">
+                <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
+                  <div class="mode-option">
+                    <el-radio :label="false" class="mode-radio">
+                      <div class="mode-content">
+                        <el-icon class="mode-icon"><Clock /></el-icon>
+                        <div class="mode-text">
+                          <div class="mode-title">同步执行</div>
+                          <div class="mode-desc">立即执行并等待结果</div>
+                        </div>
+                      </div>
+                    </el-radio>
+                  </div>
+                  <div class="mode-option">
+                    <el-radio :label="true" class="mode-radio">
+                      <div class="mode-content">
+                        <el-icon class="mode-icon"><Timer /></el-icon>
+                        <div class="mode-text">
+                          <div class="mode-title">异步执行</div>
+                          <div class="mode-desc">后台执行，支持长时间任务</div>
+                        </div>
+                      </div>
+                    </el-radio>
+                  </div>
+                </el-radio-group>
+              </el-form-item>
+
+              <el-form-item label="Base URL" prop="baseUrl" class="full-width form-item-enhanced">
+                <el-input
+                  v-model="executeFormData.baseUrl"
+                  placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
+                  class="enhanced-input"
+                >
+                  <template #prefix>
+                    <el-icon><Link /></el-icon>
+                  </template>
+                </el-input>
+                <div class="form-tip">
+                  <el-icon class="tip-icon"><InfoFilled /></el-icon>
+                  <span>可选配置，将覆盖环境默认URL</span>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="超时时间" prop="timeout" class="form-item-enhanced">
+                <div class="timeout-input-group">
+                  <el-input-number
+                    v-model="executeFormData.timeout"
+                    :min="1"
+                    :max="300"
+                    class="timeout-input"
+                    controls-position="right"
+                  />
+                  <span class="timeout-unit">秒</span>
+                </div>
+                <div class="form-tip">
+                  <el-icon class="tip-icon"><Timer /></el-icon>
+                  <span>请求超时时间范围：1-300秒</span>
+                </div>
+              </el-form-item>
+
+              <el-form-item label="执行变量" prop="variables" class="full-width variables-field form-item-enhanced">
+                <div class="variables-container">
+                  <div class="variables-header">
+                    <el-icon class="variables-icon"><Document /></el-icon>
+                    <span class="variables-label">JSON变量配置</span>
+                    <el-button
+                      v-if="executeVariables"
+                      size="small"
+                      type="text"
+                      @click="formatVariables"
+                      class="format-btn"
+                    >
+                      <el-icon><MagicStick /></el-icon>
+                      格式化
+                    </el-button>
+                  </div>
+                  <el-input
+                    v-model="executeVariables"
+                    type="textarea"
+                    :rows="6"
+                    placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
+                    class="variables-textarea"
+                  />
+                  <div v-if="variablesError" class="variables-error">
+                    <el-icon class="error-icon"><Warning /></el-icon>
+                    <span>{{ variablesError }}</span>
+                  </div>
+                  <div v-else class="variables-hint">
+                    <el-icon class="hint-icon"><InfoFilled /></el-icon>
+                    <span>支持 JSON 格式变量；留空将使用默认值</span>
+                  </div>
+                </div>
+              </el-form-item>
+            </div>
+          </el-form>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="execute-dialog-footer">
+          <div class="footer-left">
+            <el-button @click="executeDialogVisible = false" plain>
+              <el-icon><CircleClose /></el-icon>
+              <span>取消</span>
+            </el-button>
+          </div>
+          <div class="footer-right">
+            <el-button
+              type="primary"
+              @click="handleConfirmExecute"
+              :loading="executing"
+              class="execute-btn"
+              :disabled="!executeFormData.environment"
+            >
+              <el-icon v-if="!executing"><CaretRight /></el-icon>
+              <span>{{ executing ? '执行中...' : '开始执行' }}</span>
+            </el-button>
+          </div>
+        </div>
+      </template>
+    </el-dialog>
+
+    <!-- 执行结果对话框 -->
+    <el-dialog
+      v-model="resultDialogVisible"
+      title="测试执行结果"
+      width="800px"
+      :close-on-click-modal="false"
+    >
+      <div class="execution-result-container" v-if="executeResult">
+        <!-- 结果状态横幅 -->
+        <div class="result-banner" :class="'status-' + executeResult.status">
+          <div class="banner-icon">
+            <el-icon v-if="executeResult.status === 'passed'" :size="60" color="#67c23a">
+              <CircleCheckFilled />
+            </el-icon>
+            <el-icon v-else :size="60" color="#f56c6c">
+              <CircleCloseFilled />
+            </el-icon>
+          </div>
+          <div class="banner-content">
+            <h3 class="result-title">
+              {{ executeResult.status === 'passed' ? '✓ 测试通过' : '✗ 测试失败' }}
+            </h3>
+            <p class="result-subtitle">{{ executeResult.caseName }}</p>
+          </div>
+        </div>
+
+        <!-- 执行信息 -->
+        <div class="result-info-section">
+          <div class="info-grid">
+            <div class="info-card">
+              <div class="info-label">执行ID</div>
+              <div class="info-value">{{ executeResult.executionId }}</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">响应状态码</div>
+              <div class="info-value">
+                <el-tag
+                  :type="executeResult.responseStatus >= 200 && executeResult.responseStatus < 300 ? 'success' : 'danger'"
+                  size="small"
+                >
+                  {{ executeResult.responseStatus }}
+                </el-tag>
+              </div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">执行耗时</div>
+              <div class="info-value highlight">{{ executeResult.duration }}ms</div>
+            </div>
+            <div class="info-card">
+              <div class="info-label">断言结果</div>
+              <div class="info-value">
+                <span class="success-count">{{ executeResult.assertionsPassed }} 通过</span>
+                <span class="divider">/</span>
+                <span class="failed-count">{{ executeResult.assertionsFailed }} 失败</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 时间信息 -->
+        <div class="result-time-section">
+          <div class="time-item">
+            <span class="time-label">开始时间：</span>
+            <span class="time-value">{{ formatTime(executeResult.startTime) }}</span>
+          </div>
+          <div class="time-item">
+            <span class="time-label">结束时间：</span>
+            <span class="time-value">{{ formatTime(executeResult.endTime) }}</span>
+          </div>
+        </div>
+
+        <!-- 失败信息（如果有） -->
+        <div class="result-failure-section" v-if="executeResult.status === 'failed' && executeResult.failureMessage">
+          <div class="failure-title">失败原因</div>
+          <div class="failure-message">{{ executeResult.failureMessage }}</div>
+        </div>
+
+        <!-- 操作链接 -->
+        <div class="result-links-section">
+          <el-button
+            type="primary"
+            :icon="Document"
+            @click="handleViewLogs"
+            v-if="executeResult.logsLink"
+          >
+            查看执行日志
+          </el-button>
+          <el-button
+            :icon="DocumentCopy"
+            @click="handleViewReport"
+            v-if="executeResult.reportId"
+          >
+            查看测试报告
+          </el-button>
+          <el-button
+            :icon="Refresh"
+            @click="handleRetestFromResult"
+          >
+            重新测试
+          </el-button>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button type="primary" @click="resultDialogVisible = false">
+            关闭
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
     </div>
 </template>
 
@@ -1526,6 +1820,21 @@ const dialogType = ref('')
 const isEdit = ref(false)
 const formRef = ref(null)
 const caseFormActiveTab = ref('basic') // 用例表单当前标签页
+
+// 执行测试对话框相关
+const executeDialogVisible = ref(false)
+const executing = ref(false)
+const executeVariables = ref('')
+const variablesError = ref('')
+const executeFormData = reactive({
+  environment: 'dev',
+  baseUrl: '',
+  timeout: 30,
+  variables: {},
+  async: false
+})
+const executeResult = ref(null)
+const resultDialogVisible = ref(false)
 const formData = reactive({
   id: null,
   name: '',
@@ -3092,49 +3401,17 @@ const handleCaseCommand = (command, testCase) => {
   }
 }
 
-// 执行用例
-const handleExecuteCase = async (testCase) => {
-  loading.value = true
-  
-  try {
-    if (USE_REAL_API) {
-      // 调用真实API执行测试
-      const response = await executeTestCase(testCase.api_id, testCase.case_id)
-      if (response.code === 1) {
-        // 重新加载数据以获取最新状态
-        await loadProjectTree()
-        ElMessage.success('执行成功')
-      } else {
-        ElMessage.error(response.msg || '执行失败')
-      }
-    } else {
-      // 模拟执行
-      setTimeout(() => {
-        testCase.status = Math.random() > 0.3 ? 'passed' : 'failed'
-        testCase.last_executed_time = new Date().toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace(/\//g, '-')
-        loading.value = false
-        ElMessage.success('执行成功')
-      }, 1000)
-    }
-  } catch (error) {
-    console.error('执行用例失败:', error)
-    ElMessage.error(error.msg || '执行失败')
-  } finally {
-    if (USE_REAL_API) {
-      loading.value = false
-    }
-  }
-}
 
 // 复制用例
 const handleCopyCase = (testCase) => {
   ElMessage.success('复制成功')
+}
+
+// 执行测试用例
+const handleExecuteCase = (testCase) => {
+  // 打开执行测试对话框
+  executeDialogVisible.value = true
+  // 可以在这里设置一些默认值或预处理
 }
 
 // 刷新测试用例（执行测试后）
@@ -3142,10 +3419,10 @@ const handleRefreshTestCase = async () => {
   try {
     // 执行历史由 CaseDetail 组件自己负责刷新
     // 这里不需要手动刷新执行历史
-    
+
     // 如果需要刷新用例列表中的状态
     // 可以重新加载整个接口的用例列表
-    
+
     ElMessage.success('数据已刷新')
   } catch (error) {
     console.error('刷新失败:', error)
@@ -3321,6 +3598,175 @@ const getCurrentApiId = () => {
   })
   
   return apiId
+}
+
+// 执行测试相关函数
+const formatTime = (timeStr) => {
+  if (!timeStr) return '-'
+  try {
+    const date = new Date(timeStr)
+    return date.toLocaleString('zh-CN', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    })
+  } catch (error) {
+    return timeStr
+  }
+}
+
+const formatVariables = () => {
+  if (!executeVariables.value) return
+
+  try {
+    const parsed = JSON.parse(executeVariables.value)
+    executeVariables.value = JSON.stringify(parsed, null, 2)
+    variablesError.value = ''
+    ElMessage.success('JSON格式化成功')
+  } catch (error) {
+    variablesError.value = 'JSON格式错误，请检查语法'
+    ElMessage.error('JSON格式错误，无法格式化')
+  }
+}
+
+// 监听执行变量变化，实时校验JSON格式
+watch(executeVariables, (newVal) => {
+  if (!newVal) {
+    variablesError.value = ''
+    return
+  }
+
+  try {
+    JSON.parse(newVal)
+    variablesError.value = ''
+  } catch (error) {
+    variablesError.value = 'JSON格式错误，请检查语法'
+  }
+})
+
+const handleConfirmExecute = async () => {
+  try {
+    executing.value = true
+
+    // 解析执行变量
+    let parsedVariables = {}
+    if (executeVariables.value) {
+      try {
+        parsedVariables = JSON.parse(executeVariables.value)
+      } catch (e) {
+        ElMessage.error('执行变量必须是有效的JSON格式')
+        executing.value = false
+        return
+      }
+    }
+
+    // 如果已有变量校验错误（watch 可能已设置），阻止提交
+    if (variablesError.value) {
+      ElMessage.error('执行变量 JSON 格式有误，请修正后重试')
+      executing.value = false
+      return
+    }
+
+    // 构建请求数据
+    const requestData = {
+      environment: executeFormData.environment,
+      async: executeFormData.async
+    }
+
+    if (executeFormData.baseUrl) {
+      requestData.base_url = executeFormData.baseUrl
+    }
+
+    if (executeFormData.timeout) {
+      requestData.timeout = executeFormData.timeout
+    }
+
+    if (Object.keys(parsedVariables).length > 0) {
+      requestData.variables = parsedVariables
+    }
+
+    // 调用执行API - 需要获取当前选中的用例ID
+    const caseId = selectedNode.value?.case_id || selectedNode.value?.caseId || selectedNode.value?.id
+
+    if (!caseId) {
+      ElMessage.error('无法获取用例ID')
+      executing.value = false
+      return
+    }
+
+    const response = await executeTestCase(null, caseId, requestData)
+
+    if (response.code === 1) {
+      if (requestData.async) {
+        // 异步执行
+        ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
+        executeDialogVisible.value = false
+      } else {
+        // 同步执行 - 显示执行结果对话框
+        executeResult.value = {
+          executionId: response.data.executionId || response.data.execution_id,
+          caseId: response.data.caseId || response.data.case_id,
+          caseName: response.data.caseName || response.data.case_name,
+          status: response.data.status,
+          duration: response.data.duration,
+          startTime: response.data.startTime || response.data.start_time,
+          endTime: response.data.endTime || response.data.end_time,
+          responseStatus: response.data.responseStatus || response.data.response_status,
+          assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
+          assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
+          failureMessage: response.data.failureMessage || response.data.failure_message,
+          logsLink: response.data.logsLink || response.data.logs_link,
+          reportId: response.data.reportId || response.data.report_id
+        }
+
+        executeDialogVisible.value = false
+        resultDialogVisible.value = true
+      }
+
+      // 刷新执行历史（如果在用例详情页面）
+      if (selectedLevel.value === 'case' && selectedNode.value) {
+        // 这里可以触发CaseDetail组件刷新执行历史
+        // emit('refresh-execution-history') 或类似的方法
+      }
+    } else {
+      ElMessage.error(response.msg || '执行失败')
+    }
+
+  } catch (error) {
+    console.error('执行测试失败:', error)
+    ElMessage.error(error.msg || error.message || '执行测试失败，请稍后重试')
+  } finally {
+    executing.value = false
+  }
+}
+
+// 查看执行日志
+const handleViewLogs = () => {
+  if (executeResult.value && executeResult.value.logsLink) {
+    window.open(executeResult.value.logsLink, '_blank')
+  } else {
+    ElMessage.info('日志链接不可用')
+  }
+}
+
+// 查看测试报告
+const handleViewReport = () => {
+  if (executeResult.value && executeResult.value.reportId) {
+    ElMessage.info(`查看报告ID: ${executeResult.value.reportId}`)
+    // TODO: 跳转到报告详情页面
+    // router.push(`/reports/${executeResult.value.reportId}`)
+  } else {
+    ElMessage.info('报告不可用')
+  }
+}
+
+// 从结果对话框重新测试
+const handleRetestFromResult = () => {
+  resultDialogVisible.value = false
+  executeDialogVisible.value = true
 }
 
 // 重置表单
