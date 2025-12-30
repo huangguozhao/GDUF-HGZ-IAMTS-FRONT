@@ -1670,17 +1670,22 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { 
-  CircleCheckFilled, 
-  CircleCloseFilled, 
-  WarningFilled, 
+import {
+  CircleCheckFilled,
+  CircleCloseFilled,
+  WarningFilled,
   InfoFilled,
   Delete,
   Document,
   Link,
   User,
   Timer,
-  Key
+  Key,
+  Monitor,
+  Clock,
+  MagicStick,
+  DocumentCopy,
+  Refresh
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
@@ -5371,5 +5376,634 @@ onMounted(async () => {
 .case-edit-dialog :deep(.dialog-footer .el-button:hover) {
   transform: translateY(-3px);
   box-shadow: 0 10px 30px rgba(16,24,40,0.06);
+}
+
+/* 执行对话框样式优化 */
+.execute-dialog .el-dialog__body {
+  padding: 0;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.execute-content {
+  padding: 24px;
+}
+
+/* 执行头部区域 */
+.execute-header-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  border-radius: 12px;
+  border: 1px solid #e3f2fd;
+}
+
+.execute-header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  background: #409eff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.execute-header-info {
+  flex: 1;
+}
+
+.execute-title {
+  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.execute-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #606266;
+}
+
+/* 表单区域 */
+.execute-form-section {
+  margin-bottom: 24px;
+}
+
+.execute-form {
+  background: #fafbfc;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.execute-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.execute-form .full-width {
+  grid-column: 1 / -1;
+}
+
+/* 表单项对齐：将 el-form-item 布局为两列（label + control），防止内容混乱与遮挡 */
+.execute-form .el-form-item {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  grid-column-gap: 12px;
+  align-items: start;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.execute-form .el-form-item__label {
+  justify-self: end;
+  padding-right: 6px;
+  color: #606266;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.execute-form .el-form-item__content {
+  width: 100%;
+  min-width: 0;
+}
+
+.execute-form .full-width .el-form-item__label,
+.execute-form .full-width .el-form-item__content {
+  grid-column: auto / span 2;
+}
+
+/* 确保表单控件不会撑出列宽，显示省略或换行处理 */
+.execute-form .el-input,
+.execute-form .el-select,
+.execute-form .el-input-number,
+.execute-form .el-radio-group,
+.execute-form .el-input__inner {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.execute-form .el-select .el-input__inner,
+.execute-form .el-input .el-input__inner {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* 将提示信息强制放到控件列，避免被遮挡 */
+.execute-form .form-tip,
+.execute-form .variables-hint,
+.execute-form .variables-error {
+  grid-column: 2 / 3;
+  margin-top: 8px;
+}
+
+/* 修复输入控件在 CSS Grid 中的溢出问题：允许子项收缩、输入撑满父容器 */
+.execute-form-grid > * {
+  min-width: 0;
+}
+
+.execute-form .el-form-item {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.execute-form .el-form-item .el-input,
+.execute-form .el-form-item .el-select,
+.execute-form .el-form-item .el-input-number,
+.execute-form .el-form-item .el-radio-group,
+.execute-form .el-form-item .el-input__inner {
+  width: 100% !important;
+  max-width: 100%;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow: hidden;
+}
+
+.execute-form .el-select .el-input__inner,
+.execute-form .el-input .el-input__inner {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.form-item-enhanced .el-form-item__label {
+  font-weight: 500;
+  color: #303133;
+  padding-bottom: 4px;
+}
+
+.enhanced-input .el-input__prefix,
+.enhanced-select .el-input__prefix {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #909399;
+}
+
+.enhanced-input .el-input__inner,
+.enhanced-select .el-input__inner {
+  border-radius: 6px;
+}
+
+.option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.option-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.option-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 执行模式选择 */
+.execution-mode-group {
+  display: flex;
+  flex-direction: row;
+  gap: 12px;
+  width: 100%;
+}
+
+.mode-option {
+  flex: 1;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+}
+
+.mode-option:hover {
+  border-color: #409eff;
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
+  transform: translateY(-2px);
+}
+
+.mode-option .el-radio__input.is-checked + .el-radio__label {
+  color: #409eff;
+}
+
+.mode-option .el-radio__input.is-checked .el-radio__inner {
+  background: #409eff;
+  border-color: #409eff;
+  animation: radioCheckPulse 0.25s ease;
+}
+
+@keyframes radioCheckPulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.mode-radio {
+  width: 100%;
+  margin-right: 0 !important;
+}
+
+.mode-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.mode-icon {
+  color: #409eff;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mode-text {
+  flex: 1;
+}
+
+.mode-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 2px;
+}
+
+.mode-desc {
+  font-size: 12px;
+  color: #909399;
+}
+
+/* 超时时间输入 */
+.timeout-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeout-input {
+  flex: 1;
+}
+
+.timeout-unit {
+  color: #909399;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* 表单提示信息 */
+.form-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.form-tip .tip-icon {
+  font-size: 14px;
+  color: #e6a23c;
+}
+
+/* 变量配置区域 */
+.variables-container {
+  background: white;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.variables-container:hover {
+  border-color: #409eff;
+  box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
+}
+
+.variables-container:focus-within {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
+}
+
+.variables-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.variables-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.variables-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.format-btn {
+  margin-left: auto;
+  color: #409eff;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.format-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(64, 158, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease;
+}
+
+.format-btn:hover::before {
+  width: 120px;
+  height: 120px;
+}
+
+.format-btn:hover {
+  color: #337ecc;
+  transform: translateY(-1px);
+}
+
+.variables-textarea .el-textarea__inner {
+  font-family: 'Courier New', Consolas, Monaco, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  border: none;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+}
+
+.variables-textarea .el-textarea__inner:focus {
+  background: white;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+
+.variables-hint,
+.variables-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-top: 8px;
+  padding: 4px 0;
+}
+
+.variables-hint {
+  color: #909399;
+}
+
+.variables-hint .hint-icon {
+  color: #67c23a;
+}
+
+.variables-error {
+  color: #f56c6c;
+}
+
+.variables-error .error-icon {
+  color: #f56c6c;
+}
+
+/* 执行对话框底部 */
+.execute-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #e4e7ed;
+  background: #fafbfc;
+}
+
+.footer-left {
+  display: flex;
+  gap: 8px;
+}
+
+.footer-right {
+  display: flex;
+  gap: 8px;
+}
+
+.execute-btn {
+  min-width: 120px;
+}
+
+/* 执行结果对话框样式 */
+.execution-result-container {
+  padding: 0;
+}
+
+.result-banner {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 32px 24px;
+  border-radius: calc(var(--card-radius) + 2px);
+  margin-bottom: 24px;
+  box-shadow: var(--card-shadow);
+  transition: var(--card-transition);
+}
+
+.result-banner.status-passed {
+  background: linear-gradient(135deg, #f0f9ff 0%, #e1f3d8 100%);
+  border: 2px solid #67c23a;
+}
+
+.result-banner.status-failed {
+  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  border: 2px solid #f56c6c;
+}
+
+.banner-icon {
+  flex-shrink: 0;
+}
+
+/* 结果横幅图标入场动画 */
+.banner-icon {
+  animation: bannerPop .32s cubic-bezier(.2,.8,.2,1) both;
+}
+
+@keyframes bannerPop {
+  0% { transform: scale(.7); opacity: 0; }
+  60% { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes fadeInUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.banner-content {
+  flex: 1;
+}
+
+.result-title {
+  margin: 0 0 8px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.result-subtitle {
+  margin: 0;
+  font-size: 16px;
+  color: #606266;
+}
+
+/* 执行信息卡片 */
+.result-info-section {
+  margin-bottom: 24px;
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.info-card {
+  background: #fafafa;
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
+.info-label {
+  font-size: 12px;
+  color: #909399;
+  margin-bottom: 8px;
+}
+
+.info-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.info-value.highlight {
+  color: #409eff;
+}
+
+.success-count {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+.failed-count {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.divider {
+  margin: 0 4px;
+  color: #c0c4cc;
+}
+
+/* 时间信息 */
+.result-time-section {
+  background: #f5f7fa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-around;
+}
+
+.time-item {
+  font-size: 14px;
+}
+
+.time-label {
+  color: #909399;
+  margin-right: 8px;
+}
+
+.time-value {
+  color: #303133;
+  font-weight: 500;
+}
+
+/* 失败信息 */
+.result-failure-section {
+  background: #fef0f0;
+  border: 1px solid #fbc4c4;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.failure-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #f56c6c;
+  margin-bottom: 8px;
+}
+
+.failure-message {
+  font-size: 14px;
+  color: #606266;
+  line-height: 1.6;
+}
+
+/* 操作链接 */
+.result-links-section {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
 }
 </style>
