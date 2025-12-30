@@ -60,10 +60,11 @@
             <span class="menu-label" v-if="!sidebarCollapsed">{{ item.label }}</span>
           </div>
         </div>
-        <div class="collapse-nav" v-if="!sidebarCollapsed">
+        <div class="collapse-nav">
           <button class="collapse-btn" @click="toggleSidebar">
-            <span class="collapse-icon">‹</span>
-            <span>收起导航</span>
+            <span class="collapse-icon">{{ sidebarCollapsed ? '›' : '‹' }}</span>
+            <span v-if="!sidebarCollapsed">收起导航</span>
+            <span v-else>展开导航</span>
           </button>
         </div>
       </el-aside>
@@ -431,6 +432,11 @@ const handleUserClick = async () => {
 .collapse-nav {
   padding: 16px;
   border-top: 1px solid #e4e7ed;
+}
+
+.sidebar.collapsed .collapse-nav {
+  padding: 16px 0;
+  text-align: center;
 }
 
 .collapse-btn {
