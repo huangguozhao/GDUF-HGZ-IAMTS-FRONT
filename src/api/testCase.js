@@ -1,4 +1,5 @@
 import request from './request'
+import { API_PATHS } from '@/utils/constants'
 
 /**
  * 测试用例相关API接口
@@ -7,7 +8,7 @@ import request from './request'
 // 获取接口的测试用例列表（分页）
 export function getTestCasesByApi(apiId, params = {}) {
   return request({
-    url: '/testcases',
+    url: API_PATHS.TEST_CASES,
     method: 'get',
     params: {
       apiId: apiId,
@@ -32,7 +33,7 @@ export function getTestCasesByApi(apiId, params = {}) {
 // 创建测试用例
 export function createTestCase(data) {
   return request({
-    url: '/testcases',
+    url: API_PATHS.TEST_CASES,
     method: 'post',
     data: {
       apiId: data.api_id,  // 后端期望的是apiId字段

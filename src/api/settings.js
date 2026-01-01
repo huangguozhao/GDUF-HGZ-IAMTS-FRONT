@@ -1,4 +1,5 @@
 import request from './request'
+import { API_PATHS } from '@/utils/constants'
 
 /**
  * 系统设置相关API接口

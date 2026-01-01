@@ -1,4 +1,5 @@
-import request from './request';
+import request from './request'
+import { API_PATHS } from '@/utils/constants'
 
 /**
  * 分页查询用户列表
@@ -10,7 +11,7 @@ import request from './request';
  */
 export function getUserList(params) {
   return request({
-    url: '/users',
+    url: API_PATHS.USERS,
     method: 'get',
     params,
   });
@@ -22,7 +23,7 @@ export function getUserList(params) {
  */
 export function createUser(data) {
   return request({
-    url: '/users',
+    url: API_PATHS.USERS,
     method: 'post',
     data,
   });

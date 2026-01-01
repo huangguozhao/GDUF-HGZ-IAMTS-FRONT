@@ -179,6 +179,7 @@
 <script setup>
 import { Document, Refresh, CircleCheckFilled, CircleCloseFilled, CopyDocument } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { formatTime, formatDuration } from '@/utils/formatters'
 
 const props = defineProps({
   executionData: {
@@ -189,20 +190,6 @@ const props = defineProps({
 
 const emit = defineEmits(['close', 'retest'])
 
-// 工具函数
-const formatTime = (time) => {
-  if (!time) return '-'
-  return new Date(time).toLocaleString('zh-CN')
-}
-
-const formatDuration = (seconds) => {
-  if (!seconds) return '-'
-  if (seconds < 1) return `${Math.round(seconds * 1000)}ms`
-  if (seconds < 60) return `${seconds.toFixed(1)}s`
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = Math.floor(seconds % 60)
-  return `${minutes}分${remainingSeconds}秒`
-}
 
 const getStatusTagType = (status) => {
   const typeMap = {

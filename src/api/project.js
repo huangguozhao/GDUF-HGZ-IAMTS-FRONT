@@ -1,4 +1,5 @@
 import request from './request'
+import { API_PATHS } from '@/utils/constants'
 
 /**
  * 项目管理相关API接口
@@ -7,7 +8,7 @@ import request from './request'
 // 获取项目列表（包含完整的树形结构）
 export function getProjectTree() {
   return request({
-    url: '/projects/tree',
+    url: `${API_PATHS.PROJECTS}/tree`,
     method: 'get'
   })
 }
@@ -26,7 +27,7 @@ export function getProjects(params = {}) {
   } = params || {};
 
   return request({
-    url: '/projects',
+    url: API_PATHS.PROJECTS,
     method: 'get',
     params: {
       name,

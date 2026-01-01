@@ -57,6 +57,8 @@
 </template>
 
 <script setup>
+import { formatTime } from '@/utils/formatters'
+
 const props = defineProps({
   testCase: {
     type: Object,
@@ -83,10 +85,6 @@ const getStatusText = () => {
   return textMap[props.testCase?.status] || '未知'
 }
 
-const formatTime = (time) => {
-  if (!time) return '-'
-  return time
-}
 </script>
 
 <style scoped>

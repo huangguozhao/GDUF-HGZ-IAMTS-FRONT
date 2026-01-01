@@ -72,6 +72,7 @@
 <script setup>
 import { ref, watch } from 'vue';
 import { computed } from 'vue';
+import { USER_STATUS_OPTIONS } from '@/utils/constants';
 
 const props = defineProps({
   visible: {
@@ -93,12 +94,8 @@ const filterData = ref({
   endDate: '',
 });
 
-const statusOptions = [
-  { value: '', label: '全部' },
-  { value: 'active', label: '活跃' },
-  { value: 'pending', label: '待审核' },
-  { value: 'inactive', label: '已禁用' },
-]
+// 使用统一的常量
+const statusOptions = USER_STATUS_OPTIONS
 
 const dateError = ref('')
 

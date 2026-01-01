@@ -1,4 +1,5 @@
 import request from './request'
+import { API_PATHS } from '@/utils/constants'
 
 /**
  * 认证相关API接口
@@ -13,7 +14,7 @@ export const authApi = {
    */
   login(credentials) {
     return request({
-      url: '/auth/login',
+      url: API_PATHS.LOGIN,
       method: 'post',
       data: credentials
     })
@@ -67,7 +68,7 @@ export const authApi = {
    */
   logout() {
     return request({
-      url: '/auth/logout',
+      url: API_PATHS.LOGOUT,
       method: 'post'
     })
   }

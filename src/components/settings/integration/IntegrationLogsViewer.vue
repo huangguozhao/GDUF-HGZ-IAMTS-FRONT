@@ -246,6 +246,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
+import { formatTimeFull, truncateMessage } from '@/utils/formatters'
 
 const props = defineProps({
   logs: {
@@ -337,27 +338,6 @@ const getServiceName = (serviceId) => {
   return service?.name || serviceId || '未知服务'
 }
 
-// 格式化时间
-const formatTime = (timestamp, full = false) => {
-  if (!timestamp) return '未知时间'
-  const date = new Date(timestamp)
-  if (full) {
-    return date.toLocaleString('zh-CN')
-  }
-  return date.toLocaleString('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  })
-}
-
-// 截断消息
-const truncateMessage = (message, maxLength) => {
-  if (!message || message.length <= maxLength) return message
-  return message.substring(0, maxLength) + '...'
-}
 
 // 切换日志展开状态
 const toggleLogExpansion = (log) => {
