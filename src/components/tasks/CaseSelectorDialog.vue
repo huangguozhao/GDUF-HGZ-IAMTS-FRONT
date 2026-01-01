@@ -1,10 +1,11 @@
 <template>
   <el-dialog
-    v-model="visible"
+    :model-value="visible"
     title="选择测试用例"
     width="800px"
     :close-on-click-modal="false"
     @open="handleOpen"
+    @close="handleClose"
   >
     <div class="case-selector">
       <div class="selector-header">
@@ -59,7 +60,7 @@
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { getTestCases } from '../../api/testCase'
+import { getTestCasesByApi } from '../../api/testCase'
 
 const props = defineProps({
   visible: {
@@ -72,7 +73,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:selectedCases', 'cancel'])
+const emit = defineEmits(['update:selectedCases', 'update:visible', 'cancel'])
 
 const searchKeyword = ref('')
 const loading = ref(false)
@@ -110,7 +111,7 @@ const toggleCaseSelection = (caseItem) => {
 const loadCases = async () => {
   try {
     loading.value = true
-    const response = await getTestCases()
+    const response = await getTestCasesByApi(null, { pageSize: 1000 })
     if (response.code === 200) {
       allCases.value = response.data || []
     } else {
@@ -129,6 +130,11 @@ const handleOpen = () => {
   if (allCases.value.length === 0) {
     loadCases()
   }
+}
+
+// 处理对话框关闭
+const handleClose = () => {
+  emit('update:visible', false)
 }
 
 // 确认选择

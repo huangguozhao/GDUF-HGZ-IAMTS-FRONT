@@ -149,7 +149,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Edit, Delete, SuccessFilled, CircleCloseFilled } from '@element-plus/icons-vue'
 import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue'
-import { getTaskById, deleteTask } from '../api/task'
+import { getTaskDetail, deleteTask } from '../api/task'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,7 +172,7 @@ const getFrequencyText = (frequency) => {
 const loadTask = async () => {
   try {
     loading.value = true
-    const response = await getTaskById(taskId.value)
+    const response = await getTaskDetail(taskId.value)
 
     if (response.code === 200 && response.data) {
       task.value = response.data
