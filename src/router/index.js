@@ -1,6 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useUserStore } from '../stores/useUserStore'
-import Home from '../views/Home.vue'
 
 const routes = [
   {
@@ -15,7 +14,7 @@ const routes = [
   {
     path: '/',
     name: 'Home',
-    component: Home,
+    component: () => import('../views/Home.vue'),
     meta: {
       title: '首页',
       requiresAuth: true
@@ -28,7 +27,27 @@ const routes = [
     meta: {
       title: '用例管理',
       requiresAuth: true
-    }
+    },
+    children: [
+      {
+        path: ':caseId',
+        name: 'CaseDetail',
+        component: () => import('../views/CaseDetailPage.vue'),
+        meta: {
+          title: '用例详情',
+          requiresAuth: true
+        }
+      },
+      {
+        path: 'create',
+        name: 'CreateCase',
+        component: () => import('../views/CreateCase.vue'),
+        meta: {
+          title: '创建用例',
+          requiresAuth: true
+        }
+      }
+    ]
   },
   {
     path: '/reports',
