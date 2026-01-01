@@ -64,12 +64,10 @@
     <div class="main-content">
       <!-- 任务列表 -->
       <div class="task-list-container">
-        <el-table 
-          :data="taskList" 
+        <el-table
+          :data="taskList"
           class="task-table"
           v-loading="loading"
-          @row-click="handleRowClick"
-          highlight-current-row
           style="width: 100%"
         >
           <el-table-column prop="id" label="ID" width="100" />
@@ -140,245 +138,13 @@
         </div>
       </div>
 
-      <!-- 任务详情面板 -->
-      <div class="task-detail-panel" v-if="selectedTask">
-        <div class="detail-header">
-          <h3>任务详情</h3>
-        </div>
-        
-        <div class="detail-content">
-          <!-- 任务摘要 -->
-          <div class="task-summary">
-            <h4>{{ selectedTask.name }}</h4>
-            <p>{{ getFrequencyText(selectedTask.frequency) }} {{ selectedTask.executionTime }} 自动执行</p>
-          </div>
-
-          <!-- 基本信息 -->
-          <div class="info-section">
-            <h5>基本信息</h5>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">创建者</span>
-                <span class="info-value">{{ selectedTask.creator }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">创建时间</span>
-                <span class="info-value">{{ selectedTask.createTime }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">最后执行</span>
-                <span class="info-value">{{ selectedTask.lastExecution }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">下次执行</span>
-                <span class="info-value">{{ selectedTask.nextExecution }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">执行状态</span>
-                <span class="info-value">
-                  <el-tag 
-                    :type="selectedTask.status === 'enabled' ? 'success' : 'info'"
-                    size="small"
-                  >
-                    {{ selectedTask.status === 'enabled' ? '启用' : '禁用' }}
-                  </el-tag>
-                </span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">关联用例</span>
-                <span class="info-value">{{ selectedTask.caseCount }}个</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 执行计划 -->
-          <div class="info-section">
-            <h5>执行计划</h5>
-            <div class="plan-info">
-              <div class="plan-item">
-                <span class="plan-label">执行频率</span>
-                <span class="plan-value">{{ getFrequencyText(selectedTask.frequency) }}</span>
-              </div>
-              <div class="plan-item">
-                <span class="plan-label">执行时间</span>
-                <span class="plan-value">{{ selectedTask.executionTime }}</span>
-              </div>
-              <div class="plan-item">
-                <span class="plan-label">超时设置</span>
-                <span class="plan-value">{{ selectedTask.timeout }}分钟</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 关联用例列表 -->
-          <div class="info-section">
-            <h5>关联用例列表</h5>
-            <div class="case-list">
-              <div class="case-item" v-for="caseItem in selectedTask.cases" :key="caseItem.id">
-                <el-icon 
-                  :class="['case-status', caseItem.status === 'passed' ? 'success' : 'failed']"
-                >
-                  <SuccessFilled v-if="caseItem.status === 'passed'" />
-                  <CircleCloseFilled v-else />
-                </el-icon>
-                <span class="case-name">{{ caseItem.name }}</span>
-              </div>
-              <el-button link type="primary" class="view-all-btn">查看全部</el-button>
-            </div>
-          </div>
-
-          <!-- 最近执行结果 -->
-          <div class="info-section">
-            <h5>最近执行结果</h5>
-            <div class="execution-results">
-              <div class="execution-item" v-for="result in selectedTask.executionResults" :key="result.id">
-                <div class="execution-header">
-                  <el-icon class="execution-status success">
-                    <SuccessFilled />
-                  </el-icon>
-                  <span class="execution-time">{{ result.time }}</span>
-                  <span class="execution-duration">耗时: {{ result.duration }}</span>
-                </div>
-                <div class="execution-stats">
-                  <span class="stat-item success">{{ result.passed }} 通过</span>
-                  <span class="stat-item failed">{{ result.failed }} 失败</span>
-                  <span class="stat-item warning">{{ result.warning }} 警告</span>
-                </div>
-              </div>
-              <el-button link type="primary" class="history-btn">历史记录</el-button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
-
-    <!-- 创建定时任务对话框 -->
-    <el-dialog
-      v-model="createDialogVisible"
-      title="创建定时任务"
-      width="600px"
-      :close-on-click-modal="false"
-    >
-      <div class="create-dialog-content">
-        <!-- 步骤指示器 -->
-        <div class="steps-indicator">
-          <div class="step-item active">
-            <div class="step-circle">1</div>
-            <span>基本信息</span>
-          </div>
-          <div class="step-line"></div>
-          <div class="step-item active">
-            <div class="step-circle">2</div>
-            <span>执行计划</span>
-          </div>
-          <div class="step-line"></div>
-          <div class="step-item">
-            <div class="step-circle">3</div>
-            <span>选择用例</span>
-          </div>
-        </div>
-
-        <!-- 执行计划设置 -->
-        <div class="step-content">
-          <h4>设置执行计划</h4>
-          
-          <!-- 执行频率 -->
-          <div class="frequency-section">
-            <label>执行频率</label>
-            <div class="frequency-options">
-              <el-button 
-                v-for="freq in frequencyOptions" 
-                :key="freq.value"
-                :type="createForm.frequency === freq.value ? 'primary' : 'default'"
-                @click="createForm.frequency = freq.value"
-                class="frequency-btn"
-              >
-                <el-icon><Calendar /></el-icon>
-                {{ freq.label }}
-              </el-button>
-            </div>
-          </div>
-
-          <!-- 执行周期设置 -->
-          <div class="cycle-section">
-            <div class="cycle-item">
-              <label>选择执行日期</label>
-              <div class="weekday-options">
-                <el-button 
-                  v-for="day in weekdays" 
-                  :key="day.value"
-                  :type="createForm.selectedDays.includes(day.value) ? 'primary' : 'default'"
-                  @click="toggleDay(day.value)"
-                  class="weekday-btn"
-                >
-                  {{ day.label }}
-                </el-button>
-              </div>
-            </div>
-            
-            <div class="cycle-item">
-              <label>选择执行时间</label>
-              <div class="time-inputs">
-                <el-time-picker
-                  v-model="createForm.startTime"
-                  placeholder="开始时间"
-                  format="HH:mm"
-                  value-format="HH:mm"
-                />
-                <span class="time-separator">-</span>
-                <el-time-picker
-                  v-model="createForm.endTime"
-                  placeholder="结束时间"
-                  format="HH:mm"
-                  value-format="HH:mm"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- 高级设置 -->
-          <div class="advanced-section">
-            <h5>高级设置</h5>
-            <div class="advanced-grid">
-              <div class="advanced-item">
-                <label>执行超时时间 (分钟)</label>
-                <el-input-number v-model="createForm.timeout" :min="1" :max="1440" />
-              </div>
-              <div class="advanced-item">
-                <label>重试次数</label>
-                <el-input-number v-model="createForm.retryCount" :min="0" :max="10" />
-              </div>
-            </div>
-          </div>
-
-          <!-- 结果通知 -->
-          <div class="notification-section">
-            <h5>结果通知</h5>
-            <div class="notification-options">
-              <el-checkbox v-model="createForm.emailNotification">
-                失败时邮件通知
-              </el-checkbox>
-              <el-checkbox v-model="createForm.wechatNotification">
-                企业微信通知
-              </el-checkbox>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="createDialogVisible = false">取消</el-button>
-          <el-button @click="prevStep">上一步</el-button>
-          <el-button type="primary" @click="nextStep">下一步</el-button>
-        </div>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Plus,
@@ -417,39 +183,10 @@ const pagination = reactive({
 // 数据列表
 const taskList = ref([])
 const projects = ref([])
-const selectedTask = ref(null)
 const loading = ref(false)
 
-// 创建任务对话框
-const createDialogVisible = ref(false)
-const createForm = reactive({
-  frequency: 'weekly',
-  selectedDays: ['thursday'],
-  startTime: '10:00',
-  endTime: '11:00',
-  timeout: 60,
-  retryCount: 3,
-  emailNotification: true,
-  wechatNotification: false
-})
-
-// 频率选项
-const frequencyOptions = [
-  { label: '每日', value: 'daily' },
-  { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' }
-]
-
-// 星期选项
-const weekdays = [
-  { label: '周一', value: 'monday' },
-  { label: '周二', value: 'tuesday' },
-  { label: '周三', value: 'wednesday' },
-  { label: '周四', value: 'thursday' },
-  { label: '周五', value: 'friday' },
-  { label: '周六', value: 'saturday' },
-  { label: '周日', value: 'sunday' }
-]
+// 路由实例
+const router = useRouter()
 
 // 获取项目列表
 const fetchProjects = async () => {
@@ -585,10 +322,6 @@ const getFrequencyText = (frequency) => {
   return frequencyMap[frequency] || frequency
 }
 
-// 行点击事件
-const handleRowClick = (row) => {
-  selectedTask.value = row
-}
 
 // 编辑任务
 const handleEdit = (row) => {
@@ -621,28 +354,10 @@ const handleDelete = async (row) => {
 
 // 显示创建对话框
 const showCreateDialog = () => {
-  createDialogVisible.value = true
+  // 跳转到创建任务页面
+  router.push('/tasks/create')
 }
 
-// 切换日期选择
-const toggleDay = (day) => {
-  const index = createForm.selectedDays.indexOf(day)
-  if (index > -1) {
-    createForm.selectedDays.splice(index, 1)
-  } else {
-    createForm.selectedDays.push(day)
-  }
-}
-
-// 上一步
-const prevStep = () => {
-  ElMessage.info('上一步')
-}
-
-// 下一步
-const nextStep = () => {
-  ElMessage.info('下一步')
-}
 
 // 分页大小改变
 const handleSizeChange = (size) => {
