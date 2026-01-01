@@ -617,7 +617,14 @@ import {
   batchDeleteReports,
   exportReport
 } from '../api/report'
-import * as echarts from 'echarts'
+// 异步加载echarts库
+let echartsPromise = null
+const loadEcharts = async () => {
+  if (!echartsPromise) {
+    echartsPromise = import('echarts')
+  }
+  return await echartsPromise
+}
 
 // 响应式数据
 const loading = ref(false)
@@ -940,9 +947,9 @@ const handleSizeChange = (size) => {
 // 初始化图表
 const initCharts = async () => {
   await nextTick()
-  
+
   if (!currentReport.value) return
-  
+
   if (chartsInitialized.value) {
     // already initialized, just resize to be safe
     if (pieChartInstance) pieChartInstance.resize()
@@ -950,26 +957,31 @@ const initCharts = async () => {
     if (barChartInstance) barChartInstance.resize()
     return
   }
-  
-  // 初始化饼图
-  initPieChart()
-  
-  // 初始化仪表盘
-  initGaugeChart()
-  
-  // 初始化柱状图
-  initBarChart()
-  chartsInitialized.value = true
+
+  try {
+    // 并行初始化所有图表
+    await Promise.all([
+      initPieChart(),
+      initGaugeChart(),
+      initBarChart()
+    ])
+    chartsInitialized.value = true
+  } catch (error) {
+    console.error('图表初始化失败:', error)
+    ElMessage.error('图表加载失败')
+  }
 }
 
 // 饼图 - 测试用例分布
-const initPieChart = () => {
+const initPieChart = async () => {
   if (!pieChartRef.value) return
-  
+
   if (pieChartInstance) {
     pieChartInstance.dispose()
   }
-  
+
+  // 异步加载echarts
+  const echarts = await loadEcharts()
   pieChartInstance = echarts.init(pieChartRef.value)
   
   const option = {
@@ -1040,13 +1052,15 @@ const initPieChart = () => {
 }
 
 // 仪表盘 - 成功率
-const initGaugeChart = () => {
+const initGaugeChart = async () => {
   if (!gaugeChartRef.value) return
-  
+
   if (gaugeChartInstance) {
     gaugeChartInstance.dispose()
   }
-  
+
+  // 异步加载echarts
+  const echarts = await loadEcharts()
   gaugeChartInstance = echarts.init(gaugeChartRef.value)
   
   const successRate = parseFloat(currentReport.value.successRate || 0)
@@ -1127,13 +1141,15 @@ const initGaugeChart = () => {
 }
 
 // 柱状图 - 测试结果统计
-const initBarChart = () => {
+const initBarChart = async () => {
   if (!barChartRef.value) return
-  
+
   if (barChartInstance) {
     barChartInstance.dispose()
   }
-  
+
+  // 异步加载echarts
+  const echarts = await loadEcharts()
   barChartInstance = echarts.init(barChartRef.value)
   
   const option = {

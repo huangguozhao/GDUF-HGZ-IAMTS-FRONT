@@ -98,13 +98,18 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, defineAsyncComponent } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 import { getUserProjects, updateUserProjects } from '@/api/personnel';
 import { getProjects } from '@/api/project';
 
-import UserManagementTab from '@/components/personnel/UserManagementTab.vue';
-import ProjectAssignmentTab from '@/components/personnel/ProjectAssignmentTab.vue';
+// 懒加载人员管理组件
+const UserManagementTab = defineAsyncComponent(() =>
+  import('@/components/personnel/UserManagementTab.vue')
+)
+const ProjectAssignmentTab = defineAsyncComponent(() =>
+  import('@/components/personnel/ProjectAssignmentTab.vue')
+)
 import CreateUserModal from '@/components/personnel/CreateUserModal.vue';
 import EditUserModal from '@/components/personnel/EditUserModal.vue';
 import AssignProjectModal from '@/components/personnel/AssignProjectModal.vue';

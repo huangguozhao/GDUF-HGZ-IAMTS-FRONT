@@ -27,12 +27,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, defineAsyncComponent } from 'vue'
 import Container from '@/components/ui/Container.vue'
 import PageTransition from '@/components/ui/PageTransition.vue'
 import MessageWelcome from '@/components/business/MessageCenter/MessageWelcome.vue'
-import MessageCenter from '@/components/business/MessageCenter/MessageCenter.vue'
 import toast from '@/utils/toast'
+
+// 懒加载消息中心组件
+const MessageCenter = defineAsyncComponent(() =>
+  import('@/components/business/MessageCenter/MessageCenter.vue')
+)
 
 // 消息数据管理
 const allMessages = reactive([

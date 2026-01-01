@@ -297,7 +297,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, defineAsyncComponent } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { 
   Refresh,
@@ -312,10 +312,19 @@ import {
   updateBasicSettings,
   getIntegrationSettings
 } from '../api/settings'
-import SystemConfigMain from '../components/settings/SystemConfigMain.vue'
-import PermissionSettingsMain from '../components/settings/PermissionSettingsMain.vue'
-import NotificationSettingsMain from '../components/settings/NotificationSettingsMain.vue'
-import IntegrationManagementMain from '../components/settings/IntegrationManagementMain.vue'
+// 懒加载设置组件
+const SystemConfigMain = defineAsyncComponent(() =>
+  import('../components/settings/SystemConfigMain.vue')
+)
+const PermissionSettingsMain = defineAsyncComponent(() =>
+  import('../components/settings/PermissionSettingsMain.vue')
+)
+const NotificationSettingsMain = defineAsyncComponent(() =>
+  import('../components/settings/NotificationSettingsMain.vue')
+)
+const IntegrationManagementMain = defineAsyncComponent(() =>
+  import('../components/settings/IntegrationManagementMain.vue')
+)
 
 // 当前标签页
 const activeTab = ref('basic')

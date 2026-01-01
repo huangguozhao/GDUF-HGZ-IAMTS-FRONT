@@ -204,68 +204,35 @@
       </div>
     </PageEnterTransition>
 
-    <!-- 用例选择对话框 -->
-    <el-dialog
-      v-model="showCaseSelector"
-      title="选择测试用例"
-      width="800px"
-      :close-on-click-modal="false"
-    >
-      <div class="case-selector">
-        <div class="selector-header">
-          <el-input
-            v-model="caseSearchKeyword"
-            placeholder="搜索用例名称"
-            clearable
-            style="width: 300px"
-          >
-            <template #prefix>
-              <el-icon><Search /></el-icon>
-            </template>
-          </el-input>
-        </div>
-
-        <div class="case-list">
-          <div class="case-item" v-for="caseItem in filteredCases" :key="caseItem.id">
-            <div class="case-info">
-              <span class="case-name">{{ caseItem.name }}</span>
-              <span class="case-project">{{ caseItem.projectName }}</span>
-            </div>
-            <el-button
-              :type="isSelected(caseItem.id) ? 'danger' : 'primary'"
-              size="small"
-              @click="toggleCaseSelection(caseItem)"
-            >
-              {{ isSelected(caseItem.id) ? '移除' : '添加' }}
-            </el-button>
-          </div>
-        </div>
-      </div>
-
-      <template #footer>
-        <el-button @click="showCaseSelector = false">关闭</el-button>
-      </template>
-    </el-dialog>
+    <!-- 用例选择对话框 (懒加载) -->
+    <CaseSelectorDialog
+      v-model:visible="showCaseSelector"
+      :selected-cases="selectedCases"
+      @update:selected-cases="selectedCases = $event"
+      @cancel="showCaseSelector = false"
+    />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, Calendar, Search } from '@element-plus/icons-vue'
 import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
 import { createTask } from '../api/task'
 import { getProjects } from '../api/project'
-import { getTestCases } from '../api/testCase'
+
+// 懒加载用例选择对话框组件
+const CaseSelectorDialog = defineAsyncComponent(() =>
+  import('../components/tasks/CaseSelectorDialog.vue')
+)
 
 const router = useRouter()
 const formRef = ref(null)
 const submitting = ref(false)
 const showCaseSelector = ref(false)
-const caseSearchKeyword = ref('')
 const projects = ref([])
-const allCases = ref([])
 const selectedCases = ref([])
 
 // 表单数据
@@ -322,12 +289,6 @@ const weekdays = [
 ]
 
 // 计算属性
-const filteredCases = computed(() => {
-  if (!caseSearchKeyword.value) return allCases.value
-  return allCases.value.filter(caseItem =>
-    caseItem.name.toLowerCase().includes(caseSearchKeyword.value.toLowerCase())
-  )
-})
 
 // 切换日期选择
 const toggleDay = (day) => {
@@ -336,20 +297,6 @@ const toggleDay = (day) => {
     formData.selectedDays.splice(index, 1)
   } else {
     formData.selectedDays.push(day)
-  }
-}
-
-// 检查用例是否已选择
-const isSelected = (caseId) => {
-  return selectedCases.value.some(item => item.id === caseId)
-}
-
-// 切换用例选择
-const toggleCaseSelection = (caseItem) => {
-  if (isSelected(caseItem.id)) {
-    removeCase(caseItem.id)
-  } else {
-    selectedCases.value.push(caseItem)
   }
 }
 
@@ -368,12 +315,6 @@ const loadData = async () => {
     const projectResponse = await getProjects()
     if (projectResponse.code === 200) {
       projects.value = projectResponse.data || []
-    }
-
-    // 加载用例列表
-    const caseResponse = await getTestCases()
-    if (caseResponse.code === 200) {
-      allCases.value = caseResponse.data || []
     }
   } catch (error) {
     console.error('加载数据失败:', error)
