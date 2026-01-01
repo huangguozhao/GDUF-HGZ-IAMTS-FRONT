@@ -1,409 +1,33 @@
 <template>
   <div class="case-detail-container">
-    <!-- 面包屑导航 -->
-    <div class="breadcrumb">
-      <span class="breadcrumb-item">测试用例</span>
-      <span class="breadcrumb-separator">›</span>
-      <span class="breadcrumb-item active">{{ testCase?.caseCode || testCase?.case_code || testCase?.id || '未知用例' }}</span>
-    </div>
-
-    <!-- 用例标题 -->
-    <div class="case-header">
-      <div class="case-title-row">
-        <h2 class="case-title">{{ testCase?.name || '未知用例' }}</h2>
-        <el-tag v-if="testCase && !testCase.isEnabled" type="danger" size="small" class="disabled-tag">
-          已禁用
-        </el-tag>
-      </div>
-      <div class="case-actions">
-        <el-button 
-          type="primary" 
-          size="default"
-          :icon="CaretRight"
-          :disabled="!testCase?.isEnabled"
-          @click="handleExecute"
-        >
-          执行测试
-        </el-button>
-        <el-button 
-          size="default"
-          :icon="Edit"
-          @click="handleEdit"
-        >
-          编辑
-        </el-button>
-        <el-button 
-          size="default"
-          :icon="CopyDocument"
-          @click="handleCopy"
-        >
-          复制
-        </el-button>
-        <el-dropdown @command="handleMoreAction">
-          <el-button size="default" :icon="MoreFilled">
-            更多
-        </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="export" :icon="Download">
-                导出用例
-              </el-dropdown-item>
-              <el-dropdown-item command="history" :icon="Clock">
-                查看历史
-              </el-dropdown-item>
-              <el-dropdown-item command="share" :icon="Share">
-                分享用例
-              </el-dropdown-item>
-              <el-dropdown-item 
-                v-if="props.testCase?.isEnabled" 
-                divided 
-                command="disable" 
-                :icon="CircleClose"
-              >
-                禁用用例
-              </el-dropdown-item>
-              <el-dropdown-item 
-                v-else 
-                divided 
-                command="enable" 
-                :icon="CircleCheck"
-              >
-                启用用例
-              </el-dropdown-item>
-              <el-dropdown-item command="delete" :icon="Delete">
-                <span style="color: #f56c6c;">删除用例</span>
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
-      </div>
-    </div>
+    <!-- 头部信息 -->
+    <CaseDetailHeader
+      :test-case="testCase"
+      @execute="handleExecute"
+      @edit="handleEdit"
+      @copy="handleCopy"
+      @more-action="handleMoreAction"
+    />
 
     <!-- 主要内容区域 -->
     <div class="case-content">
       <!-- 左侧主要信息 -->
       <div class="case-main">
-        <!-- 基本信息卡片 -->
-        <div class="info-card">
-          <div class="info-grid">
-            <div class="info-item">
-              <span class="info-label">优先级</span>
-              <el-tag 
-                :type="getPriorityType(testCase?.priority)" 
-                size="small"
-              >
-                {{ testCase?.priority || 'P0' }}
-              </el-tag>
-            </div>
-            <div class="info-item">
-              <span class="info-label">严重程度</span>
-              <el-tag 
-                :type="getSeverityType(testCase?.severity)" 
-                size="small"
-              >
-                {{ getSeverityText(testCase?.severity) }}
-              </el-tag>
-            </div>
-            <div class="info-item">
-              <span class="info-label">测试类型</span>
-              <el-tag 
-                :type="getTestTypeTagType(testCase?.testType || testCase?.test_type)" 
-                size="small"
-                class="test-type-tag"
-              >
-                {{ getTestTypeText(testCase?.testType || testCase?.test_type) }}
-              </el-tag>
-            </div>
-            <div class="info-item">
-              <span class="info-label">创建人</span>
-              <span class="info-value">{{ getCreatorName() }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">版本</span>
-              <span class="info-value">{{ testCase?.version || '1.0' }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">创建时间</span>
-              <span class="info-value">{{ formatTime(testCase?.createdAt || testCase?.created_time) }}</span>
-            </div>
-            <div class="info-item">
-              <span class="info-label">最后修改</span>
-              <span class="info-value">{{ formatTime(testCase?.updatedAt || testCase?.updated_time) }}</span>
-            </div>
-          </div>
-      </div>
+        <!-- 基本信息 -->
+        <CaseDetailBasicInfo :test-case="testCase" />
 
-        <!-- 用例描述 -->
-        <div class="section-card" v-if="testCase?.description">
-          <h3 class="section-title">用例描述</h3>
-          <p class="description-text">{{ testCase?.description }}</p>
-        </div>
-
-        <!-- 标签 -->
-        <div class="section-card" v-if="displayTags.length > 0">
-          <h3 class="section-title">标签</h3>
-          <div class="tags-container">
-            <el-tag 
-              v-for="(tag, index) in displayTags" 
-              :key="index"
-              class="tag-item"
-              type="info"
-            >
-              {{ tag }}
-            </el-tag>
-          </div>
-        </div>
-
-        <!-- 测试步骤 -->
-        <div class="section-card">
-          <h3 class="section-title">测试步骤</h3>
-          <div v-if="displaySteps.length > 0" class="steps-list">
-            <div v-for="(step, index) in displaySteps" :key="index" class="step-item">
-              <div class="step-number">{{ index + 1 }}</div>
-              <div class="step-content">
-                <div class="step-operation">{{ step.operation }}</div>
-                <div class="step-expected" v-if="step.expected">
-                  预期结果：{{ step.expected }}
-                </div>
-                <div class="step-actual" v-if="step.actual">
-                  实际结果：{{ step.actual }}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div v-else class="empty-steps">
-            <el-empty 
-              :image-size="80"
-              description="暂无测试步骤"
-            >
-              <template #description>
-                <p>该测试用例尚未配置测试步骤</p>
-                <p class="empty-tip">请联系测试人员添加具体的测试步骤</p>
-              </template>
-            </el-empty>
-          </div>
-        </div>
-
-        <!-- 测试数据 -->
-        <div class="section-card">
-          <h3 class="section-title">测试数据</h3>
-          <div v-if="displayTestData.length > 0" class="data-grid">
-            <div v-for="(item, index) in displayTestData" :key="index" class="data-item">
-              <span class="data-label">{{ item.label }}</span>
-              <span class="data-value">{{ item.value }}</span>
-            </div>
-          </div>
-          <div v-else class="empty-data">
-            <el-empty 
-              :image-size="60"
-              description="暂无测试数据"
-            >
-              <template #description>
-                <p>该测试用例尚未配置测试数据</p>
-                <p class="empty-tip">请联系测试人员添加具体的测试数据</p>
-              </template>
-            </el-empty>
-          </div>
-        </div>
-
-        <!-- 预期响应 -->
-        <div class="section-card">
-          <h3 class="section-title">预期响应</h3>
-          <div class="expected-response-section">
-            <div class="response-item">
-              <span class="response-label">状态码</span>
-              <el-tag 
-                :type="getStatusCodeType(testCase?.expectedHttpStatus || testCase?.expected_http_status)" 
-                size="small"
-              >
-                {{ testCase?.expectedHttpStatus || testCase?.expected_http_status || 200 }}
-              </el-tag>
-            </div>
-            <div class="response-item">
-              <span class="response-label">响应时间</span>
-              <span class="response-value">&lt; {{ testCase?.expectedResponseTime || testCase?.expected_response_time || '2秒' }}</span>
-            </div>
-            <div class="response-item full-width" v-if="displayValidationRules.length > 0">
-              <span class="response-label">验证规则</span>
-              <div class="validation-rules">
-                <div 
-                  v-for="(rule, index) in displayValidationRules" 
-                  :key="index"
-                  class="rule-tag"
-                >
-                  {{ rule }}
-                </div>
-              </div>
-            </div>
-            <div class="response-item full-width">
-              <span class="response-label">响应体</span>
-              <div class="response-code">
-                <el-button class="copy-btn" size="mini" type="text" :icon="CopyDocument" @click="handleCopyExpectedResponse" title="复制响应体" />
-                <pre>{{ formatExpectedResponse() }}</pre>
-              </div>
-            </div>
-            <div class="response-item full-width" v-if="hasExpectedResponseSchema">
-              <span class="response-label">响应Schema</span>
-              <div class="response-code">
-                <el-button class="copy-btn" size="mini" type="text" :icon="CopyDocument" @click="handleCopyExpectedResponseSchema" title="复制响应Schema" />
-                <pre>{{ formatExpectedResponseSchema() }}</pre>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 响应提取规则 -->
-        <div class="section-card" v-if="displayExtractors.length > 0">
-          <h3 class="section-title">响应提取规则</h3>
-          <div class="extractors-list">
-            <div 
-              v-for="(extractor, index) in displayExtractors" 
-              :key="index"
-              class="extractor-item"
-            >
-              <div class="extractor-header">
-                <span class="extractor-name">{{ extractor.name }}</span>
-                <el-tag size="small" type="success">提取变量</el-tag>
-              </div>
-              <div class="extractor-expression">
-                <span class="expression-label">表达式:</span>
-                <code class="expression-code">{{ extractor.expression }}</code>
-              </div>
-              <div class="extractor-description" v-if="extractor.description">
-                {{ extractor.description }}
-              </div>
-            </div>
-          </div>
-        </div>
+        <!-- API信息 -->
+        <CaseDetailApiInfo :test-case="testCase" />
       </div>
 
       <!-- 右侧辅助信息 -->
-      <div class="case-sidebar">
-        <!-- 执行历史 -->
-        <div class="sidebar-section">
-          <h4 class="sidebar-title">执行历史</h4>
-          <div v-loading="executionHistoryLoading" element-loading-text="加载中..." style="min-height: 100px;">
-          <div v-if="displayHistory.length > 0" class="history-list">
-            <div 
-              v-for="(history, index) in displayHistory" 
-              :key="index" 
-              class="history-card clickable"
-              @click="handleViewHistoryDetail(history)"
-            >
-              <div class="history-header">
-                <el-icon 
-                  :color="history.status === 'passed' ? '#67c23a' : '#f56c6c'"
-                  :size="16"
-                >
-                  <CircleCheckFilled v-if="history.status === 'passed'" />
-                  <CircleCloseFilled v-else />
-                </el-icon>
-                  <div class="executor-info">
-                    <div class="executor-name">{{ history.executor }}</div>
-                    <div class="executor-meta">
-                      <span class="execution-type">{{ history.action }}</span>
-                      <span class="environment" v-if="history.environment">{{ history.environment }}</span>
-                    </div>
-                  </div>
-              </div>
-              <div class="history-body">{{ history.note }}</div>
-                <div class="history-footer">
-                  <span class="execution-time">{{ history.executed_time }}</span>
-                  <span class="duration" v-if="history.durationSeconds > 0">
-                    ({{ formatDuration(history.durationSeconds) }})
-                  </span>
-                  <el-icon class="view-detail-icon"><View /></el-icon>
-            </div>
-          </div>
-            </div>
-            <div v-else-if="!executionHistoryLoading" class="empty-history">
-            <el-empty 
-              :image-size="50"
-              description="暂无执行记录"
-            >
-              <template #description>
-                <p>该测试用例尚未执行</p>
-                <p class="empty-tip">执行测试后将显示历史记录</p>
-              </template>
-            </el-empty>
-            </div>
-            
-            <!-- 查看更多按钮 -->
-            <div v-if="showViewMore && !executionHistoryLoading" class="view-more-section">
-              <el-button 
-                type="primary" 
-                size="small" 
-                text
-                :icon="View"
-                @click="handleViewMoreHistory"
-                class="view-more-btn"
-              >
-                查看更多执行历史 (共{{ executionHistoryTotal }}条)
-              </el-button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 关联信息 -->
-        <div class="sidebar-section">
-          <h4 class="sidebar-title">关联信息</h4>
-          <div class="related-list">
-            <div class="related-item">
-              <el-icon color="#409eff" :size="16">
-                <Link />
-              </el-icon>
-              <div class="related-content">
-                <div class="related-title">用户认证功能需求</div>
-                <div class="related-code">REQ-2024-001</div>
-              </div>
-        </div>
-            <div class="related-item">
-              <el-icon color="#f56c6c" :size="16">
-                <WarningFilled />
-              </el-icon>
-              <div class="related-content">
-                <div class="related-title">密码输入框显示问题</div>
-                <div class="related-code">BUG-1002</div>
-          </div>
-          </div>
-        </div>
-      </div>
-
-        <!-- 讨论区 -->
-        <div class="sidebar-section">
-          <h4 class="sidebar-title">讨论</h4>
-          <div class="comments-list">
-            <div class="comment-item">
-              <el-avatar :size="32" class="comment-avatar">
-                <el-icon><User /></el-icon>
-              </el-avatar>
-              <div class="comment-content">
-                <div class="comment-header">
-                  <span class="comment-author">李华</span>
-                  <span class="comment-time">2024-01-20 17:00</span>
-                </div>
-                <div class="comment-text">
-                  已完成此次测试，所有步骤均按正常执行
-                </div>
-              </div>
-            </div>
-            <div class="comment-item">
-              <el-avatar :size="32" class="comment-avatar">
-                <el-icon><User /></el-icon>
-              </el-avatar>
-              <div class="comment-content">
-                <div class="comment-header">
-                  <span class="comment-author">张明</span>
-                  <span class="comment-time">2024-01-20 16:45</span>
-                </div>
-                <div class="comment-text">
-                  请关注密码输入框的显示效果是否正确
-        </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
+      <CaseDetailSidebar
+        :display-history="displayHistory"
+        :execution-history-loading="executionHistoryLoading"
+        :execution-history-total="executionHistoryTotal"
+        @view-history-detail="handleViewHistoryDetail"
+        @view-more-history="handleViewMoreHistory"
+      />
     </div>
 
     <!-- 执行测试配置对话框 -->
@@ -1482,6 +1106,10 @@ import {
 } from '../../api/testCase'
 import { exportTestCaseLocal } from '../../utils/exportTestCase'
 import ExecutionHistoryModal from './ExecutionHistoryModal.vue'
+import CaseDetailHeader from './CaseDetailHeader.vue'
+import CaseDetailBasicInfo from './CaseDetailBasicInfo.vue'
+import CaseDetailApiInfo from './CaseDetailApiInfo.vue'
+import CaseDetailSidebar from './CaseDetailSidebar.vue'
 
 const props = defineProps({
   testCase: {
