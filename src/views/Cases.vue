@@ -31,7 +31,11 @@
             <span class="search-icon">🔍</span>
           </div>
 
-          <div class="tree-list" v-loading="loading">
+          <div class="tree-list">
+            <!-- 加载状态 -->
+            <ProjectListSkeleton v-if="loading" />
+            <!-- 实际内容 -->
+            <template v-else>
             <TreeNode
               v-for="project in filteredProjects"
               :key="project.id"
@@ -169,6 +173,7 @@
                 </TreeNode>
               </TreeNode>
             </TreeNode>
+            </template>
           </div>
         </div>
           </div>
@@ -1695,6 +1700,7 @@ import EnvironmentConfigDialog from '../components/cases/EnvironmentConfigDialog
 import EditDialog from '../components/cases/EditDialog.vue'
 import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
 import StaggeredReveal from '../components/ui/StaggeredReveal.vue'
+import { ProjectListSkeleton } from '../components/ui/skeletons'
 import {
   getProjects,
   getModulesByProject,

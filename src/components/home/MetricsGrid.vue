@@ -1,30 +1,49 @@
 <template>
   <div class="metrics-grid">
-    <MetricCard
-      v-for="(metric, index) in metrics"
-      :key="index"
-      :title="metric.title"
-      :value="metric.value"
-      :change="metric.change"
-      :change-unit="metric.changeUnit"
-      :icon="metric.icon"
-      :show-chart="metric.showChart"
-    >
-      <template v-if="metric.chart" #chart>
-        <component :is="metric.chart" />
-      </template>
-    </MetricCard>
+    <!-- 加载状态 -->
+    <MetricsSkeleton v-if="loading" :count="skeletonCount" :show-chart="showChart" />
+
+    <!-- 实际内容 -->
+    <template v-else>
+      <MetricCard
+        v-for="(metric, index) in metrics"
+        :key="index"
+        :title="metric.title"
+        :value="metric.value"
+        :change="metric.change"
+        :change-unit="metric.changeUnit"
+        :icon="metric.icon"
+        :show-chart="metric.showChart"
+      >
+        <template v-if="metric.chart" #chart>
+          <component :is="metric.chart" />
+        </template>
+      </MetricCard>
+    </template>
   </div>
 </template>
 
 <script setup>
 import MetricCard from './MetricCard.vue'
+import { MetricsSkeleton } from '@/components/ui/skeletons'
 
-defineProps({
+const props = defineProps({
   metrics: {
     type: Array,
     required: true,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
+  },
+  showChart: {
+    type: Boolean,
+    default: false
+  },
+  skeletonCount: {
+    type: Number,
+    default: 4
   }
 })
 </script>

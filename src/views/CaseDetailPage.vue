@@ -2,7 +2,7 @@
   <div class="case-detail-page">
     <PageEnterTransition>
       <div v-if="loading" class="loading-container">
-        <LoadingSpinner />
+        <CaseDetailSkeleton />
       </div>
       <div v-else-if="testCase" class="page-content">
         <CaseDetail
@@ -31,7 +31,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import CaseDetail from '../components/cases/CaseDetail.vue'
 import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
-import LoadingSpinner from '../components/ui/LoadingSpinner.vue'
+import { CaseDetailSkeleton } from '../components/ui/skeletons'
 import { getTestCaseDetail, deleteTestCase, executeTestCase, getTestCaseHistory } from '../api/testCase'
 import { transformTestCase } from '../utils/dataTransform'
 

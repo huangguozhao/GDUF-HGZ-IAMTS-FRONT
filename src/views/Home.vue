@@ -12,7 +12,7 @@
           <div class="summary-section">
             <!-- 通知提醒区域 -->
             <NotificationSection @view-tasks="handleViewTasks" />
-            <MetricsGrid :metrics="metricsData" />
+            <MetricsGrid :metrics="metricsData" :loading="loadingMetrics" :show-chart="false" />
           </div>
         </transition>
 
@@ -57,6 +57,7 @@ const loading = ref(false)
 const loadingProjects = ref(true)
 const loadingResources = ref(true)
 const loadingActivities = ref(true)
+const loadingMetrics = ref(true)
 
 // 指标数据
 const metricsData = computed(() => [
@@ -232,6 +233,19 @@ const loadActivities = async () => {
   }
 }
 
+const loadMetrics = async () => {
+  loadingMetrics.value = true
+  try {
+    // 模拟API调用 - 加载指标数据
+    await new Promise(resolve => setTimeout(resolve, 800))
+    // 这里可以调用实际的API来获取指标数据
+  } catch (error) {
+    console.error('Load metrics error:', error)
+  } finally {
+    loadingMetrics.value = false
+  }
+}
+
 // 页面加载时获取数据
 onMounted(async () => {
   loading.value = true
@@ -242,7 +256,8 @@ onMounted(async () => {
     await Promise.all([
       loadProjects(),
       loadResources(),
-      loadActivities()
+      loadActivities(),
+      loadMetrics()
     ])
 
     toast.success('数据加载完成')

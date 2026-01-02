@@ -16,7 +16,12 @@
           @add-member="handleAddMember"
         />
 
-        <div v-if="membersLoading" class="loading">加载中...</div>
+        <TableSkeleton
+          v-if="membersLoading"
+          :columns="memberTableColumns"
+          :row-count="8"
+          show-pagination
+        />
         <div v-else-if="membersTotal === 0" class="empty-state">
           <div class="empty-content">
             <svg class="empty-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
@@ -71,6 +76,7 @@ import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
 import ProjectList from './ProjectList.vue';
 import AddProjectMemberModal from './AddProjectMemberModal.vue';
+import { TableSkeleton } from '@/components/ui/skeletons';
 
 const props = defineProps({
   // 保留原有 props 以兼容父组件，项目成员列表由本组件通过项目成员分页接口加载
@@ -85,6 +91,15 @@ const emit = defineEmits(['role-change', 'remove-member', 'add-member']);
 
 const roleChangingIds = ref(new Set());
 const deletingIds = ref(new Set());
+
+// 表格列配置（用于骨架屏）
+const memberTableColumns = [
+  { key: 'name', type: 'avatar', width: '25%', contentWidth: 100 },
+  { key: 'email', type: 'text', width: '30%', contentWidth: 150 },
+  { key: 'role', type: 'tag', width: '20%', contentWidth: 60 },
+  { key: 'date', type: 'text', width: '20%', contentWidth: 80 },
+  { key: 'actions', type: 'actions', width: '15%', buttonCount: 1, buttonWidth: 60 }
+];
 
 // 添加成员相关状态
 const isAddMemberModalVisible = ref(false);

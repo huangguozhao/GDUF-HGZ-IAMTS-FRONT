@@ -64,10 +64,19 @@
     <div class="main-content">
       <!-- 任务列表 -->
       <div class="task-list-container">
+        <!-- 加载状态 -->
+        <TableSkeleton
+          v-if="loading"
+          :columns="tableColumns"
+          :row-count="10"
+          :action-count="2"
+          show-pagination
+        />
+        <!-- 实际表格 -->
         <el-table
+          v-else
           :data="taskList"
           class="task-table"
-          v-loading="loading"
           style="width: 100%"
         >
           <el-table-column prop="id" label="ID" width="100" />
@@ -156,6 +165,7 @@ import {
 } from '@element-plus/icons-vue'
 import { getTaskList, createTask, updateTask, deleteTask } from '../api/task'
 import { getProjects } from '../api/project'
+import { TableSkeleton } from '../components/ui/skeletons'
 
 // 筛选条件
 const filters = reactive({
@@ -184,6 +194,19 @@ const pagination = reactive({
 const taskList = ref([])
 const projects = ref([])
 const loading = ref(false)
+
+// 表格列配置（用于骨架屏）
+const tableColumns = [
+  { key: 'id', type: 'text', width: '10%', contentWidth: 60 },
+  { key: 'name', type: 'text', width: '20%', contentWidth: 150 },
+  { key: 'frequency', type: 'text', width: '10%', contentWidth: 60 },
+  { key: 'lastExecution', type: 'text', width: '18%', contentWidth: 120 },
+  { key: 'nextExecution', type: 'text', width: '18%', contentWidth: 120 },
+  { key: 'caseCount', type: 'text', width: '10%', contentWidth: 50 },
+  { key: 'creator', type: 'text', width: '10%', contentWidth: 80 },
+  { key: 'status', type: 'tag', width: '10%', contentWidth: 60 },
+  { key: 'actions', type: 'actions', width: '14%', buttonCount: 3, buttonWidth: 50 }
+]
 
 // 路由实例
 const router = useRouter()
