@@ -1,5 +1,5 @@
 <template>
-  <div class="login-page">
+  <div class="login-page" :class="{ 'keyboard-visible': keyboardVisible, 'low-end-device': isLowEndDevice }">
     <!-- 左侧信息面板 -->
     <div class="login-page__info-panel">
       <div class="info-panel__content">
@@ -77,7 +77,11 @@
               size="large"
               :prefix-icon="Message"
               :disabled="isLoading"
+              :inputmode="isMobile ? 'email' : undefined"
+              :autocomplete="isMobile ? 'username' : 'email'"
               @keyup.enter="handleLogin"
+              @focus="handleMobileFocus('email')"
+              @blur="handleMobileBlur"
             />
           </el-form-item>
 
@@ -90,7 +94,11 @@
               size="large"
               :prefix-icon="Lock"
               :disabled="isLoading"
+              :inputmode="isMobile ? 'text' : undefined"
+              :autocomplete="isMobile ? 'current-password' : undefined"
               @keyup.enter="handleLogin"
+              @focus="handleMobileFocus('password')"
+              @blur="handleMobileBlur"
             >
               <template #suffix>
                 <el-icon 
@@ -370,6 +378,154 @@ const handleLoadingComplete = () => {
   router.push('/')
 }
 
+// 移动端交互和性能优化
+const isMobile = ref(false)
+const keyboardVisible = ref(false)
+const viewportHeight = ref(window.innerHeight)
+const isLowEndDevice = ref(false)
+
+// 检测低端设备
+const detectLowEndDevice = () => {
+  // 检测内存、CPU等指标
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection
+  const isSlowConnection = connection && (connection.effectiveType === 'slow-2g' || connection.effectiveType === '2g')
+
+  // 检测硬件并发性
+  const isLowCPU = navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 2
+
+  // 检测设备内存
+  const isLowMemory = navigator.deviceMemory && navigator.deviceMemory <= 2
+
+  return isSlowConnection || isLowCPU || isLowMemory
+}
+
+// 防抖函数
+const debounce = (func, delay) => {
+  let timeoutId
+  return (...args) => {
+    clearTimeout(timeoutId)
+    timeoutId = setTimeout(() => func.apply(null, args), delay)
+  }
+}
+
+// 节流函数
+const throttle = (func, limit) => {
+  let inThrottle
+  return function() {
+    const args = arguments
+    const context = this
+    if (!inThrottle) {
+      func.apply(context, args)
+      inThrottle = true
+      setTimeout(() => inThrottle = false, limit)
+    }
+  }
+}
+
+// 检测移动设备
+const detectMobile = () => {
+  const userAgent = navigator.userAgent || navigator.vendor || window.opera
+  return /android|avantgo|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(userAgent)
+}
+
+// 监听视口高度变化（检测虚拟键盘）- 节流优化
+const handleViewportChange = throttle(() => {
+  const currentHeight = window.innerHeight
+  const heightDiff = viewportHeight.value - currentHeight
+
+  // 如果高度减少超过150px，认为是键盘弹出
+  keyboardVisible.value = heightDiff > 150
+  viewportHeight.value = currentHeight
+}, 100)
+
+// 移动端优化的事件处理
+const handleMobileFocus = (field) => {
+  if (isMobile.value) {
+    // 移动端聚焦时，延迟滚动确保键盘完全弹出
+    setTimeout(() => {
+      const element = document.querySelector(`[name="${field}"]`)
+      if (element) {
+        element.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        })
+      }
+    }, 300)
+  }
+}
+
+const handleMobileBlur = () => {
+  if (isMobile.value && keyboardVisible.value) {
+    // 键盘隐藏时恢复滚动
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, 200)
+  }
+}
+
+// 触摸反馈优化
+const addTouchFeedback = () => {
+  if (isMobile.value) {
+    // 为按钮添加触摸反馈
+    const buttons = document.querySelectorAll('.login-button, .el-button')
+    buttons.forEach(button => {
+      // 使用防抖优化触摸事件
+      const handleTouchStart = debounce(() => {
+        if (!isLowEndDevice.value) {
+          button.style.transform = 'scale(0.98)'
+        }
+      }, 10)
+
+      const handleTouchEnd = debounce(() => {
+        button.style.transform = ''
+      }, 10)
+
+      button.addEventListener('touchstart', handleTouchStart, { passive: true })
+      button.addEventListener('touchend', handleTouchEnd, { passive: true })
+    })
+  }
+}
+
+// 性能监控
+const performanceMonitor = () => {
+  if ('performance' in window && 'getEntriesByType' in performance) {
+    // 监控页面加载性能
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        const navigation = performance.getEntriesByType('navigation')[0]
+        const paint = performance.getEntriesByType('paint')
+
+        console.log('页面加载性能:', {
+          domContentLoaded: navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
+          loadComplete: navigation.loadEventEnd - navigation.loadEventStart,
+          firstPaint: paint.find(entry => entry.name === 'first-paint')?.startTime,
+          firstContentfulPaint: paint.find(entry => entry.name === 'first-contentful-paint')?.startTime
+        })
+      }, 0)
+    })
+  }
+}
+
+// 低端设备优化
+const optimizeForLowEndDevice = () => {
+  if (isLowEndDevice.value) {
+    // 禁用复杂动画
+    const style = document.createElement('style')
+    style.textContent = `
+      .login-page::before { animation: none !important; }
+      .logo-icon { animation: none !important; }
+      .login-button { animation: none !important; }
+      .feature-item { transition: none !important; }
+      * { animation-duration: 0.01ms !important; animation-delay: 0.01ms !important; }
+    `
+    document.head.appendChild(style)
+
+    // 简化背景
+    document.body.style.background = '#f5f7fa'
+  }
+}
+
 // 生命周期
 onMounted(() => {
   // 检查是否已登录
@@ -377,12 +533,49 @@ onMounted(() => {
     router.push('/')
     return
   }
-  
+
+  // 检测设备类型和性能
+  isMobile.value = detectMobile()
+  isLowEndDevice.value = detectLowEndDevice()
+
+  // 性能监控
+  performanceMonitor()
+
   // 恢复记住的邮箱
   const rememberedEmail = localStorage.getItem('rememberedEmail')
   if (rememberedEmail) {
     loginForm.email = rememberedEmail
     loginForm.rememberMe = true
+  }
+
+  // 移动端优化
+  if (isMobile.value) {
+    // 监听视口变化
+    window.addEventListener('resize', handleViewportChange, { passive: true })
+    viewportHeight.value = window.innerHeight
+
+    // 添加触摸反馈
+    addTouchFeedback()
+
+    // 低端设备优化
+    optimizeForLowEndDevice()
+
+    // 自动聚焦第一个输入框（延迟执行，避免影响性能）
+    setTimeout(() => {
+      const firstInput = document.querySelector('.login-form input')
+      if (firstInput && !loginForm.email) {
+        firstInput.focus()
+      }
+    }, 800) // 增加延迟时间
+  }
+})
+
+// 组件卸载时清理事件监听
+import { onUnmounted } from 'vue'
+
+onUnmounted(() => {
+  if (isMobile.value) {
+    window.removeEventListener('resize', handleViewportChange)
   }
 })
 </script>
@@ -390,10 +583,10 @@ onMounted(() => {
 <style scoped>
 .login-page {
   display: flex;
-  height: 100vh;
+  min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .login-page::before {
@@ -599,6 +792,7 @@ onMounted(() => {
   justify-content: center;
   padding: 40px;
   position: relative;
+  min-height: fit-content;
 }
 
 .login-page__form-panel::before {
@@ -877,57 +1071,106 @@ onMounted(() => {
   text-align: right;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
+/* PC端完整显示优化 */
+@media (min-width: 769px) {
   .login-page {
-    flex-direction: column;
-  }
-
-  .login-page__info-panel {
-    flex: none;
-    height: 40vh;
-    padding: 40px 20px;
-  }
-
-  .info-panel__title {
-    font-size: 32px;
-  }
-
-  .info-panel__subtitle {
-    font-size: 16px;
-  }
-
-  .info-panel__features {
-    max-width: 300px;
-  }
-
-  .feature-item {
-    font-size: 14px;
-    padding: 12px 16px;
-    margin-bottom: 16px;
-    border-radius: 12px;
-  }
-
-  .chart-icon {
-    font-size: 80px;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
   }
 
   .login-page__form-panel {
-    flex: none;
-    height: 60vh;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.98);
+    min-height: 600px;
+    align-items: flex-start;
+    padding-top: 80px;
   }
 
   .form-panel__content {
-    max-width: 100%;
-    padding: 32px 24px;
+    margin-top: 40px;
+  }
+}
+
+/* 移动端适配 - 移动优先设计 */
+@media (max-width: 768px) {
+  /* 基础移动端布局 */
+  .login-page {
+    flex-direction: column;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* 简化信息面板 - 只保留核心信息 */
+  .login-page__info-panel {
+    flex: none;
+    height: 25vh;
+    min-height: 200px;
+    padding: 24px 20px;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    position: relative;
+  }
+
+  /* 信息面板内容优化 */
+  .info-panel__content {
+    text-align: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .info-panel__title {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    line-height: 1.2;
+  }
+
+  .info-panel__subtitle {
+    font-size: 14px;
+    margin: 0 0 16px 0;
+    opacity: 0.9;
+    line-height: 1.4;
+    display: none; /* 移动端隐藏详细描述 */
+  }
+
+  .info-panel__features {
+    display: none; /* 移动端隐藏特性列表 */
+  }
+
+  .info-panel__chart {
+    display: none; /* 移动端隐藏图表图标 */
+  }
+
+  /* 表单面板优化 */
+  .login-page__form-panel {
+    flex: 1;
+    min-height: 75vh;
+    padding: 20px 16px;
+    background: rgba(255, 255, 255, 0.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+  }
+
+  .form-panel__content {
+    width: 100%;
+    max-width: 380px;
+    padding: 28px 24px;
     border-radius: 20px;
-    box-shadow: 0 16px 32px rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    margin-top: 20px;
+  }
+
+  /* 头部优化 */
+  .form-panel__header {
+    margin-bottom: 24px;
+    text-align: center;
   }
 
   .header__logo {
-    margin-right: 12px;
+    margin-right: 8px;
   }
 
   .logo-icon {
@@ -935,87 +1178,34 @@ onMounted(() => {
     height: 48px;
     font-size: 24px;
     border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(64, 158, 255, 0.25);
   }
 
   .header__title {
     font-size: 20px;
+    font-weight: 600;
   }
 
-  .welcome__title {
-    font-size: 24px;
-  }
-
-  .login-form .el-input {
-    height: 48px;
-  }
-
-  .login-button {
-    height: 48px;
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 480px) {
-  .login-page {
-    overflow-y: auto;
-  }
-
-  .login-page__info-panel {
-    padding: 20px;
-    height: 35vh;
-  }
-
-  .info-panel__title {
-    font-size: 28px;
-    margin-bottom: 16px;
-  }
-
-  .info-panel__subtitle {
-    font-size: 14px;
+  /* 欢迎信息优化 */
+  .form-panel__welcome {
     margin-bottom: 24px;
-  }
-
-  .info-panel__features {
-    max-width: 250px;
-  }
-
-  .feature-item {
-    padding: 10px 14px;
-    margin-bottom: 12px;
-    font-size: 13px;
-  }
-
-  .login-page__form-panel {
-    padding: 16px;
-    height: 65vh;
-  }
-
-  .form-panel__content {
-    padding: 24px 20px;
-    border-radius: 16px;
-  }
-
-  .form-panel__header {
-    margin-bottom: 20px;
-  }
-
-  .header__title {
-    font-size: 18px;
-  }
-
-  .logo-icon {
-    width: 44px;
-    height: 44px;
-    font-size: 22px;
+    text-align: center;
   }
 
   .welcome__title {
-    font-size: 20px;
-    margin-bottom: 6px;
+    font-size: 22px;
+    margin: 0 0 6px 0;
+    line-height: 1.3;
   }
 
   .welcome__subtitle {
-    font-size: 13px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+
+  /* 表单优化 */
+  .login-form {
+    margin-bottom: 24px;
   }
 
   .login-form .el-form-item {
@@ -1023,16 +1213,122 @@ onMounted(() => {
   }
 
   .login-form .el-input {
-    height: 46px;
+    height: 52px; /* 触摸友好尺寸 */
+    border-radius: 12px;
   }
 
+  .login-form .el-input__wrapper {
+    border-radius: 12px;
+    min-height: 52px;
+  }
+
+  /* 选项区域优化 */
   .form-options {
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .forgot-password {
+    font-size: 14px;
+  }
+
+  /* 登录按钮优化 */
+  .login-button {
+    height: 52px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    margin-top: 8px;
+  }
+
+  /* 页脚优化 */
+  .form-panel__footer {
+    margin-top: 20px;
+    text-align: center;
+  }
+
+  .copyright {
+    font-size: 12px;
+    color: #a8abb2;
+  }
+}
+
+/* 小屏手机优化 (375px以下) */
+@media (max-width: 480px) {
+  .login-page {
+    padding: 0;
+  }
+
+  .login-page__info-panel {
+    height: 22vh;
+    min-height: 160px;
+    padding: 20px 16px;
+  }
+
+  .info-panel__title {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .login-page__form-panel {
+    padding: 16px;
+    min-height: 78vh;
+  }
+
+  .form-panel__content {
+    padding: 24px 20px;
+    border-radius: 16px;
+    margin-top: 16px;
+  }
+
+  .form-panel__header {
     margin-bottom: 20px;
   }
 
+  .logo-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+    border-radius: 10px;
+  }
+
+  .header__title {
+    font-size: 18px;
+  }
+
+  .welcome__title {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .welcome__subtitle {
+    font-size: 13px;
+  }
+
+  .login-form .el-form-item {
+    margin-bottom: 18px;
+  }
+
+  .login-form .el-input {
+    height: 50px;
+  }
+
+  .login-form .el-input__wrapper {
+    min-height: 50px;
+  }
+
+  .form-options {
+    margin-bottom: 18px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
   .login-button {
-    height: 46px;
-    font-size: 14px;
+    height: 50px;
+    font-size: 15px;
+    margin-top: 4px;
   }
 
   .form-panel__footer {
@@ -1041,6 +1337,185 @@ onMounted(() => {
 
   .copyright {
     font-size: 11px;
+  }
+}
+
+/* 超小屏设备优化 (360px以下) */
+@media (max-width: 360px) {
+  .login-page__form-panel {
+    padding: 12px;
+  }
+
+  .form-panel__content {
+    padding: 20px 16px;
+    margin-top: 12px;
+  }
+
+  .info-panel__title {
+    font-size: 18px;
+  }
+
+  .welcome__title {
+    font-size: 18px;
+  }
+
+  .header__title {
+    font-size: 16px;
+  }
+
+  .login-form .el-input {
+    height: 48px;
+  }
+
+  .login-form .el-input__wrapper {
+    min-height: 48px;
+  }
+
+  .login-button {
+    height: 48px;
+  }
+}
+
+/* 移动端触摸优化 */
+@media (hover: none) and (pointer: coarse) {
+  /* 触摸设备样式 */
+  .login-form .el-input__wrapper {
+    transition: all 0.15s ease;
+  }
+
+  .login-form .el-input__wrapper:hover {
+    border-color: rgba(193, 194, 197, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .login-form .el-input__wrapper:active {
+    transform: scale(0.99);
+    border-color: #409eff;
+  }
+
+  .login-button {
+    transition: all 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .login-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 2px 8px rgba(64, 158, 255, 0.25);
+  }
+
+  .password-toggle {
+    transition: all 0.15s ease;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .password-toggle:active {
+    transform: scale(1.1);
+    background-color: rgba(64, 158, 255, 0.1);
+    border-radius: 6px;
+  }
+
+  /* 触摸友好的复选框 */
+  .el-checkbox {
+    min-height: 44px;
+    padding: 8px 0;
+  }
+
+  .el-checkbox__input {
+    margin-right: 12px;
+  }
+
+  /* 链接触摸优化 */
+  .forgot-password {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    margin-left: auto;
+  }
+}
+
+/* 虚拟键盘处理 */
+.keyboard-visible .login-page {
+  height: auto;
+  min-height: 100vh;
+}
+
+.keyboard-visible .login-page__form-panel {
+  padding-bottom: 120px; /* 为键盘留出空间 */
+}
+
+.keyboard-visible .form-panel__content {
+  margin-top: 10px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+/* 移动端性能优化 */
+@media (max-width: 768px) {
+  /* 减少动画复杂度 */
+  .logo-icon {
+    animation: none; /* 移动端禁用复杂动画 */
+  }
+
+  .login-page::before {
+    animation-duration: 15s; /* 减慢背景动画 */
+  }
+
+  /* 优化滚动性能 */
+  .form-panel__content {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* 禁用不必要的变换 */
+  .feature-item:hover {
+    transform: none;
+  }
+
+  .login-button:hover:not(.is-disabled) {
+    transform: none;
+  }
+}
+
+/* 低端设备性能优化 */
+@media (max-width: 768px) {
+  .low-end-device .login-page::before,
+  .low-end-device .logo-icon,
+  .low-end-device .login-button,
+  .low-end-device .feature-item {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .low-end-device * {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    transition-delay: 0.01ms !important;
+  }
+
+  .low-end-device {
+    background: #f5f7fa !important;
+  }
+
+  .low-end-device .login-page__info-panel {
+    background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%) !important;
+  }
+
+  .low-end-device .form-panel__content {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .low-end-device .login-page__form-panel {
+    background: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
   }
 }
 </style>
