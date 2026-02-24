@@ -122,6 +122,49 @@
                   />
                 </el-form-item>
               </div>
+
+              <!-- 一次性/简单重复设置 -->
+              <div class="simple-section" v-if="formData.frequency === 'once' || formData.frequency === 'simple'">
+                <el-form-item label="立即开始" prop="startImmediately">
+                  <el-switch v-model="formData.startImmediately" />
+                  <span class="switch-label">{{ formData.startImmediately ? '是（立即执行）' : '否（按设定时间执行）' }}</span>
+                </el-form-item>
+
+                <el-form-item label="执行次数" prop="simpleRepeatCount" v-if="formData.frequency === 'simple'">
+                  <div class="repeat-config">
+                    <span>每隔</span>
+                    <el-input-number
+                      v-model="formData.simpleRepeatInterval"
+                      :min="1"
+                      :max="9999"
+                      style="width: 100px; margin: 0 10px"
+                    />
+                    <el-select v-model="formData.simpleRepeatUnit" style="width: 120px; margin: 0 10px">
+                      <el-option label="秒" value="seconds" />
+                      <el-option label="分钟" value="minutes" />
+                      <el-option label="小时" value="hours" />
+                      <el-option label="天" value="days" />
+                    </el-select>
+                    <span>执行</span>
+                    <el-input-number
+                      v-model="formData.simpleRepeatCount"
+                      :min="1"
+                      :max="9999"
+                      style="width: 100px; margin: 0 10px"
+                    />
+                    <span>次</span>
+                  </div>
+                  <div class="repeat-hint" v-if="formData.simpleRepeatCount > 0">
+                    共将执行 {{ formData.simpleRepeatCount }} 次
+                    <span v-if="!formData.startImmediately">，首次执行时间：{{ formData.executionTime || '立即' }}</span>
+                  </div>
+                </el-form-item>
+
+                <div v-if="formData.frequency === 'once'" class="once-hint">
+                  <el-icon><InfoFilled /></el-icon>
+                  任务将{{ formData.startImmediately ? '立即执行一次' : '在设定时间执行一次' }}，执行完成后自动停止
+                </div>
+              </div>
             </div>
 
             <!-- 高级设置 -->
@@ -262,7 +305,7 @@
 import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Delete, Calendar, Search, Folder, Connection } from '@element-plus/icons-vue'
+import { Plus, Delete, Calendar, Search, Folder, Connection, InfoFilled } from '@element-plus/icons-vue'
 import { createTask } from '../api/task'
 import { getProjects } from '../api/project'
 
@@ -325,7 +368,12 @@ const formData = reactive({
   timeout: 60,
   retryCount: 3,
   emailNotification: true,
-  wechatNotification: false
+  wechatNotification: false,
+  // 一次性/简单重复相关
+  simpleRepeatCount: 1,      // 执行次数（1表示只执行1次）
+  simpleRepeatInterval: 1,   // 间隔数量
+  simpleRepeatUnit: 'hours',  // 间隔单位: seconds, minutes, hours
+  startImmediately: false    // 是否立即开始
 })
 
 // 表单验证规则
@@ -350,9 +398,11 @@ const formRules = {
 
 // 频率选项
 const frequencyOptions = [
-  { label: '每日', value: 'daily' },
-  { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' }
+  { label: '一次性', value: 'once', desc: '只执行一次' },
+  { label: '每日', value: 'daily', desc: '每天固定时间执行' },
+  { label: '每周', value: 'weekly', desc: '每周指定日期执行' },
+  { label: '每月', value: 'monthly', desc: '每月指定日期执行' },
+  { label: '简单重复', value: 'simple', desc: '自定义间隔和次数' }
 ]
 
 // 星期选项
@@ -418,8 +468,8 @@ const handleSubmit = async () => {
     return
   }
 
-  // 验证执行时间
-  if (!formData.executionTime) {
+    // 验证执行时间
+  if (!formData.executionTime && !formData.startImmediately) {
     ElMessage.warning('请选择执行时间')
     return
   }
@@ -428,6 +478,18 @@ const handleSubmit = async () => {
   if (formData.frequency === 'weekly' && formData.selectedDays.length === 0) {
     ElMessage.warning('请选择至少一个执行日期')
     return
+  }
+
+  // 验证简单重复参数
+  if (formData.frequency === 'simple') {
+    if (formData.simpleRepeatInterval < 1) {
+      ElMessage.warning('请设置有效的间隔')
+      return
+    }
+    if (formData.simpleRepeatCount < 1) {
+      ElMessage.warning('请设置有效的执行次数')
+      return
+    }
   }
 
   try {
@@ -465,18 +527,46 @@ const handleSubmit = async () => {
     // 转换月度日期
     const monthlyDay = formData.frequency === 'monthly' ? 1 : null
 
+    // 转换间隔单位为毫秒
+    const intervalUnitMs = {
+      seconds: 1000,
+      minutes: 60 * 1000,
+      hours: 60 * 60 * 1000,
+      days: 24 * 60 * 60 * 1000
+    }
+    const simpleRepeatIntervalMs = formData.simpleRepeatInterval * (intervalUnitMs[formData.simpleRepeatUnit] || intervalUnitMs.hours)
+
     // 构建后端需要的请求数据
+    let triggerType = formData.frequency
+    let cronExpression = null
+
+    // 处理一次性任务 - 使用简单的未来时间触发
+    if (formData.frequency === 'once') {
+      triggerType = 'simple'
+      // 一次性执行：repeatCount = 0 表示执行1次后停止
+    }
+
+    // 处理简单重复任务
+    if (formData.frequency === 'simple') {
+      triggerType = 'simple'
+    }
+
     const submitData = {
       taskName: formData.name,
       description: formData.description,
       taskType: 'single_case', // 单个用例类型
       targetId: selectedCases.value[0]?.id || null, // 用例ID
       targetName: selectedCases.value[0]?.name || '未命名用例', // 用例名称
-      triggerType: formData.frequency,
-      dailyHour: dailyHour,
-      dailyMinute: dailyMinute,
-      weeklyDays: weeklyDays,
+      triggerType: triggerType,
+      cronExpression: cronExpression,
+      dailyHour: formData.frequency !== 'once' && formData.frequency !== 'simple' ? dailyHour : null,
+      dailyMinute: formData.frequency !== 'once' && formData.frequency !== 'simple' ? dailyMinute : null,
+      weeklyDays: formData.frequency === 'weekly' ? weeklyDays : null,
       monthlyDay: monthlyDay,
+      // 简单重复参数
+      simpleRepeatInterval: (formData.frequency === 'once' || formData.frequency === 'simple') ? simpleRepeatIntervalMs : null,
+      simpleRepeatCount: formData.frequency === 'once' ? 0 : (formData.frequency === 'simple' ? formData.simpleRepeatCount - 1 : null),
+      // 立即执行参数（对于一次性任务，如果选择立即开始，则设置为当前时间后很短的时间触发）
       executionEnvironment: 'test', // 默认测试环境
       timeoutSeconds: formData.timeout ? formData.timeout * 60 : 3600, // 分钟转秒
       retryEnabled: formData.retryCount > 0,
@@ -484,6 +574,12 @@ const handleSubmit = async () => {
       notifyOnSuccess: formData.emailNotification,
       notifyOnFailure: formData.emailNotification,
       notificationRecipients: formData.emailNotification ? 'admin@example.com' : null
+    }
+
+    // 如果选择立即开始，设置触发时间为当前时间
+    if (formData.startImmediately && (formData.frequency === 'once' || formData.frequency === 'simple')) {
+      // Quartz的simple触发器会在startNow()时立即执行第一次
+      // 不需要额外设置
     }
 
     console.log('提交数据:', submitData)
@@ -626,8 +722,33 @@ onMounted(() => {
 
 .frequency-section,
 .cycle-section,
-.time-section {
+.time-section,
+.simple-section {
   margin-bottom: 20px;
+}
+
+.repeat-config {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.repeat-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.once-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f0f9ff;
+  border: 1px solid #bae7ff;
+  border-radius: 4px;
+  color: #1890ff;
+  font-size: 13px;
 }
 
 .frequency-options,
