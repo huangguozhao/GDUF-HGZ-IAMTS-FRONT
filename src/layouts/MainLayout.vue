@@ -119,10 +119,17 @@ const activeMenu = computed(() => {
     '/cases': 'cases',
     '/reports': 'reports',
     '/tasks': 'tasks',
+    '/tasks/create': 'tasks',
+    '/tasks/:taskId': 'tasks',
     '/personnel': 'personnel',
     '/settings': 'settings'
   }
-  return routeMap[route.path] || 'home'
+  // 处理子路由
+  const path = route.path
+  if (path.startsWith('/tasks')) {
+    return 'tasks'
+  }
+  return routeMap[path] || 'home'
 })
 
 // 切换侧边栏
