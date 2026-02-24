@@ -391,7 +391,7 @@ const handleSubmit = async () => {
       description: formData.description,
       taskType: 'single_case', // 单个用例类型
       targetId: selectedCases.value[0]?.id || null, // 用例ID
-      targetName: selectedCases.value[0]?.name || '', // 用例名称
+      targetName: selectedCases.value[0]?.name || '未命名用例', // 用例名称
       triggerType: formData.frequency,
       dailyHour: dailyHour,
       dailyMinute: dailyMinute,
