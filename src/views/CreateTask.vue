@@ -172,15 +172,60 @@
               </div>
 
               <div v-if="selectedCases.length > 0" class="selected-cases">
-                <div class="case-item" v-for="caseItem in selectedCases" :key="caseItem.id">
-                  <div class="case-info">
-                    <span class="case-name">{{ caseItem.name }}</span>
-                    <span class="case-project">{{ caseItem.projectName }}</span>
-                  </div>
-                  <el-button type="danger" size="small" text @click="removeCase(caseItem.id)">
-                    <el-icon><Delete /></el-icon>
-                  </el-button>
-                </div>
+                <el-collapse v-model="expandedModules">
+                  <el-collapse-item 
+                    v-for="module in groupedCases" 
+                    :key="module.id" 
+                    :name="module.id"
+                  >
+                    <template #title>
+                      <div class="module-header">
+                        <span class="module-name">
+                          <el-icon><Folder /></el-icon>
+                          {{ module.name }}
+                        </span>
+                        <el-tag size="small" type="info">
+                          {{ Object.values(module.apis).reduce((sum, api) => sum + api.cases.length, 0) }} 个用例
+                        </el-tag>
+                      </div>
+                    </template>
+                    
+                    <div class="api-list">
+                      <div 
+                        v-for="api in Object.values(module.apis)" 
+                        :key="api.id" 
+                        class="api-item"
+                      >
+                        <div class="api-info">
+                          <span class="api-name">
+                            <el-icon><Connection /></el-icon>
+                            {{ api.name }}
+                          </span>
+                          <el-tag size="small" type="success">
+                            {{ api.cases.length }} 个用例
+                          </el-tag>
+                        </div>
+                        <div class="case-list">
+                          <div 
+                            v-for="caseItem in api.cases" 
+                            :key="caseItem.id" 
+                            class="case-item"
+                          >
+                            <span class="case-name">{{ caseItem.name }}</span>
+                            <el-button 
+                              type="danger" 
+                              size="small" 
+                              text 
+                              @click="removeCase(caseItem.id)"
+                            >
+                              <el-icon><Delete /></el-icon>
+                            </el-button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </el-collapse-item>
+                </el-collapse>
               </div>
               <div v-else class="empty-cases">
                 <div class="empty-icon">📋</div>
@@ -217,7 +262,7 @@
 import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { Plus, Delete, Calendar, Search } from '@element-plus/icons-vue'
+import { Plus, Delete, Calendar, Search, Folder, Connection } from '@element-plus/icons-vue'
 import { createTask } from '../api/task'
 import { getProjects } from '../api/project'
 
@@ -232,6 +277,41 @@ const submitting = ref(false)
 const showCaseSelector = ref(false)
 const projects = ref([])
 const selectedCases = ref([])
+
+// 按模块和接口归类已选择的测试用例
+const groupedCases = computed(() => {
+  const modules = {}
+  
+  selectedCases.value.forEach(caseItem => {
+    const moduleId = caseItem.moduleId || 'unknown'
+    const moduleName = caseItem.moduleName || '未分类'
+    const apiId = caseItem.apiId || 'unknown'
+    const apiName = caseItem.apiName || '未分类'
+    
+    if (!modules[moduleId]) {
+      modules[moduleId] = {
+        id: moduleId,
+        name: moduleName,
+        apis: {}
+      }
+    }
+    
+    if (!modules[moduleId].apis[apiId]) {
+      modules[moduleId].apis[apiId] = {
+        id: apiId,
+        name: apiName,
+        cases: []
+      }
+    }
+    
+    modules[moduleId].apis[apiId].cases.push(caseItem)
+  })
+  
+  return Object.values(modules)
+})
+
+// 展开的模块列表
+const expandedModules = ref([])
 
 // 表单数据
 const formData = reactive({
@@ -578,19 +658,85 @@ onMounted(() => {
 }
 
 .selected-cases {
+  border: 1px solid #ebeef5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.module-header {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding-right: 20px;
+}
+
+.module-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: #303133;
+}
+
+.api-list {
+  padding: 12px;
+  background-color: #f5f7fa;
+}
+
+.api-item {
+  margin-bottom: 16px;
+}
+
+.api-item:last-child {
+  margin-bottom: 0;
+}
+
+.api-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background-color: #fff;
+  border-radius: 4px;
+  border: 1px solid #e4e7ed;
+}
+
+.api-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  color: #409eff;
+}
+
+.case-list {
+  padding-left: 24px;
 }
 
 .case-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px;
-  border: 1px solid #ebeef5;
-  border-radius: 6px;
-  background-color: #fafafa;
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  background-color: #fff;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+}
+
+.case-item:last-child {
+  margin-bottom: 0;
+}
+
+.case-item .case-name {
+  font-weight: normal;
+  color: #606266;
+}
+
+.case-item:hover {
+  background-color: #f5f7fa;
 }
 
 .case-info {
