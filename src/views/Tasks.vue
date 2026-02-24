@@ -298,7 +298,12 @@ const fetchTasks = async () => {
     const response = await getTaskList(params)
 
     // 处理后端返回的数据结构
-    if (response.data && response.data.list) {
+    if (response.data && response.data.items) {
+      // 分页格式: { total, items, page, pageSize }
+      taskList.value = response.data.items.map(item => transformBackendData(item))
+      pagination.total = response.data.total || 0
+    } else if (response.data && response.data.list) {
+      // 兼容 list 格式
       taskList.value = response.data.list.map(item => transformBackendData(item))
       pagination.total = response.data.total || 0
     } else if (Array.isArray(response.data)) {
@@ -456,7 +461,8 @@ const getFrequencyText = (frequency) => {
     'weekly': '每周执行',
     'monthly': '每月执行',
     'cron': 'Cron表达式',
-    'simple': '简单重复'
+    'simple': '简单重复',
+    'once': '一次性执行'
   }
   return frequencyMap[frequency] || frequency || '-'
 }

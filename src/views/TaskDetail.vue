@@ -207,7 +207,8 @@ const getFrequencyText = (frequency) => {
     'weekly': '每周执行',
     'monthly': '每月执行',
     'cron': 'Cron表达式',
-    'simple': '简单重复'
+    'simple': '简单重复',
+    'once': '一次性执行'
   }
   return frequencyMap[frequency] || frequency || '-'
 }
