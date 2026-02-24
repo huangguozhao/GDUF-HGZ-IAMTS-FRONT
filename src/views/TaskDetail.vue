@@ -283,7 +283,7 @@ const loadTask = async () => {
     loading.value = true
     const response = await getTaskDetail(taskId.value)
 
-    if (response.code === 200 && response.data) {
+    if (response.code === 1 && response.data) {
       task.value = transformBackendData(response.data)
       // 加载执行历史
       loadExecutionHistory()
@@ -304,7 +304,7 @@ const loadExecutionHistory = async () => {
   try {
     historyLoading.value = true
     const response = await getTaskExecutionHistory(taskId.value, { page: 1, page_size: 5 })
-    if (response.code === 200 && response.data && response.data.list) {
+    if (response.code === 1 && response.data && response.data.list) {
       executionHistory.value = response.data.list.map(item => ({
         id: item.executionId,
         time: item.scheduledTime ? formatDateTime(item.scheduledTime) : '-',
@@ -395,7 +395,7 @@ const handleDelete = async () => {
     })
 
     const response = await deleteTask(taskId.value)
-    if (response.code === 200) {
+    if (response.code === 1) {
       ElMessage.success('删除成功')
       router.push('/tasks')
     } else {

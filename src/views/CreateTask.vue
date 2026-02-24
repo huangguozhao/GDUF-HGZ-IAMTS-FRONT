@@ -412,14 +412,24 @@ const handleSubmit = async () => {
 
     console.log('响应结果:', response)
 
-    if (response.code === 200) {
+    if (response.code === 1) {
       ElMessage.success('创建成功')
       router.push('/tasks')
-    } else if (response.code === 403) {
+    } else if (response.code === 403 || response.code === -1) {
       ElMessage.error('没有权限创建任务，请联系管理员分配 task:create 权限')
     } else if (response.code === 401) {
       ElMessage.error('登录已过期，请重新登录')
       router.push('/login')
+    } else if (response.code === -5) {
+      // 处理重复名称等数据库错误
+      const errorMsg = response.msg || ''
+      if (errorMsg.includes('Duplicate entry') || errorMsg.includes('uk_task_name')) {
+        ElMessage.warning('任务名称已存在，请使用其他名称')
+      } else if (errorMsg.includes('targetName') || errorMsg.includes('target_name')) {
+        ElMessage.error('请先选择测试用例')
+      } else {
+        ElMessage.error('创建失败: ' + (response.msg || '请稍后重试'))
+      }
     } else {
       ElMessage.error(response.msg || '创建失败')
     }

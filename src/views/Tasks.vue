@@ -539,7 +539,12 @@ const handleToggleStatus = async (row) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('操作失败:', error)
-      ElMessage.error('操作失败，请稍后重试')
+      // 检查是否是权限问题
+      if (error.response?.data?.msg?.includes('permission') || error.response?.data?.msg?.includes('权限')) {
+        ElMessage.error('没有操作权限，请联系管理员')
+      } else {
+        ElMessage.error('操作失败，请稍后重试')
+      }
     }
   }
 }
@@ -563,7 +568,11 @@ const handleExecute = async (row) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('执行失败:', error)
-      ElMessage.error('执行失败，请稍后重试')
+      if (error.response?.data?.msg?.includes('permission') || error.response?.data?.msg?.includes('权限')) {
+        ElMessage.error('没有执行权限，请联系管理员')
+      } else {
+        ElMessage.error('执行失败，请稍后重试')
+      }
     }
   }
 }
@@ -587,7 +596,11 @@ const handleDelete = async (row) => {
   } catch (error) {
     if (error !== 'cancel') {
       console.error('删除失败:', error)
-      ElMessage.error('删除失败，请稍后重试')
+      if (error.response?.data?.msg?.includes('permission') || error.response?.data?.msg?.includes('权限')) {
+        ElMessage.error('没有删除权限，请联系管理员')
+      } else {
+        ElMessage.error('删除失败，请稍后重试')
+      }
     }
   }
 }
