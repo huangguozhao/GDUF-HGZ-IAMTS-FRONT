@@ -311,7 +311,12 @@ const loadData = async () => {
     // 加载项目列表（分页格式，需要从 items 获取）
     const projectResponse = await getProjects({ pageSize: 100 })
     const projectList = projectResponse.data?.items || projectResponse.data || []
-    projects.value = projectList
+    // 转换项目数据，统一 id 字段名
+    projects.value = projectList.map(project => ({
+      id: project.projectId || project.project_id,
+      name: project.name,
+      project_id: project.projectId || project.project_id
+    }))
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
