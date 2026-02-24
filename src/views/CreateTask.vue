@@ -308,11 +308,10 @@ const removeCase = (caseId) => {
 // 加载数据
 const loadData = async () => {
   try {
-    // 加载项目列表
-    const projectResponse = await getProjects()
-    if (projectResponse.code === 200) {
-      projects.value = projectResponse.data || []
-    }
+    // 加载项目列表（分页格式，需要从 items 获取）
+    const projectResponse = await getProjects({ pageSize: 100 })
+    const projectList = projectResponse.data?.items || projectResponse.data || []
+    projects.value = projectList
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')

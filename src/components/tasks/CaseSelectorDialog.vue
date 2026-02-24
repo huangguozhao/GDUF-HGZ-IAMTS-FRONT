@@ -112,11 +112,7 @@ const loadCases = async () => {
   try {
     loading.value = true
     const response = await getTestCasesByApi(null, { pageSize: 1000 })
-    if (response.code === 200) {
-      allCases.value = response.data || []
-    } else {
-      ElMessage.error('加载用例数据失败')
-    }
+    allCases.value = response.data || []
   } catch (error) {
     console.error('加载用例失败:', error)
     ElMessage.error('加载用例数据失败')
