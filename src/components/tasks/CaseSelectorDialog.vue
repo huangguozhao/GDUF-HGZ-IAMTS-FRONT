@@ -26,30 +26,37 @@
 
       <!-- 树形结构展示 -->
       <div class="tree-container" v-loading="loading">
-        <el-collapse v-model="activeCollapse" accordion>
-          <el-collapse-item
+        <!-- 使用 div 代替 el-collapse，避免展开冲突 -->
+        <div class="module-list">
+          <div
             v-for="module in filteredTreeData"
             :key="module.id"
-            :name="module.id"
+            class="module-item"
           >
-            <template #title>
-              <div class="module-title">
-                <el-icon><Folder /></el-icon>
-                <span class="module-name">{{ module.name }}</span>
-                <el-tag size="small" type="info">{{ module.apiCount }} 个接口</el-tag>
-              </div>
-            </template>
+            <!-- 模块标题 -->
+            <div 
+              class="module-header" 
+              @click="toggleModuleExpand(module)"
+            >
+              <el-icon>
+                <ArrowRight v-if="!module.expanded" />
+                <ArrowDown v-else />
+              </el-icon>
+              <el-icon><Folder /></el-icon>
+              <span class="module-name">{{ module.name }}</span>
+              <el-tag size="small" type="info">{{ module.apiCount }} 个接口</el-tag>
+            </div>
 
             <!-- 接口列表 -->
-            <div class="api-list">
+            <div v-if="module.expanded" class="api-list">
               <div
                 v-for="api in module.apis"
                 :key="api.id"
                 class="api-item"
               >
-                <div class="api-header" @click="toggleApiCases(api.id)">
+                <div class="api-header" @click.stop="toggleApiCases(api, module)">
                   <el-icon>
-                    <ArrowRight v-if="!expandedApis.includes(api.id)" />
+                    <ArrowRight v-if="!api.expanded" />
                     <ArrowDown v-else />
                   </el-icon>
                   <el-tag :type="getMethodType(api.method)" size="small">
@@ -61,7 +68,7 @@
                 </div>
 
                 <!-- 测试用例列表 -->
-                <div v-if="expandedApis.includes(api.id)" class="case-list">
+                <div v-if="api.expanded" class="case-list">
                   <div
                     v-for="caseItem in api.cases"
                     :key="caseItem.id"
@@ -75,7 +82,7 @@
                     <el-button
                       :type="isSelected(caseItem.id) ? 'danger' : 'primary'"
                       size="small"
-                      @click="toggleCaseSelection(caseItem, module, api)"
+                      @click.stop="toggleCaseSelection(caseItem, module, api)"
                     >
                       {{ isSelected(caseItem.id) ? '移除' : '添加' }}
                     </el-button>
@@ -86,8 +93,8 @@
                 </div>
               </div>
             </div>
-          </el-collapse-item>
-        </el-collapse>
+          </div>
+        </div>
 
         <div v-if="filteredTreeData.length === 0 && !loading" class="empty-state">
           <div class="empty-icon">🔍</div>
@@ -133,8 +140,20 @@ const emit = defineEmits(['update:selectedCases', 'update:visible', 'cancel'])
 const searchKeyword = ref('')
 const loading = ref(false)
 const treeData = ref([])
-const activeCollapse = ref([])
-const expandedApis = ref([])
+
+// 切换模块展开状态
+const toggleModuleExpand = (module) => {
+  module.expanded = !module.expanded
+}
+
+// 切换接口用例展开状态
+const toggleApiCases = async (api, module) => {
+  api.expanded = !api.expanded
+  // 加载该接口的用例
+  if (api.expanded && (!api.cases || api.cases.length === 0)) {
+    await loadApiCases(api, module)
+  }
+}
 
 // 计算属性：过滤树形数据
 const filteredTreeData = computed(() => {
@@ -187,24 +206,6 @@ const getMethodType = (method) => {
 // 检查用例是否已选择
 const isSelected = (caseId) => {
   return props.selectedCases.some(item => item.id === caseId)
-}
-
-// 切换接口用例展开状态
-const toggleApiCases = async (apiId) => {
-  const index = expandedApis.value.indexOf(apiId)
-  if (index > -1) {
-    expandedApis.value.splice(index, 1)
-  } else {
-    expandedApis.value.push(apiId)
-    // 加载该接口的用例
-    const module = treeData.value.find(m => m.apis.some(a => a.id === apiId))
-    if (module) {
-      const api = module.apis.find(a => a.id === apiId)
-      if (api && (!api.cases || api.cases.length === 0)) {
-        await loadApiCases(api, module)
-      }
-    }
-  }
 }
 
 // 加载接口的测试用例
@@ -366,6 +367,32 @@ watch(() => props.projectId, (newVal) => {
 .tree-container {
   max-height: 500px;
   overflow-y: auto;
+}
+
+.module-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.module-item {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background-color: #f5f7fa;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.module-header:hover {
+  background-color: #eef1f5;
 }
 
 .module-title {
