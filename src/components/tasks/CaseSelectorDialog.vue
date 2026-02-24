@@ -36,7 +36,7 @@
             <!-- 模块标题 -->
             <div 
               class="module-header" 
-              @click="toggleModuleExpand(module)"
+              @click="toggleModuleExpand(module.id)"
             >
               <el-icon>
                 <ArrowRight v-if="!module.expanded" />
@@ -45,6 +45,15 @@
               <el-icon><Folder /></el-icon>
               <span class="module-name">{{ module.name }}</span>
               <el-tag size="small" type="info">{{ module.apiCount }} 个接口</el-tag>
+              <el-button 
+                v-if="module.expanded"
+                type="primary" 
+                size="small" 
+                link
+                @click.stop="handleModuleBatchSelect(module.id)"
+              >
+                {{ isModuleAllSelected(module.id) ? '取消' : '全选' }}
+              </el-button>
             </div>
 
             <!-- 接口列表 -->
@@ -54,7 +63,7 @@
                 :key="api.id"
                 class="api-item"
               >
-                <div class="api-header" @click.stop="toggleApiCases(api, module)">
+                <div class="api-header" @click.stop="toggleApiCases(api.id, module.id)">
                   <el-icon>
                     <ArrowRight v-if="!api.expanded" />
                     <ArrowDown v-else />
@@ -65,6 +74,15 @@
                   <span class="api-name">{{ api.name }}</span>
                   <span class="api-path">{{ api.path }}</span>
                   <el-tag size="small" type="info">{{ api.caseCount }} 个用例</el-tag>
+                  <el-button 
+                    v-if="api.expanded && api.cases && api.cases.length > 0"
+                    type="success" 
+                    size="small" 
+                    link
+                    @click.stop="handleApiBatchSelect(api.id, module.id)"
+                  >
+                    {{ isApiAllSelected(api.id, module.id) ? '取消' : '全选' }}
+                  </el-button>
                 </div>
 
                 <!-- 测试用例列表 -->
@@ -142,32 +160,58 @@ const loading = ref(false)
 const treeData = ref([])
 
 // 切换模块展开状态
-const toggleModuleExpand = (module) => {
-  module.expanded = !module.expanded
-}
-
-// 切换接口用例展开状态
-const toggleApiCases = async (api, module) => {
-  api.expanded = !api.expanded
-  // 加载该接口的用例
-  if (api.expanded && (!api.cases || api.cases.length === 0)) {
-    await loadApiCases(api, module)
+const toggleModuleExpand = async (moduleId) => {
+  const module = treeData.value.find(m => m.id === moduleId)
+  if (module) {
+    module.expanded = !module.expanded
+    // 如果展开且接口未加载，则加载接口
+    if (module.expanded && (!module.apis || module.apis.length === 0)) {
+      await loadModuleApis(module)
+    }
   }
 }
 
-// 计算属性：过滤树形数据
+// 切换接口用例展开状态
+const toggleApiCases = async (apiId, moduleId) => {
+  console.log('toggleApiCases called:', { apiId, moduleId, apiIdType: typeof apiId })
+  
+  const module = treeData.value.find(m => String(m.id) === String(moduleId))
+  if (!module) {
+    console.log('Module not found:', moduleId)
+    return
+  }
+  console.log('Module found:', module.name, 'apis:', module.apis?.length)
+  
+  // 使用宽松的比较来查找 API
+  const api = module.apis?.find(a => String(a.id) === String(apiId))
+  if (!api) {
+    console.log('API not found:', apiId, 'available ids:', module.apis?.map(a => a.id))
+    return
+  }
+  console.log('API found:', api.name, 'id:', api.id)
+  
+  api.expanded = !api.expanded
+  console.log('API expanded:', api.expanded)
+  
+  // 加载该接口的用例
+  if (api.expanded && (!api.cases || api.cases.length === 0)) {
+    await loadApiCasesById(apiId, api)
+  }
+}
+
+// 计算属性：过滤树形数据（使用深拷贝避免修改原始数据）
 const filteredTreeData = computed(() => {
   if (!searchKeyword.value) return treeData.value
   
   const keyword = searchKeyword.value.toLowerCase()
   
-  // 递归过滤
+  // 递归过滤 - 深拷贝避免修改原始数据
   const filterNode = (modules) => {
     return modules.reduce((result, module) => {
       // 过滤模块名称
       const moduleMatch = module.name.toLowerCase().includes(keyword)
       
-      // 过滤接口
+      // 过滤接口 - 创建新数组避免修改原始数据
       const filteredApis = module.apis ? module.apis.filter(api => {
         const apiMatch = api.name.toLowerCase().includes(keyword) || 
                          api.path.toLowerCase().includes(keyword)
@@ -175,14 +219,18 @@ const filteredTreeData = computed(() => {
         const filteredCases = api.cases ? api.cases.filter(c => 
           c.name.toLowerCase().includes(keyword)
         ) : []
-        api.cases = filteredCases
         return apiMatch || filteredCases.length > 0
+      }).map(api => {
+        // 对每个接口也进行用例过滤
+        const filteredCases = api.cases ? api.cases.filter(c => 
+          c.name.toLowerCase().includes(keyword)
+        ) : []
+        return { ...api, cases: filteredCases }
       }) : []
       
-      module.apis = filteredApis
-      
       if (moduleMatch || filteredApis.length > 0) {
-        result.push(module)
+        // 返回新的模块对象，避免修改原始数据
+        result.push({ ...module, apis: filteredApis })
       }
       return result
     }, [])
@@ -209,20 +257,51 @@ const isSelected = (caseId) => {
 }
 
 // 加载接口的测试用例
-const loadApiCases = async (api, module) => {
+const loadApiCasesById = async (apiId, apiTarget) => {
+  console.log('loadApiCasesById called with apiId:', apiId, 'apiTarget:', apiTarget.name)
   try {
-    const response = await getTestCasesByApi(api.id, { pageSize: 1000 })
+    const response = await getTestCasesByApi(apiId, { pageSize: 1000 })
+    console.log('Response for apiId', apiId, ':', response)
     const casesList = response.data?.items || response.data || []
-    api.cases = casesList.map(item => ({
+    console.log('Cases list for apiId', apiId, ':', casesList)
+    apiTarget.cases = casesList.map(item => ({
       id: item.id || item.caseId,
       name: item.name || item.caseName,
       status: item.status || '正常'
     }))
-    api.caseCount = api.cases.length
+    apiTarget.caseCount = apiTarget.cases.length
+    console.log('Loaded', apiTarget.cases.length, 'cases for api', apiTarget.name)
   } catch (error) {
-    console.error(`加载接口 ${api.id} 的用例失败:`, error)
-    api.cases = []
-    api.caseCount = 0
+    console.error(`加载接口 ${apiId} 的用例失败:`, error)
+    apiTarget.cases = []
+    apiTarget.caseCount = 0
+  }
+}
+
+// 加载模块的接口列表
+const loadModuleApis = async (module) => {
+  try {
+    const apiResponse = await getApisByModule(module.id)
+    let apis = []
+    if (apiResponse.code === 1) {
+      apis = apiResponse.data?.items || apiResponse.data || []
+    } else {
+      apis = apiResponse.data?.items || apiResponse.data || []
+    }
+    console.log('Loaded APIs for module', module.name, ':', apis.map(a => ({ id: a.apiId, name: a.name })))
+    
+    module.apis = apis.map(api => ({
+      id: api.apiId,  // 后端返回的字段是 apiId
+      name: api.name,
+      method: api.method,
+      path: api.path,
+      caseCount: 0,
+      cases: [],
+      expanded: false
+    }))
+    module.apiCount = module.apis.length
+  } catch (error) {
+    console.error(`加载模块 ${module.name} 的接口失败:`, error)
   }
 }
 
@@ -245,6 +324,154 @@ const toggleCaseSelection = (caseItem, module, api) => {
   }
 
   emit('update:selectedCases', newSelected)
+}
+
+// 检查接口下是否所有用例都被选中
+const isApiAllSelected = (apiId, moduleId) => {
+  // 从 treeData 中获取正确的 module 和 api 对象
+  const module = treeData.value.find(m => m.id === moduleId)
+  if (!module) return false
+  
+  const api = module.apis?.find(a => a.id === apiId)
+  if (!api || !api.cases || api.cases.length === 0) return false
+  
+  return api.cases.every(caseItem => 
+    props.selectedCases.some(selected => selected.id === caseItem.id)
+  )
+}
+
+// 检查模块下是否所有用例都被选中
+const isModuleAllSelected = (moduleId) => {
+  // 从 treeData 中获取正确的 module 对象
+  const module = treeData.value.find(m => m.id === moduleId)
+  if (!module || !module.apis || module.apis.length === 0) return false
+  
+  let totalCases = 0
+  let selectedCases = 0
+  
+  for (const api of module.apis) {
+    if (api.cases) {
+      totalCases += api.cases.length
+      selectedCases += api.cases.filter(c => 
+        props.selectedCases.some(selected => selected.id === c.id)
+      ).length
+    }
+  }
+  
+  return totalCases > 0 && selectedCases === totalCases
+}
+
+// 处理接口批量选择（支持全选和取消全选）
+const handleApiBatchSelect = async (apiId, moduleId) => {
+  // 从 treeData 中获取正确的 module 和 api 对象
+  const module = treeData.value.find(m => m.id === moduleId)
+  if (!module) return
+  
+  const api = module.apis?.find(a => a.id === apiId)
+  if (!api) return
+  
+  // 确保用例已加载
+  if (!api.cases || api.cases.length === 0) {
+    await loadApiCasesById(apiId, api)
+  }
+  
+  const isAllSelected = isApiAllSelected(apiId, moduleId)
+  let newSelected = [...props.selectedCases]
+  let changeCount = 0
+  
+  if (isAllSelected) {
+    // 取消全选：移除该接口下所有已选择的用例
+    const apiCaseIds = new Set(api.cases.map(c => c.id))
+    newSelected = newSelected.filter(item => !apiCaseIds.has(item.id))
+    changeCount = api.cases.length
+  } else {
+    // 全选：添加该接口下未选择的用例
+    for (const caseItem of api.cases) {
+      const exists = newSelected.some(item => item.id === caseItem.id)
+      if (!exists) {
+        newSelected.push({
+          ...caseItem,
+          moduleId: module.id,
+          moduleName: module.name,
+          apiId: api.id,
+          apiName: api.name
+        })
+        changeCount++
+      }
+    }
+  }
+  
+  emit('update:selectedCases', newSelected)
+  
+  if (isAllSelected) {
+    ElMessage.success(`已取消选择 ${changeCount} 个用例`)
+  } else if (changeCount > 0) {
+    ElMessage.success(`已添加 ${changeCount} 个用例`)
+  } else {
+    ElMessage.info('该接口下的用例已全部添加')
+  }
+}
+
+// 处理模块批量选择（支持全选和取消全选）
+const handleModuleBatchSelect = async (moduleId) => {
+  // 从 treeData 中获取正确的 module 对象
+  const module = treeData.value.find(m => m.id === moduleId)
+  if (!module) return
+  
+  // 先展开模块（如果未展开）
+  if (!module.expanded) {
+    module.expanded = true
+  }
+  
+  const isAllSelected = isModuleAllSelected(moduleId)
+  let newSelected = [...props.selectedCases]
+  let changeCount = 0
+  
+  // 先加载所有接口的用例
+  for (const api of module.apis) {
+    if (!api.cases || api.cases.length === 0) {
+      await loadApiCasesById(api.id, api)
+    }
+  }
+  
+  if (isAllSelected) {
+    // 取消全选：移除该模块下所有已选择的用例
+    const moduleCaseIds = new Set()
+    for (const api of module.apis) {
+      if (api.cases) {
+        api.cases.forEach(c => moduleCaseIds.add(c.id))
+      }
+    }
+    newSelected = newSelected.filter(item => !moduleCaseIds.has(item.id))
+    changeCount = moduleCaseIds.size
+  } else {
+    // 全选：添加该模块下未选择的用例
+    for (const api of module.apis) {
+      for (const caseItem of api.cases || []) {
+        const exists = newSelected.some(item => item.id === caseItem.id)
+        if (!exists) {
+          newSelected.push({
+            ...caseItem,
+            moduleId: module.id,
+            moduleName: module.name,
+            apiId: api.id,
+            apiName: api.name
+          })
+          changeCount++
+        }
+      }
+    }
+  }
+  
+  emit('update:selectedCases', newSelected)
+  
+  if (isAllSelected) {
+    ElMessage.success(`已取消选择 ${changeCount} 个用例`)
+  } else if (changeCount > 0) {
+    ElMessage.success(`已添加 ${changeCount} 个用例`)
+  } else {
+    ElMessage.info('该模块下的用例已全部添加')
+  }
 }
 
 // 加载树形数据
@@ -284,7 +511,8 @@ const loadTreeData = async () => {
         id: moduleId,
         name: module.name,
         apiCount: 0,
-        apis: []
+        apis: [],
+        expanded: false
       }
       
       try {
@@ -298,7 +526,7 @@ const loadTreeData = async () => {
         }
         
         apiList.apis = apis.map(api => ({
-          id: api.id || api.api_id,
+          id: api.apiId,  // 后端返回的字段是 apiId
           name: api.name,
           method: api.method,
           path: api.path,
@@ -395,6 +623,10 @@ watch(() => props.projectId, (newVal) => {
   background-color: #eef1f5;
 }
 
+.module-header .el-button {
+  margin-left: auto;
+}
+
 .module-title {
   display: flex;
   align-items: center;
@@ -428,6 +660,10 @@ watch(() => props.projectId, (newVal) => {
 
 .api-header:hover {
   background-color: #eef1f5;
+}
+
+.api-header .el-button {
+  margin-left: auto;
 }
 
 .api-name {
