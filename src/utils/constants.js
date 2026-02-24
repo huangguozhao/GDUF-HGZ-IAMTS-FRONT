@@ -22,8 +22,8 @@ export const API_PATHS = {
   USER_PROFILE: '/user/profile',
   USER_PROJECTS: '/user/projects',
 
-  // 任务相关
-  TASKS: '/tasks',
+  // 任务相关（定时任务）
+  TASKS: '/scheduled-tasks',
 
   // 报告相关
   REPORTS: '/reports',

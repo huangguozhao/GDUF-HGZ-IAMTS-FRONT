@@ -79,25 +79,63 @@
           class="task-table"
           style="width: 100%"
         >
-          <el-table-column prop="id" label="ID" width="100" />
+          <el-table-column prop="id" label="ID" width="80" />
           
-          <el-table-column prop="name" label="任务名称" width="200" />
-          
-          <el-table-column prop="frequency" label="执行频率" width="100" />
-          
-          <el-table-column prop="lastExecution" label="最近执行时间" width="180" />
-          
-          <el-table-column prop="nextExecution" label="下次执行时间" width="180" />
-          
-          <el-table-column prop="caseCount" label="关联用例" width="100">
+          <el-table-column prop="name" label="任务名称" min-width="180">
             <template #default="scope">
-              {{ scope.row.caseCount }}个
+              <div class="task-name-cell">
+                <span class="task-name">{{ scope.row.name }}</span>
+                <span v-if="scope.row.targetName" class="task-target">{{ scope.row.targetName }}</span>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="taskType" label="任务类型" width="100">
+            <template #default="scope">
+              <el-tag size="small" :type="getTaskTypeTagType(scope.row.taskType)">
+                {{ getTaskTypeText(scope.row.taskType) }}
+              </el-tag>
             </template>
           </el-table-column>
           
-          <el-table-column prop="creator" label="创建人" width="100" />
+          <el-table-column prop="frequency" label="执行频率" width="100">
+            <template #default="scope">
+              {{ getFrequencyText(scope.row.frequency) }}
+            </template>
+          </el-table-column>
           
-          <el-table-column label="状态" width="100">
+          <el-table-column prop="lastExecution" label="最近执行" width="160">
+            <template #default="scope">
+              <div class="execution-time-cell">
+                <span>{{ scope.row.lastExecution }}</span>
+                <el-tag v-if="scope.row.lastExecutionStatus" size="small" :type="getExecutionStatusType(scope.row.lastExecutionStatus)">
+                  {{ getExecutionStatusText(scope.row.lastExecutionStatus) }}
+                </el-tag>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="nextExecution" label="下次执行" width="160" />
+          
+          <el-table-column prop="totalExecutions" label="执行次数" width="90">
+            <template #default="scope">
+              <div class="execution-count-cell">
+                <span class="success-count">{{ scope.row.successfulExecutions || 0 }}</span> /
+                <span class="total-count">{{ scope.row.totalExecutions || 0 }}</span>
+              </div>
+            </template>
+          </el-table-column>
+          
+          <el-table-column prop="executionEnvironment" label="执行环境" width="90">
+            <template #default="scope">
+              <el-tag v-if="scope.row.executionEnvironment" size="small" type="info">
+                {{ scope.row.executionEnvironment }}
+              </el-tag>
+              <span v-else>-</span>
+            </template>
+          </el-table-column>
+          
+          <el-table-column label="状态" width="90">
             <template #default="scope">
               <el-tag 
                 :type="scope.row.status === 'enabled' ? 'success' : 'info'"
@@ -108,8 +146,24 @@
             </template>
           </el-table-column>
           
-          <el-table-column label="操作" width="120" fixed="right">
+          <el-table-column label="操作" width="200" fixed="right">
             <template #default="scope">
+              <el-button 
+                link 
+                type="primary" 
+                :icon="scope.row.status === 'enabled' ? VideoPause : VideoPlay"
+                @click.stop="handleToggleStatus(scope.row)"
+              >
+                {{ scope.row.status === 'enabled' ? '禁用' : '启用' }}
+              </el-button>
+              <el-button 
+                link 
+                type="success" 
+                :icon="Refresh"
+                @click.stop="handleExecute(scope.row)"
+              >
+                执行
+              </el-button>
               <el-button 
                 link 
                 type="primary" 
@@ -161,9 +215,12 @@ import {
   Delete,
   Calendar,
   SuccessFilled,
-  CircleCloseFilled
+  CircleCloseFilled,
+  VideoPlay,
+  VideoPause,
+  Refresh
 } from '@element-plus/icons-vue'
-import { getTaskList, createTask, updateTask, deleteTask } from '../api/task'
+import { getTaskList, createTask, updateTask, deleteTask, enableTask, disableTask, executeTask } from '../api/task'
 import { getProjects } from '../api/project'
 import { TableSkeleton } from '../components/ui/skeletons'
 
@@ -232,15 +289,22 @@ const fetchTasks = async () => {
   try {
     const params = {
       page: pagination.currentPage,
-      pageSize: pagination.pageSize,
-      projectId: filters.projectId,
-      status: filters.status,
-      timeType: filters.timeType
+      page_size: pagination.pageSize,
+      target_id: filters.projectId,
+      is_enabled: filters.status === 'enabled' ? true : (filters.status === 'disabled' ? false : null),
+      trigger_type: filters.timeType === 'all' ? null : filters.timeType
     }
-    
+
     const response = await getTaskList(params)
-    taskList.value = response.data || []
-    pagination.total = response.total || 0
+
+    // 处理后端返回的数据结构
+    if (response.data && response.data.list) {
+      taskList.value = response.data.list.map(item => transformBackendData(item))
+      pagination.total = response.data.total || 0
+    } else if (Array.isArray(response.data)) {
+      taskList.value = response.data.map(item => transformBackendData(item))
+      pagination.total = response.data.length || 0
+    }
   } catch (error) {
     console.error('获取任务列表失败:', error)
     // 使用模拟数据
@@ -248,6 +312,56 @@ const fetchTasks = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 转换后端数据为前端需要的格式
+const transformBackendData = (item) => {
+  return {
+    id: item.taskId,
+    name: item.taskName,
+    description: item.description,
+    taskType: item.taskType,
+    targetId: item.targetId,
+    targetName: item.targetName || '',
+    frequency: item.triggerType,
+    lastExecution: item.lastExecutionTime ? formatDateTime(item.lastExecutionTime) : '-',
+    nextExecution: item.nextTriggerTime ? formatDateTime(item.nextTriggerTime) : '-',
+    caseCount: item.totalExecutions || 0,
+    creator: item.createdBy || '-',
+    status: item.isEnabled ? 'enabled' : 'disabled',
+    createTime: item.createdAt ? formatDateTime(item.createdAt) : '-',
+    executionTime: item.dailyHour !== undefined ?
+      `${String(item.dailyHour).padStart(2, '0')}:${String(item.dailyMinute || 0).padStart(2, '0')}` : '-',
+    timeout: item.timeoutSeconds ? Math.ceil(item.timeoutSeconds / 60) : 60,
+    lastExecutionStatus: item.lastExecutionStatus,
+    successRate: item.successRate || 0,
+    totalExecutions: item.totalExecutions || 0,
+    successfulExecutions: item.successfulExecutions || 0,
+    failedExecutions: item.failedExecutions || 0,
+    weeklyDays: item.weeklyDays,
+    monthlyDay: item.monthlyDay,
+    triggerType: item.triggerType,
+    executionEnvironment: item.executionEnvironment,
+    cronExpression: item.cronExpression,
+    retryEnabled: item.retryEnabled,
+    maxRetryAttempts: item.maxRetryAttempts,
+    notifyOnSuccess: item.notifyOnSuccess,
+    notifyOnFailure: item.notifyOnFailure,
+    notificationRecipients: item.notificationRecipients,
+    isEnabled: item.isEnabled
+  }
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '-'
+  const date = new Date(dateTime)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 // 模拟数据
@@ -340,15 +454,118 @@ const getFrequencyText = (frequency) => {
   const frequencyMap = {
     'daily': '每日执行',
     'weekly': '每周执行',
-    'monthly': '每月执行'
+    'monthly': '每月执行',
+    'cron': 'Cron表达式',
+    'simple': '简单重复'
   }
-  return frequencyMap[frequency] || frequency
+  return frequencyMap[frequency] || frequency || '-'
+}
+
+// 获取任务类型文本
+const getTaskTypeText = (taskType) => {
+  const typeMap = {
+    'single_case': '单个用例',
+    'module': '模块',
+    'project': '项目',
+    'test_suite': '测试套件',
+    'api': 'API'
+  }
+  return typeMap[taskType] || taskType || '-'
+}
+
+// 获取任务类型标签类型
+const getTaskTypeTagType = (taskType) => {
+  const typeMap = {
+    'single_case': '',
+    'module': 'success',
+    'project': 'warning',
+    'test_suite': 'danger',
+    'api': 'info'
+  }
+  return typeMap[taskType] || ''
+}
+
+// 获取执行状态类型
+const getExecutionStatusType = (status) => {
+  const statusMap = {
+    'success': 'success',
+    'failed': 'danger',
+    'running': 'warning',
+    'skipped': 'info'
+  }
+  return statusMap[status] || 'info'
+}
+
+// 获取执行状态文本
+const getExecutionStatusText = (status) => {
+  const statusMap = {
+    'success': '成功',
+    'failed': '失败',
+    'running': '运行中',
+    'skipped': '已跳过'
+  }
+  return statusMap[status] || status
 }
 
 
 // 编辑任务
 const handleEdit = (row) => {
-  ElMessage.info(`编辑任务：${row.name}`)
+  // 跳转到编辑页面或打开编辑对话框
+  router.push(`/tasks/${row.id}`)
+}
+
+// 切换任务状态（启用/禁用）
+const handleToggleStatus = async (row) => {
+  try {
+    const action = row.status === 'enabled' ? '禁用' : '启用'
+    await ElMessageBox.confirm(
+      `确定要${action}任务"${row.name}"吗？`,
+      `${action}确认`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    if (row.status === 'enabled') {
+      await disableTask(row.id)
+      ElMessage.success('任务已禁用')
+    } else {
+      await enableTask(row.id)
+      ElMessage.success('任务已启用')
+    }
+    fetchTasks()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('操作失败:', error)
+      ElMessage.error('操作失败，请稍后重试')
+    }
+  }
+}
+
+// 立即执行任务
+const handleExecute = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要立即执行任务"${row.name}"吗？`,
+      '执行确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+
+    await executeTask(row.id)
+    ElMessage.success('任务已提交执行')
+    fetchTasks()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('执行失败:', error)
+      ElMessage.error('执行失败，请稍后重试')
+    }
+  }
 }
 
 // 删除任务
@@ -484,6 +701,41 @@ onMounted(() => {
 
 .task-table {
   font-size: 14px;
+}
+
+.task-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.task-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.task-target {
+  font-size: 12px;
+  color: #909399;
+}
+
+.execution-time-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.execution-count-cell {
+  font-size: 13px;
+}
+
+.success-count {
+  color: #67c23a;
+  font-weight: 500;
+}
+
+.total-count {
+  color: #606266;
 }
 
 .pagination-container {

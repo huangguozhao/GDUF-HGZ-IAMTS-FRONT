@@ -2,6 +2,7 @@ import request from './request'
 
 /**
  * 任务管理相关API接口
+ * 对接后端 /scheduled-tasks 接口
  */
 
 /**
@@ -9,14 +10,16 @@ import request from './request'
  * @param {Object} params - 查询参数
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
- * @param {string} params.projectId - 项目ID
- * @param {string} params.status - 状态 (enabled/disabled)
- * @param {string} params.timeType - 时间类型 (all/daily/weekly/monthly/created)
+ * @param {string} params.projectId - 项目ID (对应后端的 target_id)
+ * @param {string} params.taskType - 任务类型 (single_case, module, project, test_suite, api)
+ * @param {string} params.triggerType - 触发器类型 (cron, simple, daily, weekly, monthly)
+ * @param {boolean} params.isEnabled - 是否启用
+ * @param {string} params.executionEnvironment - 执行环境 (dev, test, prod, staging)
  * @returns {Promise}
  */
 export const getTaskList = (params) => {
   return request({
-    url: '/tasks',
+    url: '/scheduled-tasks',
     method: 'get',
     params
   })
@@ -24,12 +27,12 @@ export const getTaskList = (params) => {
 
 /**
  * 获取任务详情
- * @param {string} id - 任务ID
+ * @param {string} id - 任务ID (对应后端的 taskId)
  * @returns {Promise}
  */
 export const getTaskDetail = (id) => {
   return request({
-    url: `/tasks/${id}`,
+    url: `/scheduled-tasks/${id}`,
     method: 'get'
   })
 }
@@ -51,7 +54,7 @@ export const getTaskDetail = (id) => {
  */
 export const createTask = (data) => {
   return request({
-    url: '/tasks',
+    url: '/scheduled-tasks',
     method: 'post',
     data
   })
@@ -65,7 +68,7 @@ export const createTask = (data) => {
  */
 export const updateTask = (id, data) => {
   return request({
-    url: `/tasks/${id}`,
+    url: `/scheduled-tasks/${id}`,
     method: 'put',
     data
   })
@@ -78,81 +81,84 @@ export const updateTask = (id, data) => {
  */
 export const deleteTask = (id) => {
   return request({
-    url: `/tasks/${id}`,
+    url: `/scheduled-tasks/${id}`,
     method: 'delete'
   })
 }
 
 /**
- * 启用/禁用任务
- * @param {string} id - 任务ID
- * @param {boolean} enabled - 是否启用
+ * 启用任务
+ * @param {string} id - 任务ID (对应后端的 taskId)
  * @returns {Promise}
  */
-export const toggleTaskStatus = (id, enabled) => {
+export const enableTask = (id) => {
   return request({
-    url: `/tasks/${id}/status`,
-    method: 'put',
-    data: { enabled }
+    url: `/scheduled-tasks/${id}/enable`,
+    method: 'post'
+  })
+}
+
+/**
+ * 禁用任务
+ * @param {string} id - 任务ID (对应后端的 taskId)
+ * @returns {Promise}
+ */
+export const disableTask = (id) => {
+  return request({
+    url: `/scheduled-tasks/${id}/disable`,
+    method: 'post'
   })
 }
 
 /**
  * 立即执行任务
- * @param {string} id - 任务ID
+ * @param {string} id - 任务ID (对应后端的 taskId)
  * @returns {Promise}
  */
 export const executeTask = (id) => {
   return request({
-    url: `/tasks/${id}/execute`,
+    url: `/scheduled-tasks/${id}/execute`,
     method: 'post'
   })
 }
 
 /**
  * 获取任务执行历史
- * @param {string} id - 任务ID
+ * @param {string} id - 任务ID (对应后端的 taskId)
  * @param {Object} params - 查询参数
  * @param {number} params.page - 页码
  * @param {number} params.pageSize - 每页数量
- * @param {string} params.startDate - 开始日期
- * @param {string} params.endDate - 结束日期
  * @returns {Promise}
  */
 export const getTaskExecutionHistory = (id, params) => {
   return request({
-    url: `/tasks/${id}/executions`,
+    url: `/scheduled-tasks/${id}/history`,
     method: 'get',
     params
   })
 }
 
 /**
- * 获取任务执行结果详情
- * @param {string} taskId - 任务ID
- * @param {string} executionId - 执行ID
+ * 获取任务执行统计
+ * @param {string} id - 任务ID (对应后端的 taskId)
  * @returns {Promise}
  */
-export const getTaskExecutionDetail = (taskId, executionId) => {
+export const getTaskStatistics = (id) => {
   return request({
-    url: `/tasks/${taskId}/executions/${executionId}`,
+    url: `/scheduled-tasks/${id}/statistics`,
     method: 'get'
   })
 }
 
 /**
- * 获取任务统计信息
- * @param {Object} params - 查询参数
- * @param {string} params.projectId - 项目ID
- * @param {string} params.startDate - 开始日期
- * @param {string} params.endDate - 结束日期
+ * 获取执行记录详情
+ * @param {string} executionId - 执行记录ID
  * @returns {Promise}
  */
-export const getTaskStatistics = (params) => {
+export const getExecutionDetail = (executionId) => {
   return request({
-    url: '/tasks/statistics',
-    method: 'get',
-    params
+    url: `/scheduled-tasks/executions/${executionId}`,
+    method: 'get'
   })
 }
 
@@ -165,7 +171,7 @@ export const getTaskStatistics = (params) => {
  */
 export const batchOperateTasks = (data) => {
   return request({
-    url: '/tasks/batch',
+    url: '/scheduled-tasks/batch',
     method: 'post',
     data
   })
@@ -180,7 +186,7 @@ export const batchOperateTasks = (data) => {
  */
 export const copyTask = (id, data) => {
   return request({
-    url: `/tasks/${id}/copy`,
+    url: `/scheduled-tasks/${id}/copy`,
     method: 'post',
     data
   })
@@ -193,7 +199,7 @@ export const copyTask = (id, data) => {
  */
 export const exportTasks = (params) => {
   return request({
-    url: '/tasks/export',
+    url: '/scheduled-tasks/export',
     method: 'post',
     data: params,
     responseType: 'blob'
@@ -206,7 +212,7 @@ export const exportTasks = (params) => {
  */
 export const getTaskTemplates = () => {
   return request({
-    url: '/tasks/templates',
+    url: '/scheduled-tasks/templates',
     method: 'get'
   })
 }
@@ -219,7 +225,7 @@ export const getTaskTemplates = () => {
  */
 export const createTaskFromTemplate = (templateId, data) => {
   return request({
-    url: `/tasks/templates/${templateId}/create`,
+    url: `/scheduled-tasks/templates/${templateId}/create`,
     method: 'post',
     data
   })

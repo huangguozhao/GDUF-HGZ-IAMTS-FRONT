@@ -65,27 +65,25 @@ const routes = [
     meta: {
       title: '任务安排',
       requiresAuth: true
-    },
-    children: [
-      {
-        path: ':taskId',
-        name: 'TaskDetail',
-        component: () => import('../views/TaskDetail.vue'),
-        meta: {
-          title: '任务详情',
-          requiresAuth: true
-        }
-      },
-      {
-        path: 'create',
-        name: 'CreateTask',
-        component: () => import('../views/CreateTask.vue'),
-        meta: {
-          title: '创建任务',
-          requiresAuth: true
-        }
-      }
-    ]
+    }
+  },
+  {
+    path: '/tasks/create',
+    name: 'CreateTask',
+    component: () => import('../views/CreateTask.vue'),
+    meta: {
+      title: '创建任务',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/tasks/:taskId',
+    name: 'TaskDetail',
+    component: () => import('../views/TaskDetail.vue'),
+    meta: {
+      title: '任务详情',
+      requiresAuth: true
+    }
   },
   {
     path: '/personnel',

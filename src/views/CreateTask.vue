@@ -1,26 +1,25 @@
 <template>
   <div class="create-task-page">
-    <PageEnterTransition>
-      <div class="page-container">
-        <!-- 页面头部 -->
-        <div class="page-header">
-          <div class="breadcrumb">
-            <span class="breadcrumb-item" @click="$router.push('/tasks')">任务安排</span>
-            <span class="breadcrumb-separator">›</span>
-            <span class="breadcrumb-item active">创建定时任务</span>
-          </div>
-          <h1 class="page-title">创建定时任务</h1>
+    <div class="page-container">
+      <!-- 页面头部 -->
+      <div class="page-header">
+        <div class="breadcrumb">
+          <span class="breadcrumb-item" @click="$router.push('/tasks')">任务安排</span>
+          <span class="breadcrumb-separator">›</span>
+          <span class="breadcrumb-item active">创建定时任务</span>
         </div>
+        <h1 class="page-title">创建定时任务</h1>
+      </div>
 
-        <!-- 表单区域 -->
-        <div class="form-container">
-          <el-form
-            ref="formRef"
-            :model="formData"
-            :rules="formRules"
-            label-width="140px"
-            class="task-form"
-          >
+      <!-- 表单区域 -->
+      <div class="form-container">
+        <el-form
+          ref="formRef"
+          :model="formData"
+          :rules="formRules"
+          label-width="140px"
+          class="task-form"
+        >
             <!-- 基本信息 -->
             <div class="form-section">
               <div class="section-header">
@@ -192,25 +191,24 @@
               </div>
             </div>
           </el-form>
-        </div>
 
-        <!-- 操作按钮 -->
-        <div class="form-actions">
-          <el-button @click="$router.go(-1)">取消</el-button>
-          <el-button type="primary" @click="handleSubmit" :loading="submitting">
-            创建任务
-          </el-button>
-        </div>
-      </div>
-    </PageEnterTransition>
+          <!-- 操作按钮 -->
+          <div class="form-actions">
+            <el-button @click="$router.go(-1)">取消</el-button>
+            <el-button type="primary" @click="handleSubmit" :loading="submitting">
+              创建任务
+            </el-button>
+          </div>
 
-    <!-- 用例选择对话框 (懒加载) -->
-    <CaseSelectorDialog
-      v-model:visible="showCaseSelector"
-      :selected-cases="selectedCases"
-      @update:selected-cases="selectedCases = $event"
-      @cancel="showCaseSelector = false"
-    />
+          <!-- 用例选择对话框 (懒加载) -->
+          <CaseSelectorDialog
+            v-model:visible="showCaseSelector"
+            :selected-cases="selectedCases"
+            @update:selected-cases="selectedCases = $event"
+            @cancel="showCaseSelector = false"
+          />
+        </div>
+    </div>
   </div>
 </template>
 
@@ -219,7 +217,6 @@ import { ref, reactive, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Delete, Calendar, Search } from '@element-plus/icons-vue'
-import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
 import { createTask } from '../api/task'
 import { getProjects } from '../api/project'
 
@@ -327,6 +324,7 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate()
   } catch (error) {
+    ElMessage.warning('请填写必填项')
     return
   }
 
@@ -335,26 +333,114 @@ const handleSubmit = async () => {
     return
   }
 
+  // 验证执行时间
+  if (!formData.executionTime) {
+    ElMessage.warning('请选择执行时间')
+    return
+  }
+
+  // 验证每周执行时的日期选择
+  if (formData.frequency === 'weekly' && formData.selectedDays.length === 0) {
+    ElMessage.warning('请选择至少一个执行日期')
+    return
+  }
+
   try {
     submitting.value = true
 
-    const submitData = {
-      ...formData,
-      caseIds: selectedCases.value.map(item => item.id),
-      selectedDays: formData.frequency === 'weekly' ? formData.selectedDays : []
+    console.log('=== 创建定时任务 ===')
+    console.log('表单数据:', formData)
+    console.log('选中的用例:', selectedCases.value)
+
+    // 解析执行时间
+    let dailyHour = null
+    let dailyMinute = null
+    if (formData.executionTime) {
+      const timeParts = formData.executionTime.split(':')
+      dailyHour = parseInt(timeParts[0])
+      dailyMinute = parseInt(timeParts[1])
+      console.log('解析时间:', dailyHour, dailyMinute)
     }
 
+    // 转换星期格式 (前端: ['monday', 'tuesday'], 后端: '1,2')
+    const weekDayMap = {
+      'monday': '1',
+      'tuesday': '2',
+      'wednesday': '3',
+      'thursday': '4',
+      'friday': '5',
+      'saturday': '6',
+      'sunday': '7'
+    }
+    const weeklyDays = formData.frequency === 'weekly' && formData.selectedDays.length > 0
+      ? formData.selectedDays.map(day => weekDayMap[day]).join(',')
+      : null
+    console.log('每周日期:', weeklyDays)
+
+    // 转换月度日期
+    const monthlyDay = formData.frequency === 'monthly' ? 1 : null
+
+    // 构建后端需要的请求数据
+    const submitData = {
+      taskName: formData.name,
+      description: formData.description,
+      taskType: 'single_case', // 单个用例类型
+      targetId: selectedCases.value[0]?.id || null, // 用例ID
+      targetName: selectedCases.value[0]?.name || '', // 用例名称
+      triggerType: formData.frequency,
+      dailyHour: dailyHour,
+      dailyMinute: dailyMinute,
+      weeklyDays: weeklyDays,
+      monthlyDay: monthlyDay,
+      executionEnvironment: 'test', // 默认测试环境
+      timeoutSeconds: formData.timeout ? formData.timeout * 60 : 3600, // 分钟转秒
+      retryEnabled: formData.retryCount > 0,
+      maxRetryAttempts: formData.retryCount,
+      notifyOnSuccess: formData.emailNotification,
+      notifyOnFailure: formData.emailNotification,
+      notificationRecipients: formData.emailNotification ? 'admin@example.com' : null
+    }
+
+    console.log('提交数据:', submitData)
+
     const response = await createTask(submitData)
+
+    console.log('响应结果:', response)
 
     if (response.code === 200) {
       ElMessage.success('创建成功')
       router.push('/tasks')
+    } else if (response.code === 403) {
+      ElMessage.error('没有权限创建任务，请联系管理员分配 task:create 权限')
+    } else if (response.code === 401) {
+      ElMessage.error('登录已过期，请重新登录')
+      router.push('/login')
     } else {
       ElMessage.error(response.msg || '创建失败')
     }
   } catch (error) {
     console.error('创建任务失败:', error)
-    ElMessage.error('创建失败，请重试')
+    // 详细处理不同类型的错误
+    if (error.response) {
+      // 服务器返回了错误响应
+      const status = error.response.status
+      const data = error.response.data
+      if (status === 403) {
+        ElMessage.error('没有权限创建任务，请联系管理员')
+      } else if (status === 401) {
+        ElMessage.error('登录已过期，请重新登录')
+        router.push('/login')
+      } else if (status === 500) {
+        ElMessage.error('服务器错误: ' + (data?.msg || '请稍后重试'))
+      } else {
+        ElMessage.error(data?.msg || '创建失败，请检查网络连接')
+      }
+    } else if (error.request) {
+      // 网络错误
+      ElMessage.error('网络错误，请检查后端服务是否已启动')
+    } else {
+      ElMessage.error(error?.msg || '创建失败，请检查网络连接或后端服务')
+    }
   } finally {
     submitting.value = false
   }

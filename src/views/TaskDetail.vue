@@ -14,6 +14,17 @@
           </div>
           <div class="header-actions">
             <el-button @click="$router.go(-1)">返回列表</el-button>
+            <el-button
+              :type="task.status === 'enabled' ? 'warning' : 'success'"
+              @click="handleToggleStatus"
+            >
+              <el-icon><VideoPause v-if="task.status === 'enabled'" /><VideoPlay v-else /></el-icon>
+              {{ task.status === 'enabled' ? '禁用' : '启用' }}
+            </el-button>
+            <el-button type="primary" @click="handleExecute">
+              <el-icon><RefreshRight /></el-icon>
+              立即执行
+            </el-button>
             <el-button type="primary" @click="handleEdit">
               <el-icon><Edit /></el-icon>
               编辑任务
@@ -30,13 +41,21 @@
           <!-- 任务摘要 -->
           <div class="task-summary">
             <h2>{{ task.name }}</h2>
-            <p class="summary-desc">{{ getFrequencyText(task.frequency) }} {{ task.executionTime }} 自动执行</p>
-            <div class="task-status">
+            <p class="summary-desc">{{ task.description || '暂无描述' }}</p>
+            <p class="summary-execution">{{ getFrequencyText(task.frequency) }} {{ task.executionTime }} 自动执行</p>
+            <div class="task-status-row">
               <el-tag
                 :type="task.status === 'enabled' ? 'success' : 'info'"
                 size="large"
               >
                 {{ task.status === 'enabled' ? '启用' : '禁用' }}
+              </el-tag>
+              <el-tag
+                v-if="task.lastExecutionStatus"
+                :type="task.lastExecutionStatus === 'success' ? 'success' : (task.lastExecutionStatus === 'failed' ? 'danger' : 'warning')"
+                size="large"
+              >
+                {{ task.lastExecutionStatus === 'success' ? '上次执行成功' : (task.lastExecutionStatus === 'failed' ? '上次执行失败' : '运行中') }}
               </el-tag>
             </div>
           </div>
@@ -46,8 +65,16 @@
             <h3 class="section-title">基本信息</h3>
             <div class="info-grid">
               <div class="info-item">
-                <span class="info-label">创建者</span>
-                <span class="info-value">{{ task.creator }}</span>
+                <span class="info-label">任务类型</span>
+                <span class="info-value">{{ getTaskTypeText(task.taskType) }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">目标名称</span>
+                <span class="info-value">{{ task.targetName || '-' }}</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">执行环境</span>
+                <span class="info-value">{{ task.executionEnvironment || 'test' }}</span>
               </div>
               <div class="info-item">
                 <span class="info-label">创建时间</span>
@@ -61,9 +88,28 @@
                 <span class="info-label">下次执行</span>
                 <span class="info-value">{{ task.nextExecution }}</span>
               </div>
-              <div class="info-item">
-                <span class="info-label">关联用例</span>
-                <span class="info-value">{{ task.caseCount }}个</span>
+            </div>
+          </div>
+
+          <!-- 执行统计 -->
+          <div class="info-section">
+            <h3 class="section-title">执行统计</h3>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">{{ task.totalExecutions }}</div>
+                <div class="stat-label">总执行次数</div>
+              </div>
+              <div class="stat-card success">
+                <div class="stat-value">{{ task.successfulExecutions }}</div>
+                <div class="stat-label">成功次数</div>
+              </div>
+              <div class="stat-card danger">
+                <div class="stat-value">{{ task.failedExecutions }}</div>
+                <div class="stat-label">失败次数</div>
+              </div>
+              <div class="stat-card info">
+                <div class="stat-value">{{ task.successRate ? task.successRate.toFixed(1) + '%' : '0%' }}</div>
+                <div class="stat-label">成功率</div>
               </div>
             </div>
           </div>
@@ -84,36 +130,30 @@
                 <span class="plan-label">超时设置</span>
                 <span class="plan-value">{{ task.timeout }}分钟</span>
               </div>
-            </div>
-          </div>
-
-          <!-- 关联用例列表 -->
-          <div class="info-section">
-            <h3 class="section-title">关联用例列表</h3>
-            <div class="case-list">
-              <div class="case-item" v-for="caseItem in task.cases" :key="caseItem.id">
-                <el-icon
-                  :class="['case-status', caseItem.status === 'passed' ? 'success' : 'failed']"
-                >
-                  <SuccessFilled v-if="caseItem.status === 'passed'" />
-                  <CircleCloseFilled v-else />
-                </el-icon>
-                <span class="case-name">{{ caseItem.name }}</span>
+              <div class="plan-item">
+                <span class="plan-label">重试设置</span>
+                <span class="plan-value">{{ task.retryEnabled ? `启用 (最多${task.maxRetryAttempts}次)` : '禁用' }}</span>
               </div>
-              <div v-if="!task.cases || task.cases.length === 0" class="empty-cases">
-                暂无关联用例
+              <div class="plan-item">
+                <span class="plan-label">通知设置</span>
+                <span class="plan-value">
+                  {{ task.notifyOnSuccess ? '成功通知 ' : '' }}
+                  {{ task.notifyOnFailure ? '失败通知' : '' }}
+                  {{ !task.notifyOnSuccess && !task.notifyOnFailure ? '无' : '' }}
+                </span>
               </div>
             </div>
           </div>
 
-          <!-- 最近执行结果 -->
+          <!-- 最近执行记录 -->
           <div class="info-section">
-            <h3 class="section-title">最近执行结果</h3>
-            <div class="execution-results">
-              <div class="execution-item" v-for="result in task.executionResults" :key="result.id">
+            <h3 class="section-title">最近执行记录</h3>
+            <div class="execution-results" v-if="executionHistory.length > 0">
+              <div class="execution-item" v-for="result in executionHistory" :key="result.id">
                 <div class="execution-header">
-                  <el-icon class="execution-status success">
-                    <SuccessFilled />
+                  <el-icon :class="['execution-status', result.status === 'success' ? 'success' : (result.status === 'failed' ? 'failed' : 'warning')]">
+                    <SuccessFilled v-if="result.status === 'success'" />
+                    <CircleCloseFilled v-else-if="result.status === 'failed'" />
                   </el-icon>
                   <span class="execution-time">{{ result.time }}</span>
                   <span class="execution-duration">耗时: {{ result.duration }}</span>
@@ -121,13 +161,13 @@
                 <div class="execution-stats">
                   <span class="stat-item success">{{ result.passed }} 通过</span>
                   <span class="stat-item failed">{{ result.failed }} 失败</span>
-                  <span class="stat-item warning">{{ result.warning }} 警告</span>
+                  <span class="stat-item total">总计: {{ result.total }}</span>
                 </div>
               </div>
-              <div v-if="!task.executionResults || task.executionResults.length === 0" class="empty-results">
-                暂无执行记录
-              </div>
               <el-button link type="primary" class="history-btn">查看完整历史记录</el-button>
+            </div>
+            <div v-else class="empty-results">
+              暂无执行记录
             </div>
           </div>
         </div>
@@ -146,10 +186,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Edit, Delete, SuccessFilled, CircleCloseFilled } from '@element-plus/icons-vue'
+import { Edit, Delete, SuccessFilled, CircleCloseFilled, VideoPlay, VideoPause, RefreshRight } from '@element-plus/icons-vue'
 import PageEnterTransition from '../components/ui/PageEnterTransition.vue'
 import LoadingSpinner from '../components/ui/LoadingSpinner.vue'
-import { getTaskDetail, deleteTask } from '../api/task'
+import { getTaskDetail, deleteTask, enableTask, disableTask, executeTask, getTaskExecutionHistory } from '../api/task'
 
 const route = useRoute()
 const router = useRouter()
@@ -157,15 +197,84 @@ const router = useRouter()
 const taskId = ref(route.params.taskId)
 const loading = ref(true)
 const task = ref(null)
+const executionHistory = ref([])
+const historyLoading = ref(false)
 
 // 获取频率文本
 const getFrequencyText = (frequency) => {
   const frequencyMap = {
     'daily': '每日执行',
     'weekly': '每周执行',
-    'monthly': '每月执行'
+    'monthly': '每月执行',
+    'cron': 'Cron表达式',
+    'simple': '简单重复'
   }
-  return frequencyMap[frequency] || frequency
+  return frequencyMap[frequency] || frequency || '-'
+}
+
+// 获取任务类型文本
+const getTaskTypeText = (taskType) => {
+  const typeMap = {
+    'single_case': '单个用例',
+    'module': '模块',
+    'project': '项目',
+    'test_suite': '测试套件',
+    'api': 'API'
+  }
+  return typeMap[taskType] || taskType || '-'
+}
+
+// 格式化日期时间
+const formatDateTime = (dateTime) => {
+  if (!dateTime) return '-'
+  const date = new Date(dateTime)
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const hours = String(date.getHours()).padStart(2, '0')
+  const minutes = String(date.getMinutes()).padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
+}
+
+// 转换后端数据为前端需要的格式
+const transformBackendData = (item) => {
+  return {
+    id: item.taskId,
+    name: item.taskName,
+    description: item.description,
+    taskType: item.taskType,
+    targetId: item.targetId,
+    targetName: item.targetName || '',
+    frequency: item.triggerType,
+    lastExecution: item.lastExecutionTime ? formatDateTime(item.lastExecutionTime) : '-',
+    nextExecution: item.nextTriggerTime ? formatDateTime(item.nextTriggerTime) : '-',
+    caseCount: item.totalExecutions || 0,
+    creator: item.createdBy || '-',
+    createTime: item.createdAt ? formatDateTime(item.createdAt) : '-',
+    status: item.isEnabled ? 'enabled' : 'disabled',
+    isEnabled: item.isEnabled,
+    executionTime: item.dailyHour !== undefined ?
+      `${String(item.dailyHour).padStart(2, '0')}:${String(item.dailyMinute || 0).padStart(2, '0')}` : '-',
+    timeout: item.timeoutSeconds ? Math.ceil(item.timeoutSeconds / 60) : 60,
+    lastExecutionStatus: item.lastExecutionStatus,
+    successRate: item.successRate || 0,
+    totalExecutions: item.totalExecutions || 0,
+    successfulExecutions: item.successfulExecutions || 0,
+    failedExecutions: item.failedExecutions || 0,
+    skippedExecutions: item.skippedExecutions || 0,
+    weeklyDays: item.weeklyDays,
+    monthlyDay: item.monthlyDay,
+    triggerType: item.triggerType,
+    executionEnvironment: item.executionEnvironment,
+    cronExpression: item.cronExpression,
+    retryEnabled: item.retryEnabled,
+    maxRetryAttempts: item.maxRetryAttempts,
+    notifyOnSuccess: item.notifyOnSuccess,
+    notifyOnFailure: item.notifyOnFailure,
+    notificationRecipients: item.notificationRecipients,
+    skipIfPreviousFailed: item.skipIfPreviousFailed,
+    maxDurationSeconds: item.maxDurationSeconds
+  }
 }
 
 // 加载任务数据
@@ -175,7 +284,9 @@ const loadTask = async () => {
     const response = await getTaskDetail(taskId.value)
 
     if (response.code === 200 && response.data) {
-      task.value = response.data
+      task.value = transformBackendData(response.data)
+      // 加载执行历史
+      loadExecutionHistory()
     } else {
       task.value = null
     }
@@ -185,6 +296,86 @@ const loadTask = async () => {
     task.value = null
   } finally {
     loading.value = false
+  }
+}
+
+// 加载执行历史
+const loadExecutionHistory = async () => {
+  try {
+    historyLoading.value = true
+    const response = await getTaskExecutionHistory(taskId.value, { page: 1, page_size: 5 })
+    if (response.code === 200 && response.data && response.data.list) {
+      executionHistory.value = response.data.list.map(item => ({
+        id: item.executionId,
+        time: item.scheduledTime ? formatDateTime(item.scheduledTime) : '-',
+        startTime: item.startTime ? formatDateTime(item.startTime) : '-',
+        endTime: item.endTime ? formatDateTime(item.endTime) : '-',
+        duration: item.duration ? `${Math.floor(item.duration / 60)}分${item.duration % 60}秒` : '-',
+        status: item.status,
+        passed: item.passedCount || 0,
+        failed: item.failedCount || 0,
+        warning: item.warningCount || 0,
+        total: item.totalCount || 0
+      }))
+    }
+  } catch (error) {
+    console.error('加载执行历史失败:', error)
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// 处理启用/禁用
+const handleToggleStatus = async () => {
+  try {
+    const action = task.value.status === 'enabled' ? '禁用' : '启用'
+    await ElMessageBox.confirm(
+      `确定要${action}任务"${task.value.name}"吗？`,
+      `${action}确认`,
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+
+    if (task.value.status === 'enabled') {
+      await disableTask(taskId.value)
+      ElMessage.success('任务已禁用')
+    } else {
+      await enableTask(taskId.value)
+      ElMessage.success('任务已启用')
+    }
+    loadTask()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('操作失败:', error)
+      ElMessage.error('操作失败，请稍后重试')
+    }
+  }
+}
+
+// 处理立即执行
+const handleExecute = async () => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要立即执行任务"${task.value.name}"吗？`,
+      '执行确认',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info'
+      }
+    )
+
+    await executeTask(taskId.value)
+    ElMessage.success('任务已提交执行')
+    loadTask()
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('执行失败:', error)
+      ElMessage.error('执行失败，请稍后重试')
+    }
   }
 }
 
@@ -286,14 +477,74 @@ onMounted(() => {
 }
 
 .summary-desc {
-  margin: 0 0 16px 0;
+  margin: 0 0 8px 0;
   color: #606266;
   font-size: 16px;
+}
+
+.summary-execution {
+  margin: 0 0 16px 0;
+  color: #909399;
+  font-size: 14px;
 }
 
 .task-status {
   display: flex;
   justify-content: center;
+}
+
+.task-status-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.stat-card.success {
+  background: #f0f9ff;
+  border: 1px solid #bae7ff;
+}
+
+.stat-card.danger {
+  background: #fff1f0;
+  border: 1px solid #ffccc7;
+}
+
+.stat-card.info {
+  background: #f9f9f9;
+  border: 1px solid #e8e8e8;
+}
+
+.stat-card .stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+}
+
+.stat-card.success .stat-value {
+  color: #67c23a;
+}
+
+.stat-card.danger .stat-value {
+  color: #f56c6c;
+}
+
+.stat-card .stat-label {
+  font-size: 14px;
+  color: #606266;
 }
 
 .info-section {
@@ -451,6 +702,10 @@ onMounted(() => {
   color: #e6a23c;
 }
 
+.stat-item.total {
+  color: #909399;
+}
+
 .history-btn {
   margin-top: 16px;
 }
@@ -490,6 +745,10 @@ onMounted(() => {
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .info-grid {
