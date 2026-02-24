@@ -2,7 +2,7 @@
   <el-dialog
     :model-value="visible"
     title="选择测试用例"
-    width="800px"
+    width="900px"
     :close-on-click-modal="false"
     @open="handleOpen"
     @close="handleClose"
@@ -24,25 +24,74 @@
         </div>
       </div>
 
-      <div class="case-list" v-loading="loading">
-        <div class="case-item" v-for="caseItem in filteredCases" :key="caseItem.id">
-          <div class="case-info">
-            <span class="case-name">{{ caseItem.name }}</span>
-            <span class="case-project">{{ caseItem.projectName }}</span>
-            <el-tag size="small" type="info">{{ caseItem.status }}</el-tag>
-          </div>
-          <el-button
-            :type="isSelected(caseItem.id) ? 'danger' : 'primary'"
-            size="small"
-            @click="toggleCaseSelection(caseItem)"
+      <!-- 树形结构展示 -->
+      <div class="tree-container" v-loading="loading">
+        <el-collapse v-model="activeCollapse" accordion>
+          <el-collapse-item
+            v-for="module in filteredTreeData"
+            :key="module.id"
+            :name="module.id"
           >
-            {{ isSelected(caseItem.id) ? '移除' : '添加' }}
-          </el-button>
-        </div>
+            <template #title>
+              <div class="module-title">
+                <el-icon><Folder /></el-icon>
+                <span class="module-name">{{ module.name }}</span>
+                <el-tag size="small" type="info">{{ module.apiCount }} 个接口</el-tag>
+              </div>
+            </template>
 
-        <div v-if="filteredCases.length === 0 && !loading" class="empty-state">
+            <!-- 接口列表 -->
+            <div class="api-list">
+              <div
+                v-for="api in module.apis"
+                :key="api.id"
+                class="api-item"
+              >
+                <div class="api-header" @click="toggleApiCases(api.id)">
+                  <el-icon>
+                    <ArrowRight v-if="!expandedApis.includes(api.id)" />
+                    <ArrowDown v-else />
+                  </el-icon>
+                  <el-tag :type="getMethodType(api.method)" size="small">
+                    {{ api.method }}
+                  </el-tag>
+                  <span class="api-name">{{ api.name }}</span>
+                  <span class="api-path">{{ api.path }}</span>
+                  <el-tag size="small" type="info">{{ api.caseCount }} 个用例</el-tag>
+                </div>
+
+                <!-- 测试用例列表 -->
+                <div v-if="expandedApis.includes(api.id)" class="case-list">
+                  <div
+                    v-for="caseItem in api.cases"
+                    :key="caseItem.id"
+                    class="case-item"
+                    :class="{ 'is-selected': isSelected(caseItem.id) }"
+                  >
+                    <div class="case-info">
+                      <span class="case-name">{{ caseItem.name }}</span>
+                      <el-tag size="small" type="info">{{ caseItem.status }}</el-tag>
+                    </div>
+                    <el-button
+                      :type="isSelected(caseItem.id) ? 'danger' : 'primary'"
+                      size="small"
+                      @click="toggleCaseSelection(caseItem, module, api)"
+                    >
+                      {{ isSelected(caseItem.id) ? '移除' : '添加' }}
+                    </el-button>
+                  </div>
+                  <div v-if="!api.cases || api.cases.length === 0" class="empty-cases">
+                    该接口下暂无测试用例
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-collapse-item>
+        </el-collapse>
+
+        <div v-if="filteredTreeData.length === 0 && !loading" class="empty-state">
           <div class="empty-icon">🔍</div>
-          <div class="empty-text">未找到匹配的用例</div>
+          <div class="empty-text">未找到匹配的测试用例</div>
         </div>
       </div>
     </div>
@@ -59,13 +108,19 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Folder, ArrowRight, ArrowDown } from '@element-plus/icons-vue'
+import { getModulesByProject } from '../../api/project'
+import { getApisByModule } from '../../api/project'
 import { getTestCasesByApi } from '../../api/testCase'
 
 const props = defineProps({
   visible: {
     type: Boolean,
     default: false
+  },
+  projectId: {
+    type: [Number, String],
+    default: null
   },
   selectedCases: {
     type: Array,
@@ -77,45 +132,188 @@ const emit = defineEmits(['update:selectedCases', 'update:visible', 'cancel'])
 
 const searchKeyword = ref('')
 const loading = ref(false)
-const allCases = ref([])
+const treeData = ref([])
+const activeCollapse = ref([])
+const expandedApis = ref([])
 
-// 计算属性
-const filteredCases = computed(() => {
-  if (!searchKeyword.value) return allCases.value
-  return allCases.value.filter(caseItem =>
-    caseItem.name.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
-    (caseItem.projectName && caseItem.projectName.toLowerCase().includes(searchKeyword.value.toLowerCase()))
-  )
+// 计算属性：过滤树形数据
+const filteredTreeData = computed(() => {
+  if (!searchKeyword.value) return treeData.value
+  
+  const keyword = searchKeyword.value.toLowerCase()
+  
+  // 递归过滤
+  const filterNode = (modules) => {
+    return modules.reduce((result, module) => {
+      // 过滤模块名称
+      const moduleMatch = module.name.toLowerCase().includes(keyword)
+      
+      // 过滤接口
+      const filteredApis = module.apis ? module.apis.filter(api => {
+        const apiMatch = api.name.toLowerCase().includes(keyword) || 
+                         api.path.toLowerCase().includes(keyword)
+        // 过滤用例
+        const filteredCases = api.cases ? api.cases.filter(c => 
+          c.name.toLowerCase().includes(keyword)
+        ) : []
+        api.cases = filteredCases
+        return apiMatch || filteredCases.length > 0
+      }) : []
+      
+      module.apis = filteredApis
+      
+      if (moduleMatch || filteredApis.length > 0) {
+        result.push(module)
+      }
+      return result
+    }, [])
+  }
+  
+  return filterNode(treeData.value)
 })
+
+// 获取 HTTP 方法对应的类型
+const getMethodType = (method) => {
+  const methodMap = {
+    'GET': 'success',
+    'POST': 'primary',
+    'PUT': 'warning',
+    'DELETE': 'danger',
+    'PATCH': 'info'
+  }
+  return methodMap[method?.toUpperCase()] || 'info'
+}
 
 // 检查用例是否已选择
 const isSelected = (caseId) => {
   return props.selectedCases.some(item => item.id === caseId)
 }
 
+// 切换接口用例展开状态
+const toggleApiCases = async (apiId) => {
+  const index = expandedApis.value.indexOf(apiId)
+  if (index > -1) {
+    expandedApis.value.splice(index, 1)
+  } else {
+    expandedApis.value.push(apiId)
+    // 加载该接口的用例
+    const module = treeData.value.find(m => m.apis.some(a => a.id === apiId))
+    if (module) {
+      const api = module.apis.find(a => a.id === apiId)
+      if (api && (!api.cases || api.cases.length === 0)) {
+        await loadApiCases(api, module)
+      }
+    }
+  }
+}
+
+// 加载接口的测试用例
+const loadApiCases = async (api, module) => {
+  try {
+    const response = await getTestCasesByApi(api.id, { pageSize: 1000 })
+    const casesList = response.data?.items || response.data || []
+    api.cases = casesList.map(item => ({
+      id: item.id || item.caseId,
+      name: item.name || item.caseName,
+      status: item.status || '正常'
+    }))
+    api.caseCount = api.cases.length
+  } catch (error) {
+    console.error(`加载接口 ${api.id} 的用例失败:`, error)
+    api.cases = []
+    api.caseCount = 0
+  }
+}
+
 // 切换用例选择
-const toggleCaseSelection = (caseItem) => {
+const toggleCaseSelection = (caseItem, module, api) => {
   const newSelected = [...props.selectedCases]
   const index = newSelected.findIndex(item => item.id === caseItem.id)
 
   if (index > -1) {
     newSelected.splice(index, 1)
   } else {
-    newSelected.push(caseItem)
+    // 添加用例时，同时保存模块和接口信息
+    newSelected.push({
+      ...caseItem,
+      moduleId: module.id,
+      moduleName: module.name,
+      apiId: api.id,
+      apiName: api.name
+    })
   }
 
   emit('update:selectedCases', newSelected)
 }
 
-// 加载用例数据
-const loadCases = async () => {
+// 加载树形数据
+const loadTreeData = async () => {
+  if (!props.projectId) {
+    ElMessage.warning('请先选择所属项目')
+    emit('cancel')
+    return
+  }
+
   try {
     loading.value = true
-    const response = await getTestCasesByApi(null, { pageSize: 1000 })
-    allCases.value = response.data || []
+    treeData.value = []
+    
+    // 1. 获取项目下的模块列表
+    const moduleResponse = await getModulesByProject(props.projectId, { pageSize: 1000 })
+    
+    // 处理返回格式：可能是 { code: 1, data: { modules: [...] } }
+    let modules = []
+    if (moduleResponse.code === 1) {
+      modules = moduleResponse.data?.modules || moduleResponse.data || []
+    } else {
+      // 如果没有 code 字段，直接使用 data
+      modules = moduleResponse.data?.modules || moduleResponse.data || []
+    }
+    
+    // 2. 加载每个模块下的接口
+    for (const module of modules) {
+      // 模块ID可能是 moduleId 或 module_id
+      const moduleId = module.moduleId || module.module_id || module.id
+      if (!moduleId) {
+        console.warn('模块缺少ID:', module)
+        continue
+      }
+      
+      const apiList = {
+        id: moduleId,
+        name: module.name,
+        apiCount: 0,
+        apis: []
+      }
+      
+      try {
+        const apiResponse = await getApisByModule(moduleId)
+        // 处理接口返回格式：分页格式 { code: 1, data: { items: [...] } }
+        let apis = []
+        if (apiResponse.code === 1) {
+          apis = apiResponse.data?.items || apiResponse.data || []
+        } else {
+          apis = apiResponse.data?.items || apiResponse.data || []
+        }
+        
+        apiList.apis = apis.map(api => ({
+          id: api.id || api.api_id,
+          name: api.name,
+          method: api.method,
+          path: api.path,
+          caseCount: 0,
+          cases: []
+        }))
+        apiList.apiCount = apiList.apis.length
+      } catch (error) {
+        console.error(`加载模块 ${module.name} 的接口失败:`, error)
+      }
+      
+      treeData.value.push(apiList)
+    }
   } catch (error) {
-    console.error('加载用例失败:', error)
-    ElMessage.error('加载用例数据失败')
+    console.error('加载数据失败:', error)
+    ElMessage.error('加载模块和接口数据失败')
   } finally {
     loading.value = false
   }
@@ -123,8 +321,8 @@ const loadCases = async () => {
 
 // 处理对话框打开
 const handleOpen = () => {
-  if (allCases.value.length === 0) {
-    loadCases()
+  if (props.projectId) {
+    loadTreeData()
   }
 }
 
@@ -138,15 +336,17 @@ const handleConfirm = () => {
   emit('cancel')
 }
 
-// 监听搜索关键词变化
-watch(searchKeyword, () => {
-  // 可以在这里添加防抖逻辑
+// 监听项目变化
+watch(() => props.projectId, (newVal) => {
+  if (newVal && props.visible) {
+    loadTreeData()
+  }
 })
 </script>
 
 <style scoped>
 .case-selector {
-  max-height: 500px;
+  max-height: 600px;
 }
 
 .selector-header {
@@ -163,44 +363,103 @@ watch(searchKeyword, () => {
   color: #606266;
 }
 
-.case-list {
-  max-height: 400px;
+.tree-container {
+  max-height: 500px;
   overflow-y: auto;
+}
+
+.module-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.module-name {
+  flex: 1;
+  font-weight: 500;
+}
+
+.api-list {
+  padding-left: 20px;
+}
+
+.api-item {
+  margin-bottom: 12px;
+}
+
+.api-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.api-header:hover {
+  background-color: #eef1f5;
+}
+
+.api-name {
+  font-weight: 500;
+  color: #303133;
+}
+
+.api-path {
+  flex: 1;
+  color: #909399;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.case-list {
+  padding-left: 32px;
+  margin-top: 8px;
 }
 
 .case-item {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  margin-bottom: 8px;
+  padding: 10px 14px;
+  margin-bottom: 6px;
   border: 1px solid #ebeef5;
-  border-radius: 6px;
+  border-radius: 4px;
   background-color: #fafafa;
   transition: all 0.2s ease;
 }
 
 .case-item:hover {
   border-color: #c0c4cc;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.case-item.is-selected {
+  border-color: #409eff;
+  background-color: #ecf5ff;
 }
 
 .case-info {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 8px;
   flex: 1;
 }
 
 .case-name {
   font-weight: 500;
   color: #303133;
-  font-size: 14px;
 }
 
-.case-project {
-  font-size: 12px;
+.empty-cases {
+  text-align: center;
+  padding: 16px;
   color: #909399;
+  font-size: 13px;
 }
 
 .empty-state {
@@ -219,17 +478,11 @@ watch(searchKeyword, () => {
   font-size: 14px;
 }
 
-@media (max-width: 768px) {
-  .selector-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
+:deep(.el-collapse-item__header) {
+  font-size: 14px;
+}
 
-  .case-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
+:deep(.el-collapse-item__content) {
+  padding-bottom: 8px;
 }
 </style>

@@ -203,6 +203,7 @@
           <!-- 用例选择对话框 (懒加载) -->
           <CaseSelectorDialog
             v-model:visible="showCaseSelector"
+            :project-id="formData.projectId"
             :selected-cases="selectedCases"
             @update:selected-cases="selectedCases = $event"
             @cancel="showCaseSelector = false"
