@@ -22,11 +22,12 @@
       <div class="filter-left">
         <el-select 
           v-model="filters.projectId" 
-          placeholder="所有项目" 
+          placeholder="所属项目" 
           class="filter-item"
           clearable
+          @change="handleFilterChange"
         >
-          <el-option label="所有项目" :value="null" />
+          <el-option label="全部项目" :value="null" />
           <el-option 
             v-for="project in projects" 
             :key="project.id" 
@@ -40,23 +41,36 @@
           placeholder="全部状态" 
           class="filter-item"
           clearable
+          @change="handleFilterChange"
         >
           <el-option label="全部状态" :value="null" />
           <el-option label="启用" value="enabled" />
           <el-option label="禁用" value="disabled" />
         </el-select>
 
-        <div class="time-filter">
+        <div class="frequency-filter">
+          <span class="filter-label">执行频率：</span>
           <el-button 
-            v-for="timeType in timeFilterTypes" 
-            :key="timeType.value"
-            :type="filters.timeType === timeType.value ? 'primary' : 'default'"
-            @click="filters.timeType = timeType.value"
-            class="time-filter-btn"
+            v-for="freq in frequencyTypes" 
+            :key="freq.value"
+            :type="filters.frequency === freq.value ? 'primary' : 'default'"
+            @click="filters.frequency = freq.value; handleFilterChange()"
+            class="frequency-btn"
           >
-            {{ timeType.label }}
+            {{ freq.label }}
           </el-button>
         </div>
+
+        <el-date-picker
+          v-model="filters.dateRange"
+          type="daterange"
+          range-separator="至"
+          start-placeholder="开始日期"
+          end-placeholder="结束日期"
+          class="date-picker"
+          value-format="YYYY-MM-DD"
+          @change="handleFilterChange"
+        />
       </div>
     </div>
 
@@ -228,17 +242,23 @@ import { TableSkeleton } from '../components/ui/skeletons'
 const filters = reactive({
   projectId: null,
   status: null,
-  timeType: 'all'
+  frequency: 'all',
+  dateRange: null
 })
 
-// 时间筛选类型
-const timeFilterTypes = [
+// 执行频率筛选类型
+const frequencyTypes = [
   { label: '全部', value: 'all' },
   { label: '每日', value: 'daily' },
   { label: '每周', value: 'weekly' },
-  { label: '每月', value: 'monthly' },
-  { label: '创建时间', value: 'created' }
+  { label: '每月', value: 'monthly' }
 ]
+
+// 筛选变化处理
+const handleFilterChange = () => {
+  pagination.currentPage = 1
+  fetchTasks()
+}
 
 // 分页信息
 const pagination = reactive({
@@ -292,7 +312,13 @@ const fetchTasks = async () => {
       page_size: pagination.pageSize,
       target_id: filters.projectId,
       is_enabled: filters.status === 'enabled' ? true : (filters.status === 'disabled' ? false : null),
-      trigger_type: filters.timeType === 'all' ? null : filters.timeType
+      trigger_type: filters.frequency === 'all' ? null : filters.frequency
+    }
+
+    // 添加日期范围筛选参数
+    if (filters.dateRange && filters.dateRange.length === 2) {
+      params.start_date = filters.dateRange[0]
+      params.end_date = filters.dateRange[1]
     }
 
     const response = await getTaskList(params)
@@ -697,13 +723,24 @@ onMounted(() => {
   width: 150px;
 }
 
-.time-filter {
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+}
+
+.frequency-filter {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.time-filter-btn {
+.frequency-btn {
   padding: 8px 16px;
+}
+
+.date-picker {
+  width: 260px;
 }
 
 .main-content {
