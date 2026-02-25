@@ -3,7 +3,7 @@
     :model-value="visible"
     @update:model-value="handleVisibleChange"
     title="测试执行结果"
-    width="800px"
+    width="900px"
     :close-on-click-modal="false"
   >
     <div class="execution-result-container" v-if="executionResult">
@@ -23,6 +23,15 @@
           </h3>
           <p class="result-subtitle">{{ executionResult.scopeName || '未知' }}</p>
         </div>
+        <!-- AI诊断按钮 - 测试失败时显示 -->
+        <el-button 
+          v-if="executionResult.status === 'failed'"
+          type="danger" 
+          :icon="MagicStick" 
+          @click="handleAIDiagnosis"
+        >
+          AI智能诊断
+        </el-button>
       </div>
 
       <!-- 执行信息 -->
@@ -180,13 +189,31 @@
         </el-button>
       </div>
     </template>
+
+    <!-- AI诊断对话框 -->
+    <el-dialog
+      v-model="showAIDiagnosis"
+      title="AI智能诊断"
+      width="700px"
+      :close-on-click-modal="false"
+      append-to-body
+      :before-close="handleDiagnosisClose"
+    >
+      <AIDiagnosisPanel
+        v-if="showAIDiagnosis"
+        ref="diagnosisPanelRef"
+        :executionData="executionResult"
+        :autoDiagnose="true"
+      />
+    </el-dialog>
   </el-dialog>
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh } from '@element-plus/icons-vue'
+import { computed, ref, watch } from 'vue'
+import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick } from '@element-plus/icons-vue'
 import { formatTime } from './apiDetail/formatters'
+import AIDiagnosisPanel from '@/components/diagnosis/AIDiagnosisPanel.vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -197,6 +224,28 @@ const emit = defineEmits(['update:modelValue', 'view-logs', 'view-report', 'rete
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v)
+})
+
+// AI诊断相关
+const showAIDiagnosis = ref(false)
+const diagnosisPanelRef = ref(null)
+
+// 打开AI诊断对话框
+const handleAIDiagnosis = () => {
+  showAIDiagnosis.value = true
+}
+
+// 关闭AI诊断对话框时重置状态
+const handleDiagnosisClose = (done) => {
+  showAIDiagnosis.value = false
+  done()
+}
+
+// 监听对话框关闭，重置AI诊断状态
+watch(visible, (newVal) => {
+  if (!newVal) {
+    showAIDiagnosis.value = false
+  }
 })
 
 // 获取显示状态（将后端状态转换为前端显示状态）
@@ -254,6 +303,7 @@ const handleVisibleChange = (value) => {
   padding: 32px 24px;
   border-radius: 8px;
   margin-bottom: 24px;
+  flex-wrap: wrap;
 }
 
 .result-banner.status-passed {
@@ -272,6 +322,7 @@ const handleVisibleChange = (value) => {
 
 .banner-content {
   flex: 1;
+  min-width: 200px;
 }
 
 .result-title {

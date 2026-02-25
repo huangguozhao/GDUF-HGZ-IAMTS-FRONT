@@ -44,6 +44,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Container from '@/components/ui/Container.vue'
 import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
@@ -51,7 +52,9 @@ import NotificationSection from '@/components/home/NotificationSection.vue'
 import ContentSection from '@/components/home/ContentSection.vue'
 import BottomSection from '@/components/home/BottomSection.vue'
 import toast from '@/utils/toast'
+import { getDashboardSummary, getRecentProjects } from '@/api/home'
 
+const router = useRouter()
 const timeRange = ref('7days')
 const loading = ref(false)
 const loadingProjects = ref(true)
@@ -59,209 +62,238 @@ const loadingResources = ref(true)
 const loadingActivities = ref(true)
 const loadingMetrics = ref(true)
 
-// 指标数据
-const metricsData = computed(() => [
-  {
-    title: '总用例数',
-    value: '587',
-    change: '+12',
-    changeUnit: '',
-    subtitle: '较上周增长',
-    showChart: false
-  },
-  {
-    title: '测试通过率',
-    value: '92.7%',
-    change: '+1.5',
-    changeUnit: '%',
-    subtitle: '质量持续提升',
-    showChart: false
-  },
-  {
-    title: '活跃项目',
-    value: '14',
-    change: '+0',
-    changeUnit: '',
-    subtitle: '项目稳定运行',
-    showChart: false
-  },
-  {
-    title: '接口覆盖率',
-    value: '86.3%',
-    change: '+0.8',
-    changeUnit: '%',
-    subtitle: '覆盖率稳步上升',
-    showChart: false
-  }
-])
+// Dashboard数据
+const dashboardData = ref(null)
 
-// 最近编辑的项目数据
-const recentProjects = computed(() => [
-  {
-    id: 1,
-    name: '电商支付系统',
-    description: '支付接口与退款流程自动化测试',
-    updateTime: '2024-03-10 14:30',
-    coverage: 80,
-    tags: ['支付', '电商'],
-    owner: null
-  },
-  {
-    id: 2,
-    name: '用户中心系统',
-    description: '用户注册、登录、权限管理接口测试',
-    updateTime: '2024-03-09 11:20',
-    coverage: 65,
-    tags: ['用户', '权限'],
-    owner: null
-  },
-  {
-    id: 3,
-    name: '物流管理平台',
-    description: '订单追踪与配送状态更新接口测试',
-    updateTime: '2024-03-08 16:45',
-    coverage: 42,
-    tags: ['物流', '订单'],
-    owner: null
+// 指标数据 - 从真实API获取
+const metricsData = computed(() => {
+  if (!dashboardData.value?.execution_stats) {
+    return loadingMetrics.value ? [] : [
+      {
+        title: '总用例数',
+        value: '0',
+        change: '+0',
+        changeUnit: '',
+        subtitle: '暂无数据',
+        showChart: false
+      },
+      {
+        title: '测试通过率',
+        value: '0%',
+        change: '+0',
+        changeUnit: '%',
+        subtitle: '暂无数据',
+        showChart: false
+      },
+      {
+        title: '活跃项目',
+        value: '0',
+        change: '+0',
+        changeUnit: '',
+        subtitle: '暂无数据',
+        showChart: false
+      },
+      {
+        title: '接口覆盖率',
+        value: '0%',
+        change: '+0',
+        changeUnit: '%',
+        subtitle: '暂无数据',
+        showChart: false
+      }
+    ]
   }
-])
+
+  const stats = dashboardData.value.execution_stats
+  return [
+    {
+      title: '总用例数',
+      value: String(stats.casesCreated || 0),
+      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      changeUnit: '',
+      subtitle: stats.trend === 'up' ? '较上周增长' : (stats.trend === 'down' ? '较上周下降' : '与上周持平'),
+      showChart: false
+    },
+    {
+      title: '测试通过率',
+      value: stats.successRate ? `${stats.successRate}%` : '0%',
+      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      changeUnit: '%',
+      subtitle: stats.trend === 'up' ? '质量持续提升' : (stats.trend === 'down' ? '质量有所下降' : '质量保持稳定'),
+      showChart: false
+    },
+    {
+      title: '活跃项目',
+      value: String(dashboardData.value.projectStats?.length || 0),
+      change: '+0',
+      changeUnit: '',
+      subtitle: '项目稳定运行',
+      showChart: false
+    },
+    {
+      title: '总执行次数',
+      value: String(stats.totalExecutions || 0),
+      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      changeUnit: '',
+      subtitle: stats.trend === 'up' ? '执行次数增加' : (stats.trend === 'down' ? '执行次数减少' : '执行次数稳定'),
+      showChart: false
+    }
+  ]
+})
+
+// 最近编辑的项目数据 - 从真实API获取
+const recentProjects = computed(() => {
+  if (!dashboardData.value?.projectStats) {
+    return loadingProjects.value ? [] : []
+  }
+
+  return dashboardData.value.projectStats.slice(0, 6).map((project, index) => ({
+    id: project.projectId,
+    name: project.projectName || `项目${project.projectId}`,
+    description: `执行次数: ${project.executions || 0}，成功率: ${project.successRate || 0}%`,
+    updateTime: new Date().toISOString().split('T')[0],
+    coverage: project.successRate || 0,
+    tags: [],
+    owner: null
+  }))
+})
 
 // 处理查看全部项目
 const handleViewAllProjects = () => {
-  toast.info('正在跳转到项目列表页面...')
-  console.log('查看全部项目')
-  // TODO: 导航到项目列表页面
+  router.push('/projects')
 }
 
 // 处理项目操作
 const handleProjectAction = ({ command, project }) => {
   console.log('项目操作:', command, project)
-  // TODO: 根据命令执行相应操作
+  if (command === 'view') {
+    router.push(`/projects/${project.id}`)
+  }
 }
 
 // 处理创建项目
 const handleCreateProject = () => {
-  toast.info('正在跳转到项目创建页面...')
-  console.log('创建新项目')
-  // TODO: 导航到项目创建页面
+  router.push('/projects/create')
 }
 
 // 处理时间范围变化
 const handleTimeRangeChange = async (value) => {
   timeRange.value = value
-  toast.info('正在更新图表数据...')
-
-  try {
-    // 模拟重新加载数据
-    await new Promise(resolve => setTimeout(resolve, 800))
-    toast.success('图表数据已更新')
-  } catch (error) {
-    toast.error('更新图表数据失败')
-  }
-
-  console.log('时间范围变化:', value)
+  await loadDashboardData()
 }
 
-// 系统资源数据（示例，可改为从 API 获取）
+// 系统资源数据
 const resourceData = computed(() => {
-  if (loadingResources.value) return []
+  if (!dashboardData.value?.system_status) {
+    return loadingResources.value ? [] : [
+      { label: 'CPU使用率', value: '0%', percent: 0, color: 'linear-gradient(90deg, #67c23a 0%, #f0f0f0 0%)' },
+      { label: '内存使用率', value: '0%', percent: 0, color: 'linear-gradient(90deg, #409eff 0%, #f0f0f0 0%)' },
+      { label: '磁盘空间', value: '0%', percent: 0, color: 'linear-gradient(90deg, #e6a23c 0%, #f0f0f0 0%)' }
+    ]
+  }
+
+  const system = dashboardData.value.system_status
   return [
-    { label: 'CPU使用率', value: '28%', percent: 28, color: 'linear-gradient(90deg, #67c23a 28%, #f0f0f0 28%)' },
-    { label: '内存使用率', value: '45%', percent: 45, color: 'linear-gradient(90deg, #409eff 45%, #f0f0f0 45%)' },
-    { label: '磁盘空间', value: '62%', percent: 62, color: 'linear-gradient(90deg, #e6a23c 62%, #f0f0f0 62%)' }
+    { label: 'CPU使用率', value: `${system.cpuUsage || 0}%`, percent: system.cpuUsage || 0, color: `linear-gradient(90deg, #67c23a ${system.cpuUsage || 0}%, #f0f0f0 ${system.cpuUsage || 0}%)` },
+    { label: '内存使用率', value: `${system.memoryUsage || 0}%`, percent: system.memoryUsage || 0, color: `linear-gradient(90deg, #409eff ${system.memoryUsage || 0}%, #f0f0f0 ${system.memoryUsage || 0}%)` },
+    { label: '磁盘空间', value: `${system.diskUsage || 0}%`, percent: system.diskUsage || 0, color: `linear-gradient(90deg, #e6a23c ${system.diskUsage || 0}%, #f0f0f0 ${system.diskUsage || 0}%)` }
   ]
 })
 
-// 最近活动数据（示例）
+// 最近活动数据 - 从真实API获取
 const recentActivities = computed(() => {
-  if (loadingActivities.value) return []
-  return [
-    { id: 1, time: '10:30', title: 'API接口自动化测试执行', desc: '成功执行了支付系统的20个测试用例', origin: '系统自动' },
-    { id: 2, time: '09:15', title: '新建测试用例', desc: '用户中心-权限校验接口测试用例', origin: '李测试' },
-    { id: 3, time: '昨天', title: '系统部署更新', desc: '自动化测试引擎升级至v2.4.5', origin: '系统管理员' },
-    { id: 4, time: '昨天', title: '接口变更检测', desc: '检测到用户服务3个接口参数变更', origin: '变更监控' },
-    { id: 5, time: '3天前', title: '定时测试任务执行失败', desc: '物流系统接口连接超时', origin: '系统自动' }
-  ]
+  if (!dashboardData.value?.recent_activity) {
+    return loadingActivities.value ? [] : []
+  }
+
+  return dashboardData.value.recent_activity.slice(0, 5).map(activity => ({
+    id: activity.activityId || Math.random(),
+    time: activity.timestamp || '',
+    title: activity.description || activity.type || '未知活动',
+    desc: activity.targetName || '',
+    origin: activity.type || '系统'
+  }))
 })
 
 const handleViewMoreActivities = () => {
-  toast.info('正在跳转到活动历史页面...')
-  console.log('查看更多活动')
-  // TODO: 跳转到活动详情或历史页面
+  router.push('/activities')
 }
 
-// 模拟数据加载
-const loadProjects = async () => {
-  loadingProjects.value = true
+// 加载Dashboard数据
+const loadDashboardData = async () => {
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    // 这里可以调用实际的API
+    const timeRangeMap = {
+      '7days': '7d',
+      '30days': '30d',
+      '90days': '90d'
+    }
+
+    const response = await getDashboardSummary({
+      timeRange: timeRangeMap[timeRange.value] || '7d',
+      includeRecentActivity: true,
+      includePendingTasks: true,
+      includeQuickActions: true
+    })
+
+    console.log('Home - Dashboard API Response:', response)
+    
+    // 后端返回格式: { code: 1, msg: "success", data: { ... } }
+    // 需要从 response.data 中获取实际数据
+    const actualData = response.data?.data || response.data
+    console.log('Home - Dashboard actual data:', actualData)
+
+    if (actualData) {
+      dashboardData.value = actualData
+    }
   } catch (error) {
-    toast.error('加载项目数据失败')
-    console.error('Load projects error:', error)
-  } finally {
-    loadingProjects.value = false
+    console.error('加载Dashboard数据失败:', error)
   }
 }
 
-const loadResources = async () => {
-  loadingResources.value = true
+// 加载最近项目数据（备用方案）
+const loadRecentProjects = async () => {
   try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    // 这里可以调用实际的API
+    const response = await getRecentProjects({ page: 1, pageSize: 6 })
+    console.log('Home - Projects API Response:', response)
+    
+    // 后端返回格式: { code: 1, msg: "success", data: { items: [...] } }
+    const actualData = response.data?.data || response.data
+    
+    if (actualData && actualData.items) {
+      // 如果dashboard没有项目数据，使用这个
+      if (!dashboardData.value?.projectStats) {
+        dashboardData.value = dashboardData.value || {}
+        dashboardData.value.projectStats = actualData.items.map(item => ({
+          projectId: item.projectId,
+          projectName: item.projectName || item.name,
+          executions: 0,
+          successRate: 0
+        }))
+      }
+    }
   } catch (error) {
-    toast.error('加载资源数据失败')
-    console.error('Load resources error:', error)
-  } finally {
-    loadingResources.value = false
-  }
-}
-
-const loadActivities = async () => {
-  loadingActivities.value = true
-  try {
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    // 这里可以调用实际的API
-  } catch (error) {
-    toast.error('加载活动数据失败')
-    console.error('Load activities error:', error)
-  } finally {
-    loadingActivities.value = false
-  }
-}
-
-const loadMetrics = async () => {
-  loadingMetrics.value = true
-  try {
-    // 模拟API调用 - 加载指标数据
-    await new Promise(resolve => setTimeout(resolve, 800))
-    // 这里可以调用实际的API来获取指标数据
-  } catch (error) {
-    console.error('Load metrics error:', error)
-  } finally {
-    loadingMetrics.value = false
+    console.error('加载最近项目失败:', error)
   }
 }
 
 // 页面加载时获取数据
 onMounted(async () => {
   loading.value = true
-  toast.info('正在加载首页数据...')
 
   try {
     // 并行加载数据
     await Promise.all([
-      loadProjects(),
-      loadResources(),
-      loadActivities(),
-      loadMetrics()
+      loadDashboardData(),
+      loadRecentProjects()
     ])
 
-    toast.success('数据加载完成')
+    // 更新加载状态
+    loadingMetrics.value = false
+    loadingProjects.value = false
+    loadingResources.value = false
+    loadingActivities.value = false
   } catch (error) {
+    console.error('数据加载失败:', error)
     toast.error('数据加载失败，请刷新页面重试')
   } finally {
     loading.value = false
@@ -269,8 +301,7 @@ onMounted(async () => {
 })
 
 const handleViewTasks = () => {
-  console.log('查看待处理任务')
-  // TODO: 跳转到任务管理页面
+  router.push('/tasks')
 }
 </script>
 

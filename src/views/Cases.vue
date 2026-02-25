@@ -41,26 +41,26 @@
               :key="project.id"
               :node="project"
               level="project"
-              :default-expanded="false"
+              :is-expanded="!!project._expanded"
               :is-selected="selectedNode?.id === project.id && selectedLevel === 'project'"
               @add-module="handleAddModule"
               @edit="handleEdit"
               @delete="handleDeleteProject"
               @node-click="handleSelectNode(project, 'project')"
-              @toggle-expand="handleToggleExpand(project.id)"
+              @update:is-expanded="(val) => { project._expanded = val }"
             >
               <TreeNode
                 v-for="module in project.modules"
                 :key="module.id"
                 :node="module"
                 level="module"
-              :default-expanded="false"
-              @toggle-expand="handleToggleExpand(module.id)"
+                :is-expanded="!!module._expanded"
                 :is-selected="selectedNode?.id === module.id && selectedLevel === 'module'"
                 @add-api="handleAddApi"
                 @edit="handleEdit"
                 @delete="handleDeleteModule"
                 @node-click="handleSelectNode(module, 'module')"
+                @update:is-expanded="(val) => { module._expanded = val }"
               >
                 <!-- 子模块 -->
                 <TreeNode
@@ -68,13 +68,13 @@
                   :key="subModule.id"
                   :node="subModule"
                   level="module"
-                  :default-expanded="expandedNodes.has(subModule.id)"
-                  @toggle-expand="handleToggleExpand(subModule.id)"
+                  :is-expanded="!!subModule._expanded"
                   :is-selected="selectedNode?.id === subModule.id && selectedLevel === 'module'"
                   @add-api="handleAddApi"
                   @edit="handleEdit"
                   @delete="handleDeleteModule"
                   @node-click="handleSelectNode(subModule, 'module')"
+                  @update:is-expanded="(val) => { subModule._expanded = val }"
                 >
                   <!-- 子模块的接口 -->
                   <TreeNode
@@ -82,12 +82,12 @@
                     :key="api.id"
                     :node="api"
                     level="api"
-                    :default-expanded="expandedNodes.has(api.id)"
-                    @toggle-expand="handleToggleExpand(api.id)"
+                    :is-expanded="!!api._expanded"
                     :is-selected="selectedNode?.id === api.id && selectedLevel === 'api'"
                     @edit="handleEdit"
                     @delete="handleDeleteApi"
                     @node-click="handleSelectNode(api, 'api')"
+                    @update:is-expanded="(val) => { api._expanded = val }"
                   >
                     <!-- 测试用例列表 -->
                   <div
@@ -131,11 +131,12 @@
                   :key="api.id"
                   :node="api"
                   level="api"
-                  :default-expanded="false"
+                  :is-expanded="!!api._expanded"
                   :is-selected="selectedNode?.id === api.id && selectedLevel === 'api'"
                   @edit="handleEdit"
                   @delete="handleDeleteApi"
                   @node-click="handleSelectNode(api, 'api')"
+                  @update:is-expanded="(val) => { api._expanded = val }"
                 >
                   <!-- 测试用例列表 -->
                 <div
@@ -1675,6 +1676,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted, onActivated, onDeactivated, nextTick, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+
+// 组件卸载标志，用于防止组件卸载后异步更新
+const isMounted = ref(true)
 import {
   CircleCheckFilled,
   CircleCloseFilled,
@@ -1812,6 +1816,7 @@ watch(searchKeyword, (val) => {
   }, 300)
 })
 onBeforeUnmount(() => {
+  isMounted.value = false
   if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
 })
 
@@ -2081,6 +2086,9 @@ const toggleSidebar = () => {
 
 // 刷新树
 const refreshTree = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   if (USE_REAL_API) {
     await loadProjectTree()
   } else {
@@ -2090,6 +2098,9 @@ const refreshTree = async () => {
 
 // 选择节点
 const handleSelectNode = async (node, level) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   selectedNode.value = node
   selectedLevel.value = level
 
@@ -2136,6 +2147,9 @@ const handleToggleExpand = (nodeId) => {
 
 // 加载项目模块
 const loadProjectModules = async (project) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   // 如果模块已经加载过，直接返回
   if (project.modules && project.modules.length > 0) {
     return
@@ -2154,6 +2168,9 @@ const loadProjectModules = async (project) => {
       structure: 'tree',
       includeStatistics: true
     })
+    
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     
     if (response.code === 1) {
       const modules = response.data.modules || []
@@ -2174,6 +2191,8 @@ const loadProjectModules = async (project) => {
       project.modules = []
     }
   } catch (error) {
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     console.error('加载项目模块失败:', error)
     ElMessage.error('加载模块失败，请稍后重试')
     project.modules = []
@@ -2185,6 +2204,9 @@ const loadProjectModules = async (project) => {
 
 // 加载模块接口
 const loadModuleApis = async (module, forceRefresh = false) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   // 如果接口已经加载过且不是强制刷新，直接返回
   if (!forceRefresh && module.apis && module.apis.length > 0) {
     return
@@ -2200,6 +2222,9 @@ const loadModuleApis = async (module, forceRefresh = false) => {
     loading.value = true
     
     const response = await getApisByModule(module.module_id)
+    
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     
     if (response.code === 1) {
       const apis = response.data.items || []
@@ -2226,6 +2251,8 @@ const loadModuleApis = async (module, forceRefresh = false) => {
       module.apis = []
     }
   } catch (error) {
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     console.error('加载模块接口失败:', error)
     ElMessage.error('加载接口失败，请稍后重试')
     module.apis = []
@@ -2237,6 +2264,9 @@ const loadModuleApis = async (module, forceRefresh = false) => {
 
 // 加载接口测试用例
 const loadApiTestCases = async (api, forceRefresh = false) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   // 如果测试用例已经加载过且不是强制刷新，直接返回
   if (!forceRefresh && api.cases && api.cases.length > 0) {
     return
@@ -2252,6 +2282,9 @@ const loadApiTestCases = async (api, forceRefresh = false) => {
     loading.value = true
     
     const response = await getTestCasesByApi(api.api_id, { pageSize: 100 })
+    
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     
     if (response.code === 1) {
       const cases = response.data.items || []
@@ -2278,6 +2311,8 @@ const loadApiTestCases = async (api, forceRefresh = false) => {
       api.cases = []
     }
   } catch (error) {
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     console.error('加载接口测试用例失败:', error)
     ElMessage.error('加载测试用例失败，请稍后重试')
     api.cases = []
@@ -2312,6 +2347,9 @@ const handleSelectCase = (testCase) => {
 
 // 刷新测试用例数据
 const handleRefreshCases = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   if (selectedLevel.value === 'api' && selectedNode.value) {
     try {
       // 强制重新加载当前接口的测试用例
@@ -2397,6 +2435,9 @@ const refreshModuleApis = async (moduleId) => {
 
 // 更新当前选中的接口数据（保持折叠状态）
 const updateCurrentApiData = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   if (selectedLevel.value === 'api' && selectedNode.value) {
     try {
       // 获取当前接口ID
@@ -2452,6 +2493,9 @@ const updateCurrentApiData = async () => {
 
 // 刷新接口详情（当接口信息更新后）
 const handleRefreshApi = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   // 只更新当前接口数据，不重新加载整个树，保持折叠状态
   await updateCurrentApiData()
 }
@@ -2460,6 +2504,9 @@ const handleRefreshApi = async () => {
  * 删除接口
  */
 const handleDeleteApi = async (apiId) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   try {
     console.log('=== 删除接口 ===')
     console.log('接口ID:', apiId)
@@ -2506,6 +2553,9 @@ const handleDeleteApi = async (apiId) => {
 
 // 更新当前选中的用例数据
 const updateCurrentTestCaseData = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   if (selectedLevel.value === 'case' && selectedNode.value) {
     try {
       // 获取当前用例的接口ID
@@ -3065,6 +3115,9 @@ const handleRemoveEnvVariable = (index) => {
 
 // 删除
 const handleDelete = async (node) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   try {
     await ElMessageBox.confirm(`确定要删除 "${node.name}" 吗？`, '删除确认', {
       confirmButtonText: '确定',
@@ -3284,6 +3337,9 @@ const handleEditCase = (testCase) => {
 }
 
 const handleDeleteCase = async (testCase) => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   try {
     if (USE_REAL_API) {
       // 保存当前状态信息
@@ -3427,6 +3483,9 @@ const handleExecuteCase = (testCase) => {
 
 // 刷新测试用例（执行测试后）
 const handleRefreshTestCase = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   try {
     // 执行历史由 CaseDetail 组件自己负责刷新
     // 这里不需要手动刷新执行历史
@@ -3442,6 +3501,9 @@ const handleRefreshTestCase = async () => {
 
 // 保存
 const handleSave = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   if (!formRef.value) return
   
   try {
@@ -3659,6 +3721,9 @@ watch(executeVariables, (newVal) => {
 })
 
 const handleConfirmExecute = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   try {
     executing.value = true
 
@@ -4038,10 +4103,17 @@ const initMockData = () => {
 
 // 加载项目树（从后端）
 const loadProjectTree = async () => {
+  // 如果组件已卸载，直接返回
+  if (!isMounted.value) return
+  
   loading.value = true
   try {
     // 只获取项目列表，不预加载模块、接口和测试用例
     const projectsRes = await getProjects({ pageSize: 100 })
+    
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
+    
     if (projectsRes.code !== 1) {
       ElMessage.error(projectsRes.msg || '加载项目失败')
       return
@@ -4058,6 +4130,8 @@ const loadProjectTree = async () => {
     
     ElMessage.success(`加载了 ${projectList.length} 个项目`)
   } catch (error) {
+    // 检查组件是否仍然挂载
+    if (!isMounted.value) return
     console.error('加载项目树失败:', error)
     ElMessage.error('加载数据失败，请稍后重试')
   } finally {

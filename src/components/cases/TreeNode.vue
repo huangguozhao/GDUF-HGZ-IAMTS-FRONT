@@ -47,7 +47,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const props = defineProps({
   node: {
@@ -58,7 +58,7 @@ const props = defineProps({
     type: String, // 'project', 'module', 'api'
     required: true
   },
-  defaultExpanded: {
+  isExpanded: {
     type: Boolean,
     default: false
   },
@@ -68,9 +68,22 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['add-module', 'add-api', 'add-case', 'edit', 'delete', 'node-click', 'toggle-expand'])
+const emit = defineEmits(['add-module', 'add-api', 'add-case', 'edit', 'delete', 'node-click', 'toggle-expand', 'update:isExpanded'])
 
-const isExpanded = ref(props.defaultExpanded)
+const expanded = ref(props.isExpanded)
+
+// 监听 isExpanded 属性变化
+watch(() => props.isExpanded, (newVal) => {
+  expanded.value = newVal
+})
+
+const isExpanded = computed({
+  get: () => expanded.value,
+  set: (val) => {
+    expanded.value = val
+    emit('update:isExpanded', val)
+  }
+})
 
 const labelClass = computed(() => {
   return {

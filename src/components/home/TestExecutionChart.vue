@@ -19,8 +19,8 @@
         <TestExecutionLineChart
           :data="lineChartData"
           :height="250"
-          :loading="loading"
-          :error="error"
+          :loading="chartLoading || loading"
+          :error="chartError || error"
         />
       </div>
 
@@ -28,8 +28,8 @@
         <TestResultPieChart
           :data="pieChartData"
           :height="250"
-          :loading="loading"
-          :error="error"
+          :loading="chartLoading || loading"
+          :error="chartError || error"
         />
       </div>
     </div>
@@ -41,9 +41,10 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import TestExecutionLineChart from './TestExecutionLineChart.vue'
 import TestResultPieChart from './TestResultPieChart.vue'
+import { getTestStatistics } from '@/api/home'
 
 const props = defineProps({
   timeRange: {
@@ -63,12 +64,69 @@ const props = defineProps({
 const emit = defineEmits(['time-range-change'])
 
 const selectedTimeRange = ref(props.timeRange)
+const chartLoading = ref(false)
+const chartError = ref('')
+const statisticsData = ref(null)
+
+// 时间范围映射
+const timeRangeMap = {
+  '7days': '7d',
+  '30days': '30d'
+}
+
+// 获取图表数据
+const fetchChartData = async () => {
+  chartLoading.value = true
+  chartError.value = ''
+  try {
+    const response = await getTestStatistics({
+      timeRange: timeRangeMap[selectedTimeRange.value] || '7d',
+      groupBy: 'day',
+      includeTrend: true,
+      includeComparison: true
+    })
+
+    console.log('TestExecutionChart - API Response:', response)
+    console.log('TestExecutionChart - Response data:', response.data)
+    
+    // 后端返回格式: { code: 1, msg: "success", data: { trend_data: [...] } }
+    // 需要从 response.data 中获取实际的统计数据
+    const statsData = response.data?.data || response.data
+    console.log('TestExecutionChart - Stats data:', statsData)
+    console.log('TestExecutionChart - Trend data:', statsData?.trend_data)
+
+    if (statsData && statsData.trend_data) {
+      statisticsData.value = statsData
+    }
+  } catch (error) {
+    console.error('获取测试统计失败:', error)
+    chartError.value = '加载数据失败'
+  } finally {
+    chartLoading.value = false
+  }
+}
+
+// 监听时间范围变化
+watch(() => props.timeRange, (newVal) => {
+  selectedTimeRange.value = newVal
+})
+
+// 监听时间范围变化，重新获取数据
+watch(selectedTimeRange, (newVal) => {
+  fetchChartData()
+  emit('time-range-change', newVal)
+})
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchChartData()
+})
 
 // 生成日期标签的辅助函数
 const generateDateLabels = (days, is30Days = false) => {
   const labels = []
   const today = new Date()
-  
+
   if (is30Days) {
     // 30天模式：显示关键日期点
     const keyDates = [6, 3, 0, -3, -6, -9, -12]
@@ -89,7 +147,7 @@ const generateDateLabels = (days, is30Days = false) => {
       labels.push(`${month}-${day}`)
     }
   }
-  
+
   return labels
 }
 
@@ -107,8 +165,23 @@ const mockLineChartData30Days = {
   failed: [7, 6, 5, 4, 5, 4, 3]
 }
 
-// 折线图数据
+// 折线图数据 - 使用真实API数据
 const lineChartData = computed(() => {
+  console.log('TestExecutionChart - Computing lineChartData, statisticsData:', statisticsData.value)
+  
+  // 如果有真实数据，使用真实数据
+  if (statisticsData.value?.trend_data) {
+    const trendData = statisticsData.value.trend_data
+    console.log('TestExecutionChart - Using real trend data:', trendData)
+    return {
+      dates: trendData.map(item => item.label || item.timePeriod),
+      passed: trendData.map(item => item.passed || 0),
+      failed: trendData.map(item => (item.failed || 0) + (item.broken || 0))
+    }
+  }
+
+  // 否则使用模拟数据
+  console.log('TestExecutionChart - Using mock data')
   if (selectedTimeRange.value === '30days') {
     return mockLineChartData30Days
   }
@@ -121,12 +194,12 @@ const pieChartData = computed(() => {
   const totalPassed = data.passed.reduce((a, b) => a + b, 0)
   const totalFailed = data.failed.reduce((a, b) => a + b, 0)
   const total = totalPassed + totalFailed
-  
+
   // 计算百分比
   const passedPercent = total > 0 ? Math.round((totalPassed / total) * 100) : 81
   const failedPercent = total > 0 ? Math.round((totalFailed / total) * 100) : 7
   const notExecutedPercent = 100 - passedPercent - failedPercent
-  
+
   return {
     passed: passedPercent,
     failed: failedPercent,
@@ -142,11 +215,11 @@ const summaryText = computed(() => {
   const previousPassed = data.passed[data.passed.length - 2] || latestPassed
   const trend = latestPassed > previousPassed ? '提升' : latestPassed < previousPassed ? '下降' : '保持'
   const change = Math.abs(latestPassed - previousPassed)
-  
+
   if (trend === '提升') {
     return `本周测试通过率${trend}${change}%,性能表现稳定`
   } else if (trend === '下降') {
-    return `本周测试通过率${trend}${change}%,需要关注`
+    return `本周测试通过率${trend}了${change}%,需要关注`
   } else {
     return `本周测试通过率${passRate}%,性能表现稳定`
   }
