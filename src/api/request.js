@@ -145,6 +145,20 @@ request.interceptors.response.use(
     }
     
     // 返回解析后的数据对象
+    // 检测业务层认证失败（code: -1 表示认证失败）
+    if (data.code === -1) {
+      console.warn('[request.js] 检测到认证失败，清除 token 并跳转登录')
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      ElMessage.error(data.msg || '认证失败，请重新登录')
+      // 使用 replace 而不是 push，避免产生历史记录
+      // 同时使用 setTimeout 确保在当前请求处理完成后执行
+      setTimeout(() => {
+        window.location.href = '/login'
+      }, 100)
+      return Promise.reject(data)
+    }
+
     return data
   },
   error => {
