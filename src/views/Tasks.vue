@@ -291,8 +291,21 @@ const router = useRouter()
 // 获取项目列表
 const fetchProjects = async () => {
   try {
-    const response = await getProjects()
-    projects.value = response.data || []
+    const response = await getProjects({ page: 1, pageSize: 100 })
+    // 处理后端返回的分页格式：{ total, items, page, pageSize }
+    if (response.data && response.data.items) {
+      projects.value = response.data.items.map(item => ({
+        id: item.projectId || item.id,
+        name: item.projectName || item.name
+      }))
+    } else if (Array.isArray(response.data)) {
+      projects.value = response.data.map(item => ({
+        id: item.projectId || item.id,
+        name: item.projectName || item.name
+      }))
+    } else {
+      projects.value = []
+    }
   } catch (error) {
     console.error('获取项目列表失败:', error)
     projects.value = [
