@@ -538,12 +538,36 @@
       <template #footer>
         <div class="dialog-footer-actions">
           <el-button @click="detailDialogVisible = false">关闭</el-button>
+          <el-button 
+            type="warning" 
+            @click="handleAIDiagnosis"
+            :disabled="!currentReport || currentReport.failedCases === 0"
+          >
+            <el-icon><MagicStick /></el-icon>
+            AI智能诊断
+          </el-button>
           <el-button type="primary" @click="handleExport(currentReport)">
             <el-icon><Download /></el-icon>
             导出报告
           </el-button>
         </div>
       </template>
+    </el-dialog>
+
+    <!-- AI智能诊断对话框 -->
+    <el-dialog
+      v-model="showAIDiagnosis"
+      title="AI智能诊断"
+      width="700px"
+      :close-on-click-modal="false"
+      append-to-body
+    >
+      <AIDiagnosisPanel
+        v-if="showAIDiagnosis"
+        ref="diagnosisPanelRef"
+        :executionData="diagnosisExecutionData"
+        :autoDiagnose="true"
+      />
     </el-dialog>
 
     <!-- 导出选项对话框 -->
@@ -606,10 +630,12 @@ import {
   RefreshLeft,
   View, 
   Download,
-  Delete
+  Delete,
+  MagicStick
 } from '@element-plus/icons-vue'
 import StatsCard from '../components/ui/StatsCard.vue'
 import ChartCard from '../components/ui/ChartCard.vue'
+import AIDiagnosisPanel from '@/components/diagnosis/AIDiagnosisPanel.vue'
 import {
   getReportList,
   getReportById,
@@ -637,6 +663,11 @@ const currentExportReport = ref(null)
 const exporting = ref(false)
 const advancedFilterVisible = ref([])
 const activeDetailTab = ref('charts')
+
+// AI诊断相关
+const showAIDiagnosis = ref(false)
+const diagnosisPanelRef = ref(null)
+const diagnosisExecutionData = ref(null)
 
 // 图表ref
 const pieChartRef = ref(null)
@@ -795,6 +826,32 @@ const handleViewDetail = async (report) => {
   } finally {
     loading.value = false
   }
+}
+
+// AI智能诊断
+const handleAIDiagnosis = () => {
+  if (!currentReport.value) {
+    ElMessage.warning('请先选择报告')
+    return
+  }
+  
+  // 构建诊断所需的数据
+  diagnosisExecutionData.value = {
+    executionId: currentReport.value.executionId,
+    scopeName: currentReport.value.projectName || currentReport.value.reportName,
+    environment: currentReport.value.environment,
+    executionType: currentReport.value.reportType,
+    startTime: currentReport.value.startTime,
+    totalCases: currentReport.value.totalCases,
+    passedCases: currentReport.value.passedCases,
+    failedCases: currentReport.value.failedCases,
+    skippedCases: currentReport.value.skippedCases,
+    successRate: currentReport.value.successRate,
+    status: currentReport.value.failedCases > 0 ? 'failed' : 'passed',
+    duration: currentReport.value.duration
+  }
+  
+  showAIDiagnosis.value = true
 }
 
 // 导出

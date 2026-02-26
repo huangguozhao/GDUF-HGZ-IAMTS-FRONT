@@ -104,9 +104,11 @@ export function useExecution(props, emit, deps = {}) {
               totalCases,
               successRate: response.data.successRate || response.data.success_rate || 0,
               failureMessage: failed > 0 ? `${failed}个用例执行失败` : null,
+              failureType: response.data.failureType || response.data.failure_type,
               reportId: response.data.reportId || response.data.report_id,
               detailUrl: response.data.detailUrl || response.data.detail_url,
-              caseResults: response.data.caseResults || response.data.case_results || []
+              caseResults: response.data.caseResults || response.data.case_results || [],
+              assertionDetails: response.data.assertionDetails || response.data.assertion_details || []
             }
             executeDialogVisible.value = false
             resultDialogVisible.value = true
@@ -144,8 +146,13 @@ export function useExecution(props, emit, deps = {}) {
               assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
               assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
               failureMessage: response.data.failureMessage || response.data.failure_message,
+              failureType: response.data.failureType || response.data.failure_type,
+              failureTrace: response.data.failureTrace || response.data.failure_trace,
               logsLink: response.data.logsLink || response.data.logs_link,
-              reportId: response.data.reportId || response.data.report_id
+              reportId: response.data.reportId || response.data.report_id,
+              assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
+              responseBody: response.data.responseBody || response.data.response_body,
+              responseHeaders: response.data.responseHeaders || response.data.response_headers
             }
             executeDialogVisible.value = false
             resultDialogVisible.value = true

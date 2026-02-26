@@ -209,8 +209,44 @@ const buildContextFromExecutionData = () => {
     errorInfo += `通过率: ${data.successRate}%\n`
   }
   
+  // 添加失败类型和堆栈信息
+  if (data.failureType) {
+    errorInfo += `\n失败类型: ${data.failureType}\n`
+  }
+  if (data.failureTrace) {
+    errorInfo += `\n失败堆栈:\n${data.failureTrace}\n`
+  }
+  
+  // 添加HTTP响应信息
+  if (data.responseStatus) {
+    errorInfo += `\nHTTP响应状态码: ${data.responseStatus}\n`
+  }
+  
   if (errorInfo) {
     errorMessage.value = errorInfo.trim()
+  }
+  
+  // 构建错误日志（包含响应体和断言详情）
+  let errorLogInfo = ''
+  if (data.responseBody) {
+    errorLogInfo += `【响应体】\n${data.responseBody}\n\n`
+  }
+  if (data.assertionDetails && data.assertionDetails.length > 0) {
+    errorLogInfo += `【断言详情】\n`
+    data.assertionDetails.forEach((assertion, index) => {
+      errorLogInfo += `断言${index + 1}:\n`
+      errorLogInfo += `  类型: ${assertion.assertionType || '-'}\n`
+      errorLogInfo += `  期望值: ${assertion.expectedValue || '-'}\n`
+      errorLogInfo += `  实际值: ${assertion.actualValue || '-'}\n`
+      errorLogInfo += `  结果: ${assertion.passed ? '通过' : '失败'}\n`
+      if (assertion.errorMessage) {
+        errorLogInfo += `  错误信息: ${assertion.errorMessage}\n`
+      }
+    })
+  }
+  
+  if (errorLogInfo) {
+    errorLog.value = errorLogInfo.trim()
   }
   
   // 构建描述
@@ -226,6 +262,9 @@ const buildContextFromExecutionData = () => {
   }
   if (data.executorInfo && data.executorInfo.name) {
     desc += `执行人: ${data.executorInfo.name}\n`
+  }
+  if (data.duration) {
+    desc += `执行耗时: ${data.duration}ms\n`
   }
   
   if (desc) {
@@ -261,11 +300,16 @@ onMounted(() => {
   }
 })
 
+// 标记是否已经自动触发过诊断（防止watch和用户点击重复触发）
+const hasAutoDiagnosed = ref(false)
+
 // 监听executionData变化
 watch(() => props.executionData, (newData) => {
   if (newData) {
     buildContextFromExecutionData()
-    if (props.autoDiagnose && canDiagnose.value && !result.value) {
+    // 只有当设置了autoDiagnose、没有诊断结果、且未自动触发过时才自动诊断
+    if (props.autoDiagnose && canDiagnose.value && !result.value && !hasAutoDiagnosed.value) {
+      hasAutoDiagnosed.value = true  // 标记已自动触发
       setTimeout(() => {
         handleDiagnose()
       }, 500)
@@ -296,6 +340,12 @@ const handleDiagnose = async () => {
       errorMessage: errorMessage.value,
       errorLog: errorLog.value,
       description: description.value
+    }
+
+    // 如果有executionData，传递executionId给后端，让后端查询完整数据
+    // 注意：后端DTO使用execution_id，所以需要使用下划线命名
+    if (props.executionData && props.executionData.executionId) {
+      requestData.execution_id = props.executionData.executionId
     }
 
     // 如果是性能诊断，添加性能数据

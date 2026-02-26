@@ -1635,6 +1635,69 @@
           <div class="failure-message">{{ executeResult.failureMessage }}</div>
         </div>
 
+        <!-- 失败类型（如果有） -->
+        <div class="result-section" v-if="executeResult.status === 'failed' && executeResult.failureType">
+          <div class="section-title">失败类型</div>
+          <div class="failure-type">
+            <el-tag :type="getFailureTypeTagType(executeResult.failureType)" size="large">
+              {{ getFailureTypeText(executeResult.failureType) }}
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 详细断言结果（如果有） -->
+        <div class="result-section" v-if="executeResult.assertionDetails && executeResult.assertionDetails.length > 0">
+          <div class="section-title">断言详情</div>
+          <el-table :data="executeResult.assertionDetails" size="small" border stripe>
+            <el-table-column prop="assertionId" label="#" width="50" />
+            <el-table-column prop="assertionType" label="断言类型" width="120">
+              <template #default="{ row }">
+                <el-tag size="small">{{ row.assertionType }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="description" label="描述" min-width="120" />
+            <el-table-column prop="expectedValue" label="期望值" min-width="100">
+              <template #default="{ row }">
+                <span class="cell-value">{{ row.expectedValue || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="actualValue" label="实际值" min-width="100">
+              <template #default="{ row }">
+                <span class="cell-value">{{ row.actualValue || '-' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="passed" label="结果" width="80" align="center">
+              <template #default="{ row }">
+                <el-icon v-if="row.passed" color="#67c23a" :size="18"><CircleCheckFilled /></el-icon>
+                <el-icon v-else color="#f56c6c" :size="18"><CircleCloseFilled /></el-icon>
+              </template>
+            </el-table-column>
+            <el-table-column prop="errorMessage" label="错误信息" min-width="150">
+              <template #default="{ row }">
+                <span class="error-text">{{ row.errorMessage || '-' }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+
+        <!-- 响应体（可折叠） -->
+        <div class="result-section" v-if="executeResult.responseBody">
+          <el-collapse v-model="activeResponseCollapse">
+            <el-collapse-item title="响应体详情" name="responseBody">
+              <pre class="response-body-content">{{ formatResponseBody(executeResult.responseBody) }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+
+        <!-- 失败堆栈跟踪（如果有） -->
+        <div class="result-section" v-if="executeResult.status === 'failed' && executeResult.failureTrace">
+          <el-collapse v-model="activeFailureTraceCollapse">
+            <el-collapse-item title="错误堆栈" name="failureTrace">
+              <pre class="failure-trace-content">{{ executeResult.failureTrace }}</pre>
+            </el-collapse-item>
+          </el-collapse>
+        </div>
+
         <!-- 操作链接 -->
         <div class="result-links-section">
           <el-button
@@ -1851,6 +1914,51 @@ const executeFormData = reactive({
 })
 const executeResult = ref(null)
 const resultDialogVisible = ref(false)
+
+// 折叠面板控制变量
+const activeResponseCollapse = ref([])
+const activeFailureTraceCollapse = ref([])
+
+// 格式化响应体（尝试JSON格式化）
+const formatResponseBody = (body) => {
+  if (!body) return ''
+  try {
+    if (typeof body === 'string') {
+      const parsed = JSON.parse(body)
+      return JSON.stringify(parsed, null, 2)
+    }
+    return JSON.stringify(body, null, 2)
+  } catch {
+    return body
+  }
+}
+
+// 获取失败类型的中文描述
+const getFailureTypeText = (type) => {
+  const typeMap = {
+    'ASSERTION_FAILED': '断言失败',
+    'NETWORK_ERROR': '网络错误',
+    'CONNECTION_REFUSED': '连接被拒绝',
+    'TIMEOUT': '请求超时',
+    'UNKNOWN_HOST': '未知主机',
+    'MALFORMED_URL': 'URL格式错误',
+    'SSL_ERROR': 'SSL证书错误',
+    'IO_ERROR': 'IO错误',
+    'EXECUTION_ERROR': '执行错误',
+    'VALIDATION_ERROR': '验证错误',
+    'UNKNOWN_ERROR': '未知错误'
+  }
+  return typeMap[type] || type || '未知类型'
+}
+
+// 获取失败类型的标签类型
+const getFailureTypeTagType = (type) => {
+  if (type === 'ASSERTION_FAILED') return 'warning'
+  if (type === 'NETWORK_ERROR' || type === 'CONNECTION_REFUSED' || type === 'TIMEOUT') return 'danger'
+  if (type === 'UNKNOWN_HOST' || type === 'MALFORMED_URL' || type === 'SSL_ERROR') return 'danger'
+  return 'info'
+}
+
 const formData = reactive({
   id: null,
   name: '',
@@ -3794,8 +3902,14 @@ const handleConfirmExecute = async () => {
           assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
           assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
           failureMessage: response.data.failureMessage || response.data.failure_message,
+          failureType: response.data.failureType || response.data.failure_type,
+          failureTrace: response.data.failureTrace || response.data.failure_trace,
           logsLink: response.data.logsLink || response.data.logs_link,
-          reportId: response.data.reportId || response.data.report_id
+          reportId: response.data.reportId || response.data.report_id,
+          assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
+          responseBody: response.data.responseBody || response.data.response_body,
+          responseHeaders: response.data.responseHeaders || response.data.response_headers,
+          extractedVariables: response.data.extractedVariables || response.data.extracted_variables
         }
 
         executeDialogVisible.value = false
@@ -6078,6 +6192,58 @@ onMounted(async () => {
   font-size: 14px;
   color: #606266;
   line-height: 1.6;
+}
+
+/* 结果详情区域 */
+.result-section {
+  margin-bottom: 20px;
+}
+
+.result-section .section-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #409eff;
+}
+
+/* 失败类型 */
+.failure-type {
+  padding: 8px 0;
+}
+
+/* 表格单元格样式 */
+.cell-value {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.error-text {
+  color: #f56c6c;
+  font-size: 12px;
+}
+
+/* 响应体和堆栈跟踪 */
+.response-body-content,
+.failure-trace-content {
+  margin: 0;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.failure-trace-content {
+  color: #f56c6c;
+  background: #fef0f0;
 }
 
 /* 操作链接 */
