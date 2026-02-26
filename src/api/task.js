@@ -230,3 +230,137 @@ export const createTaskFromTemplate = (templateId, data) => {
     data
   })
 }
+
+/**
+ * ==================== 任务管理相关API ====================
+ * 对接后端 /tasks 接口（待处理任务管理）
+ */
+
+/**
+ * 获取当前用户的待处理任务列表
+ * @returns {Promise}
+ */
+export const getUserPendingTasks = () => {
+  return request({
+    url: '/tasks/pending',
+    method: 'get'
+  })
+}
+
+/**
+ * 获取所有待处理任务（管理员用）
+ * @returns {Promise}
+ */
+export const getAllPendingTasks = () => {
+  return request({
+    url: '/tasks/pending/all',
+    method: 'get'
+  })
+}
+
+/**
+ * 根据项目ID获取任务列表
+ * @param {number} projectId - 项目ID
+ * @returns {Promise}
+ */
+export const getTasksByProjectId = (projectId) => {
+  return request({
+    url: `/tasks/project/${projectId}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 获取任务详情
+ * @param {number} taskId - 任务ID
+ * @returns {Promise}
+ */
+export const getTaskById = (taskId) => {
+  return request({
+    url: `/tasks/${taskId}`,
+    method: 'get'
+  })
+}
+
+/**
+ * 创建任务
+ * @param {Object} data - 任务数据
+ * @returns {Promise}
+ */
+export const createNewTask = (data) => {
+  return request({
+    url: '/tasks',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 更新任务
+ * @param {number} taskId - 任务ID
+ * @param {Object} data - 任务数据
+ * @returns {Promise}
+ */
+export const updateTaskDetail = (taskId, data) => {
+  return request({
+    url: `/tasks/${taskId}`,
+    method: 'put',
+    data
+  })
+}
+
+/**
+ * 删除任务
+ * @param {number} taskId - 任务ID
+ * @returns {Promise}
+ */
+export const deleteTaskById = (taskId) => {
+  return request({
+    url: `/tasks/${taskId}`,
+    method: 'delete'
+  })
+}
+
+/**
+ * 更新任务状态
+ * @param {number} taskId - 任务ID
+ * @param {string} status - 状态 (pending, in_progress, completed, cancelled)
+ * @returns {Promise}
+ */
+export const updateTaskStatus = (taskId, status) => {
+  return request({
+    url: `/tasks/${taskId}/status`,
+    method: 'patch',
+    params: { status }
+  })
+}
+
+/**
+ * 更新任务进度
+ * @param {number} taskId - 任务ID
+ * @param {number} progress - 进度 (0-100)
+ * @returns {Promise}
+ */
+export const updateTaskProgress = (taskId, progress) => {
+  return request({
+    url: `/tasks/${taskId}/progress`,
+    method: 'patch',
+    params: { progress }
+  })
+}
+
+/**
+ * 根据测试失败自动创建任务
+ * @param {number} executionId - 执行记录ID
+ * @param {string} failureMessage - 失败消息
+ * @param {number} projectId - 项目ID
+ * @param {string} projectName - 项目名称
+ * @returns {Promise}
+ */
+export const createTaskFromFailure = (executionId, failureMessage, projectId, projectName) => {
+  return request({
+    url: '/tasks/from-failure',
+    method: 'post',
+    params: { executionId, failureMessage, projectId, projectName }
+  })
+}

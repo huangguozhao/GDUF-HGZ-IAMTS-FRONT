@@ -11,7 +11,10 @@
         <transition name="summary-fade" appear>
           <div class="summary-section">
             <!-- 通知提醒区域 -->
-            <NotificationSection @view-tasks="handleViewTasks" />
+            <NotificationSection 
+              :pending-tasks="pendingTasksCount" 
+              :urgent-tasks="urgentTasksCount"
+              @view-tasks="handleViewTasks" />
             <MetricsGrid :metrics="metricsData" :loading="loadingMetrics" :show-chart="false" />
           </div>
         </transition>
@@ -198,6 +201,36 @@ const resourceData = computed(() => {
     { label: '内存使用率', value: `${system.memoryUsage || 0}%`, percent: system.memoryUsage || 0, color: `linear-gradient(90deg, #409eff ${system.memoryUsage || 0}%, #f0f0f0 ${system.memoryUsage || 0}%)` },
     { label: '磁盘空间', value: `${system.diskUsage || 0}%`, percent: system.diskUsage || 0, color: `linear-gradient(90deg, #e6a23c ${system.diskUsage || 0}%, #f0f0f0 ${system.diskUsage || 0}%)` }
   ]
+})
+
+// 待处理任务数量 - 从真实API获取
+const pendingTasksCount = computed(() => {
+  const tasks = dashboardData.value?.pending_tasks
+  if (!tasks || !Array.isArray(tasks)) {
+    return 0
+  }
+  return tasks.length
+})
+
+// 高优先级问题数量 - 从真实API获取
+// priority: 1-紧急, 2-高, 3-中, 4-低
+const urgentTasksCount = computed(() => {
+  const tasks = dashboardData.value?.pending_tasks
+  if (!tasks || !Array.isArray(tasks)) {
+    return 0
+  }
+  // 高优先级: priority <= 2 (紧急或高优先级)
+  return tasks.filter(task => {
+    const priority = task.priority
+    if (typeof priority === 'number') {
+      return priority <= 2
+    }
+    if (typeof priority === 'string') {
+      const p = priority.toLowerCase()
+      return p === 'high' || p === 'urgent' || p === 'critical' || p === 'p1' || p === 'p2'
+    }
+    return false
+  }).length
 })
 
 // 最近活动数据 - 从真实API获取
