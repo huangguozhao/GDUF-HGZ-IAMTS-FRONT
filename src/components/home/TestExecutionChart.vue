@@ -123,32 +123,78 @@ onMounted(() => {
 })
 
 // 生成日期标签的辅助函数
-const generateDateLabels = (days, is30Days = false) => {
+const generateDateLabels = (days) => {
   const labels = []
   const today = new Date()
 
-  if (is30Days) {
-    // 30天模式：显示关键日期点
-    const keyDates = [6, 3, 0, -3, -6, -9, -12]
-    keyDates.forEach(offset => {
-      const date = new Date(today)
-      date.setDate(date.getDate() + offset)
-      const month = date.getMonth() + 1
-      const day = date.getDate()
-      labels.push(`${month}-${day}`)
-    })
-  } else {
-    // 7天模式：显示最近7天
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const month = date.getMonth() + 1
-      const day = date.getDate()
-      labels.push(`${month}-${day}`)
-    }
+  // 无论7天还是30天，都显示完整的天数
+  for (let i = days - 1; i >= 0; i--) {
+    const date = new Date(today)
+    date.setDate(date.getDate() - i)
+    const month = date.getMonth() + 1
+    const day = date.getDate()
+    labels.push(`${month}-${day}`)
   }
 
   return labels
+}
+
+// 补齐缺失的日期数据
+const fillMissingData = (trendData, days) => {
+  // 生成完整的日期标签
+  const fullLabels = generateDateLabels(days)
+
+  // 创建日期到数据的映射
+  const dataMap = new Map()
+  trendData.forEach(item => {
+    const label = item.label || item.timePeriod
+
+    // 处理后端返回的日期格式（可能是 02-27 或 2026-02-27）
+    let datePart = label
+    if (label.includes('-')) {
+      const parts = label.split('-')
+      if (parts.length === 2) {
+        // 格式为 mm-dd 或 mm-dd
+        datePart = `${parseInt(parts[0])}-${parseInt(parts[1])}`
+      } else if (parts.length === 3) {
+        // 格式为 yyyy-mm-dd
+        datePart = `${parseInt(parts[1])}-${parseInt(parts[2])}`
+      }
+    }
+
+    dataMap.set(datePart, {
+      passed: Number(item.passed) || 0,
+      failed: (Number(item.failed) || 0) + (Number(item.broken) || 0)
+    })
+  })
+
+  console.log('TestExecutionChart - Full labels:', fullLabels)
+  console.log('TestExecutionChart - Data map:', dataMap)
+
+  // 补齐数据
+  const filledPassed = []
+  const filledFailed = []
+
+  fullLabels.forEach(label => {
+    const data = dataMap.get(label)
+    if (data) {
+      filledPassed.push(data.passed)
+      filledFailed.push(data.failed)
+    } else {
+      // 没有数据的日期用0填充
+      filledPassed.push(0)
+      filledFailed.push(0)
+    }
+  })
+
+  console.log('TestExecutionChart - Filled passed:', filledPassed)
+  console.log('TestExecutionChart - Filled failed:', filledFailed)
+
+  return {
+    dates: fullLabels,
+    passed: filledPassed,
+    failed: filledFailed
+  }
 }
 
 // 模拟数据 - 最近7天的测试执行数据
@@ -158,26 +204,41 @@ const mockLineChartData7Days = {
   failed: [5, 4, 6, 3, 5, 4, 3]
 }
 
-// 模拟数据 - 最近30天的测试执行数据（显示关键日期点）
-const mockLineChartData30Days = {
-  dates: generateDateLabels(30, true),
-  passed: [38, 40, 43, 45, 50, 55, 58],
-  failed: [7, 6, 5, 4, 5, 4, 3]
+// 模拟数据 - 最近30天的测试执行数据（显示所有30天）
+const generateMock30DaysData = () => {
+  const labels = generateDateLabels(30)
+  const passed = []
+  const failed = []
+
+  for (let i = 0; i < 30; i++) {
+    // 模拟一些随机数据，有些天可能为0
+    passed.push(Math.floor(Math.random() * 30) + 20)
+    failed.push(Math.floor(Math.random() * 5))
+  }
+
+  return {
+    dates: labels,
+    passed,
+    failed
+  }
 }
+
+const mockLineChartData30Days = generateMock30DaysData()
 
 // 折线图数据 - 使用真实API数据
 const lineChartData = computed(() => {
   console.log('TestExecutionChart - Computing lineChartData, statisticsData:', statisticsData.value)
-  
-  // 如果有真实数据，使用真实数据
-  if (statisticsData.value?.trend_data) {
+
+  // 根据时间范围确定天数
+  const days = selectedTimeRange.value === '30days' ? 30 : 7
+
+  // 如果有真实数据，使用真实数据并进行补齐
+  if (statisticsData.value?.trend_data && statisticsData.value.trend_data.length > 0) {
     const trendData = statisticsData.value.trend_data
     console.log('TestExecutionChart - Using real trend data:', trendData)
-    return {
-      dates: trendData.map(item => item.label || item.timePeriod),
-      passed: trendData.map(item => item.passed || 0),
-      failed: trendData.map(item => (item.failed || 0) + (item.broken || 0))
-    }
+
+    // 补齐缺失的日期数据
+    return fillMissingData(trendData, days)
   }
 
   // 否则使用模拟数据
