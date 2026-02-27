@@ -71,6 +71,12 @@
     <div v-if="result" class="diagnosis-result">
       <el-divider content-position="left">诊断结果</el-divider>
       
+      <!-- 诊断信息 -->
+      <div class="diagnosis-info" style="margin-bottom: 15px; color: #909399; font-size: 13px;">
+        <span v-if="result.diagnosisType">诊断类型：{{ getDiagnosisTypeText(result.diagnosisType) }}</span>
+        <span v-if="result.diagnosisId" style="margin-left: 20px;">诊断ID：{{ result.diagnosisId }}</span>
+      </div>
+      
       <!-- 置信度 -->
       <div class="confidence-section" v-if="result.confidenceScore">
         <span class="confidence-label">置信度：</span>
@@ -274,6 +280,11 @@ const buildContextFromExecutionData = () => {
 
 // 判断是否可以开始诊断 - 必须在 watch 之前定义
 const canDiagnose = computed(() => {
+  // 如果有执行数据传入（从报告页面），则可以诊断
+  if (props.executionData && props.executionData.executionId) {
+    return true
+  }
+  
   if (diagnosisType.value === 'test_failure') {
     return errorMessage.value.trim().length > 0 || errorLog.value.trim().length > 0
   } else if (diagnosisType.value === 'performance') {
@@ -290,14 +301,7 @@ onMounted(() => {
   if (props.executionData) {
     buildContextFromExecutionData()
   }
-  
-  // 如果设置了自动诊断，则立即开始诊断
-  if (props.autoDiagnose && canDiagnose.value) {
-    // 延迟一点确保UI渲染完成
-    setTimeout(() => {
-      handleDiagnose()
-    }, 500)
-  }
+  // 注意：自动诊断逻辑在 watch 中处理（watch 有 immediate: true）
 })
 
 // 标记是否已经自动触发过诊断（防止watch和用户点击重复触发）
@@ -324,6 +328,18 @@ const getConfidenceColor = (score) => {
   return '#f56c6c'
 }
 
+// 获取诊断类型的中文描述
+const getDiagnosisTypeText = (type) => {
+  const typeMap = {
+    'test_failure': '测试失败',
+    'performance': '性能问题',
+    'security': '安全问题',
+    'coverage': '覆盖率分析',
+    'general': '综合诊断'
+  }
+  return typeMap[type] || type
+}
+
 // 执行诊断
 const handleDiagnose = async () => {
   if (!canDiagnose.value) {
@@ -335,28 +351,44 @@ const handleDiagnose = async () => {
   result.value = null
 
   try {
+    // 确保 diagnosisType 有值，避免 JSON 序列化时丢失字段
+    const typeValue = diagnosisType.value || 'test_failure'
+    
     const requestData = {
-      diagnosisType: diagnosisType.value,
-      errorMessage: errorMessage.value,
-      errorLog: errorLog.value,
-      description: description.value
+      // 后端期望 diagnosisType 字段
+      diagnosisType: typeValue,
+      // 如果 description 为空，使用错误信息作为补充
+      description: description.value || errorMessage.value || ''
     }
 
-    // 如果有executionData，传递executionId给后端，让后端查询完整数据
-    // 注意：后端DTO使用execution_id，所以需要使用下划线命名
+    // 如果有executionData，传递executionId给后端
+    // 后端DTO使用 @JsonProperty("execution_id")，所以发送 execution_id
     if (props.executionData && props.executionData.executionId) {
       requestData.execution_id = props.executionData.executionId
     }
 
+    // 添加错误信息和错误日志
+    if (errorMessage.value.trim()) {
+      requestData.error_message = errorMessage.value
+    }
+    if (errorLog.value.trim()) {
+      requestData.error_log = errorLog.value
+    }
+
     // 如果是性能诊断，添加性能数据
-    if (diagnosisType.value === 'performance') {
+    if (typeValue === 'performance') {
       requestData.context = {
         performanceData: performanceData.value
       }
     }
 
+    console.log('AI诊断请求数据:', requestData)
+    
     const response = await diagnose(requestData)
-    const actualData = response.data?.data || response.data
+    const rawData = response.data?.data || response.data
+
+    // 将后端返回的 snake_case 转换为前端使用的 camelCase
+    const actualData = transformDiagnosisData(rawData)
 
     if (actualData) {
       result.value = actualData
@@ -376,6 +408,25 @@ const handleDiagnose = async () => {
     }
   } finally {
     loading.value = false
+  }
+}
+
+// 将后端 snake_case 数据转换为前端 camelCase
+const transformDiagnosisData = (data) => {
+  if (!data) return null
+  return {
+    result: data.result,
+    status: data.status,
+    diagnosisId: data.diagnosis_id,
+    executionId: data.execution_id,
+    diagnosisType: data.diagnosis_type,
+    rootCause: data.root_cause,
+    suggestedFix: data.suggested_fix,
+    possibleCauses: data.possible_causes || [],
+    improvementSuggestions: data.improvement_suggestions || [],
+    confidenceScore: data.confidence_score,
+    errorMessage: data.error_message,
+    errorLog: data.error_log
   }
 }
 

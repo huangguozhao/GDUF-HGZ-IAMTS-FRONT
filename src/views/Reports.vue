@@ -566,6 +566,7 @@
         v-if="showAIDiagnosis"
         ref="diagnosisPanelRef"
         :executionData="diagnosisExecutionData"
+        :initialDiagnosisType="diagnosisExecutionData?.diagnosisType || 'test_failure'"
         :autoDiagnose="true"
       />
     </el-dialog>
@@ -719,6 +720,35 @@ const monthlyReports = computed(() => {
   return reportList.value.length
 })
 
+// 转换后端数据为前端格式
+const transformBackendData = (item) => {
+  return {
+    reportId: item.report_id,
+    reportName: item.report_name,
+    reportType: item.report_type,
+    executionId: item.execution_id,  // 添加 executionId 映射
+    projectId: item.project_id,
+    projectName: item.project_name,
+    environment: item.environment,
+    startTime: item.start_time,
+    endTime: item.end_time,
+    duration: item.duration,
+    totalCases: item.total_cases,
+    executedCases: item.executed_cases,
+    passedCases: item.passed_cases,
+    failedCases: item.failed_cases,
+    brokenCases: item.broken_cases,
+    skippedCases: item.skipped_cases,
+    successRate: item.success_rate,
+    reportStatus: item.report_status,
+    fileFormat: item.file_format,
+    generatedBy: item.generated_by,
+    generatorName: item.generator_name,
+    createdAt: item.created_at,
+    isDeleted: item.is_deleted
+  }
+}
+
 // 加载报告列表
 const loadReportList = async () => {
   loading.value = true
@@ -753,7 +783,8 @@ const loadReportList = async () => {
       console.log('总记录数:', total)
       console.log('第一条报告:', items[0])
       
-      reportList.value = items
+      // 转换后端数据为前端格式
+      reportList.value = items.map(item => transformBackendData(item))
       pagination.total = total
       
       console.log('=== 数据赋值后 ===')
@@ -814,8 +845,11 @@ const handleViewDetail = async (report) => {
   loading.value = true
   try {
     const response = await getReportById(report.reportId)
+    console.log('=== 报告详情 API 返回 ===', response.data)
     if (response.code === 1 && response.data) {
-      currentReport.value = response.data
+      // 详情接口返回的也是 snake_case，需要转换
+      currentReport.value = transformBackendData(response.data)
+      console.log('=== 转换后的报告详情 ===', currentReport.value)
       detailDialogVisible.value = true
     } else {
       ElMessage.error(response.msg || '加载报告详情失败')
@@ -835,21 +869,31 @@ const handleAIDiagnosis = () => {
     return
   }
   
-  // 构建诊断所需的数据
+  // 注意：transformBackendData 已经将 snake_case 转换为 camelCase
+  // 所以这里应该使用 camelCase 字段名
   diagnosisExecutionData.value = {
+    // 传递 executionId（转换后的驼峰命名）
     executionId: currentReport.value.executionId,
-    scopeName: currentReport.value.projectName || currentReport.value.reportName,
+    diagnosisType: 'test_failure',
+    // 项目名
+    scopeName: currentReport.value.reportName,
     environment: currentReport.value.environment,
     executionType: currentReport.value.reportType,
     startTime: currentReport.value.startTime,
+    endTime: currentReport.value.endTime,
     totalCases: currentReport.value.totalCases,
+    executedCases: currentReport.value.executedCases,
     passedCases: currentReport.value.passedCases,
     failedCases: currentReport.value.failedCases,
+    brokenCases: currentReport.value.brokenCases,
     skippedCases: currentReport.value.skippedCases,
     successRate: currentReport.value.successRate,
-    status: currentReport.value.failedCases > 0 ? 'failed' : 'passed',
+    // 判断失败状态：failed_cases > 0 则为 failed
+    status: (currentReport.value.failedCases && currentReport.value.failedCases > 0) ? 'failed' : 'passed',
     duration: currentReport.value.duration
   }
+  
+  console.log('AI诊断数据:', diagnosisExecutionData.value)
   
   showAIDiagnosis.value = true
 }
