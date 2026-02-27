@@ -74,7 +74,14 @@ const chartOptions = computed(() => {
         fontSize: 12
       },
       formatter: (name) => {
-        const value = props.data[name] || 0
+        // 中文字段名到英文字段名的映射
+        const keyMap = {
+          '通过': 'passed',
+          '失败': 'failed',
+          '未执行': 'notExecuted'
+        }
+        const key = keyMap[name]
+        const value = key ? (props.data[key] || 0) : 0
         return `${name}: ${value}%`
       }
     },

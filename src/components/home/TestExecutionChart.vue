@@ -88,15 +88,21 @@ const fetchChartData = async () => {
 
     console.log('TestExecutionChart - API Response:', response)
     console.log('TestExecutionChart - Response data:', response.data)
-    
-    // 后端返回格式: { code: 1, msg: "success", data: { trend_data: [...] } }
+
+    // 后端返回格式: { code: 1, msg: "success", data: { trendData: [...] } }
     // 需要从 response.data 中获取实际的统计数据
+    // 注意：后端使用 @JsonProperty("trend_data")，但JSON序列化后可能是驼峰或下划线
     const statsData = response.data?.data || response.data
     console.log('TestExecutionChart - Stats data:', statsData)
-    console.log('TestExecutionChart - Trend data:', statsData?.trend_data)
 
-    if (statsData && statsData.trend_data) {
-      statisticsData.value = statsData
+    // 处理可能的字段名差异（trend_data vs trendData）
+    const trendData = statsData?.trend_data || statsData?.trendData || []
+    console.log('TestExecutionChart - Trend data:', trendData)
+
+    if (statsData && trendData.length > 0) {
+      statisticsData.value = { ...statsData, trend_data: trendData }
+    } else {
+      statisticsData.value = null
     }
   } catch (error) {
     console.error('获取测试统计失败:', error)
@@ -249,22 +255,33 @@ const lineChartData = computed(() => {
   return mockLineChartData7Days
 })
 
-// 饼图数据（基于最近7天的数据计算）
+// 饼图数据（基于当前时间范围的数据计算）
 const pieChartData = computed(() => {
   const data = lineChartData.value
   const totalPassed = data.passed.reduce((a, b) => a + b, 0)
   const totalFailed = data.failed.reduce((a, b) => a + b, 0)
   const total = totalPassed + totalFailed
 
+  // 如果没有数据，显示0而不是默认值
+  if (total === 0) {
+    return {
+      passed: 0,
+      failed: 0,
+      notExecuted: 0
+    }
+  }
+
   // 计算百分比
-  const passedPercent = total > 0 ? Math.round((totalPassed / total) * 100) : 81
-  const failedPercent = total > 0 ? Math.round((totalFailed / total) * 100) : 7
+  const passedPercent = Math.round((totalPassed / total) * 100)
+  const failedPercent = Math.round((totalFailed / total) * 100)
   const notExecutedPercent = 100 - passedPercent - failedPercent
+
+  console.log('TestExecutionChart - Pie data:', { totalPassed, totalFailed, total, passedPercent, failedPercent, notExecutedPercent })
 
   return {
     passed: passedPercent,
     failed: failedPercent,
-    notExecuted: notExecutedPercent > 0 ? notExecutedPercent : 12
+    notExecuted: notExecutedPercent > 0 ? notExecutedPercent : 0
   }
 })
 
