@@ -37,6 +37,7 @@
           <BottomSection
             :resources="resourceData"
             :activities="recentActivities"
+            :loading="loadingActivities"
             @view-more-activities="handleViewMoreActivities"
           />
         </transition>

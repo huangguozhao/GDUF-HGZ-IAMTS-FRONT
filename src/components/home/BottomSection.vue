@@ -16,6 +16,7 @@
         <div class="bottom-card">
           <RecentActivities
             :activities="activities"
+            :loading="loading"
             @view-more="$emit('view-more-activities')"
           />
         </div>
@@ -37,6 +38,10 @@ defineProps({
   activities: {
     type: Array,
     default: () => []
+  },
+  loading: {
+    type: Boolean,
+    default: false
   }
 })
 
