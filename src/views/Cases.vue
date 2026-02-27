@@ -3890,17 +3890,30 @@ const handleConfirmExecute = async () => {
         executeDialogVisible.value = false
       } else {
         // 同步执行 - 显示执行结果对话框
+        // 单个测试用例执行返回的数据
+        const isPassed = response.data.status === 'passed'
         executeResult.value = {
+          // 基本信息
           executionId: response.data.executionId || response.data.execution_id,
           caseId: response.data.caseId || response.data.case_id,
           caseName: response.data.caseName || response.data.case_name,
           status: response.data.status,
-          duration: response.data.duration,
+          // 时间信息
           startTime: response.data.startTime || response.data.start_time,
           endTime: response.data.endTime || response.data.end_time,
+          duration: response.data.duration || 0,
+          durationSeconds: response.data.duration || 0,
+          // 测试结果（单个用例）
+          totalCases: 1,
+          executedCases: 1,
+          passedCases: isPassed ? 1 : 0,
+          failedCases: isPassed ? 0 : 1,
+          skippedCases: 0,
+          successRate: isPassed ? 100 : 0,
+          // 断言结果 - 连接失败时断言也算失败
           responseStatus: response.data.responseStatus || response.data.response_status,
-          assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
-          assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
+          assertionsPassed: isPassed ? 1 : 0,
+          assertionsFailed: isPassed ? 0 : 1,
           failureMessage: response.data.failureMessage || response.data.failure_message,
           failureType: response.data.failureType || response.data.failure_type,
           failureTrace: response.data.failureTrace || response.data.failure_trace,
@@ -3909,7 +3922,11 @@ const handleConfirmExecute = async () => {
           assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
           responseBody: response.data.responseBody || response.data.response_body,
           responseHeaders: response.data.responseHeaders || response.data.response_headers,
-          extractedVariables: response.data.extractedVariables || response.data.extracted_variables
+          extractedVariables: response.data.extractedVariables || response.data.extracted_variables,
+          // 额外信息
+          environment: requestData.environment || 'dev',
+          executionType: 'manual',
+          scopeName: response.data.caseName || response.data.case_name || '单个测试用例'
         }
 
         executeDialogVisible.value = false

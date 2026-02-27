@@ -208,7 +208,7 @@ export function executeTestCase(apiId, caseId, executeData = {}) {
   const requestTimeout = executeData.async ? 10000 : 60000  // 异步10秒，同步1分钟
   
   return request({
-    url: `/test-cases/${caseId}/execute`,
+    url: `/test-executions/test-cases/${caseId}/execute`,
     method: 'post',
     timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
@@ -500,7 +500,7 @@ export function executeApiTest(apiId, executeData = {}) {
   const requestTimeout = executeData.async ? 10000 : 300000  // 异步10秒，同步5分钟
   
   return request({
-    url: `/apis/${apiId}/execute`,
+    url: `/test-executions/apis/${apiId}/execute`,
     method: 'post',
     timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
@@ -525,7 +525,7 @@ export function executeApiTest(apiId, executeData = {}) {
  */
 export function executeApiTestAsync(apiId, executeData = {}) {
   return request({
-    url: `/apis/${apiId}/execute-async`,
+    url: `/test-executions/apis/${apiId}/execute-async`,
     method: 'post',
     timeout: 10000,  // 异步执行只是提交任务，使用默认超时即可
     data: {

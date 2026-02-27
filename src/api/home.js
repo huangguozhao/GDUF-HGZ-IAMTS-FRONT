@@ -83,7 +83,7 @@ export const getRecentProjects = (params = {}) => {
  */
 export const getExecutionHistory = (params = {}) => {
   return request({
-    url: '/test-executions',
+    url: '/test-executions/test-results',
     method: 'get',
     params: {
       page: params.page || 1,

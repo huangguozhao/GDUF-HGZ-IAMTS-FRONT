@@ -8,8 +8,11 @@ import { API_PATHS } from '@/utils/constants'
 // 获取项目列表（包含完整的树形结构）
 export function getProjectTree() {
   return request({
-    url: `${API_PATHS.PROJECTS}/tree`,
-    method: 'get'
+    url: `${API_PATHS.PROJECTS}`,
+    method: 'get',
+    params: {
+      structure: 'tree'
+    }
   })
 }
 
