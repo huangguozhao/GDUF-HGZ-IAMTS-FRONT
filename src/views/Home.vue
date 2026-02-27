@@ -186,20 +186,31 @@ const handleTimeRangeChange = async (value) => {
 }
 
 // 系统资源数据
+// 根据使用率获取颜色
+const getResourceColor = (percent) => {
+  if (percent >= 90) return '#f56c6c'  // 红色 - 危险
+  if (percent >= 70) return '#e6a23c'  // 橙色 - 警告
+  return '#67c23a'  // 绿色 - 正常
+}
+
 const resourceData = computed(() => {
   if (!dashboardData.value?.system_status) {
     return loadingResources.value ? [] : [
       { label: 'CPU使用率', value: '0%', percent: 0, color: 'linear-gradient(90deg, #67c23a 0%, #f0f0f0 0%)' },
-      { label: '内存使用率', value: '0%', percent: 0, color: 'linear-gradient(90deg, #409eff 0%, #f0f0f0 0%)' },
-      { label: '磁盘空间', value: '0%', percent: 0, color: 'linear-gradient(90deg, #e6a23c 0%, #f0f0f0 0%)' }
+      { label: '内存使用率', value: '0%', percent: 0, color: 'linear-gradient(90deg, #67c23a 0%, #f0f0f0 0%)' },
+      { label: '磁盘空间', value: '0%', percent: 0, color: 'linear-gradient(90deg, #67c23a 0%, #f0f0f0 0%)' }
     ]
   }
 
   const system = dashboardData.value.system_status
+  const cpuPercent = system.cpu_usage || 0
+  const memoryPercent = system.memory_usage || 0
+  const diskPercent = system.disk_usage || 0
+
   return [
-    { label: 'CPU使用率', value: `${system.cpu_usage || 0}%`, percent: system.cpu_usage || 0, color: `linear-gradient(90deg, #67c23a ${system.cpu_usage || 0}%, #f0f0f0 ${system.cpu_usage || 0}%)` },
-    { label: '内存使用率', value: `${system.memory_usage || 0}%`, percent: system.memory_usage || 0, color: `linear-gradient(90deg, #409eff ${system.memory_usage || 0}%, #f0f0f0 ${system.memory_usage || 0}%)` },
-    { label: '磁盘空间', value: `${system.disk_usage || 0}%`, percent: system.disk_usage || 0, color: `linear-gradient(90deg, #e6a23c ${system.disk_usage || 0}%, #f0f0f0 ${system.disk_usage || 0}%)` }
+    { label: 'CPU使用率', value: `${cpuPercent}%`, percent: cpuPercent, color: `linear-gradient(90deg, ${getResourceColor(cpuPercent)} ${cpuPercent}%, #f0f0f0 ${cpuPercent}%)` },
+    { label: '内存使用率', value: `${memoryPercent}%`, percent: memoryPercent, color: `linear-gradient(90deg, ${getResourceColor(memoryPercent)} ${memoryPercent}%, #f0f0f0 ${memoryPercent}%)` },
+    { label: '磁盘空间', value: `${diskPercent}%`, percent: diskPercent, color: `linear-gradient(90deg, ${getResourceColor(diskPercent)} ${diskPercent}%, #f0f0f0 ${diskPercent}%)` }
   ]
 })
 
