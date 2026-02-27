@@ -111,23 +111,23 @@ const metricsData = computed(() => {
   return [
     {
       title: '总用例数',
-      value: String(stats.casesCreated || 0),
-      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      value: String(stats.cases_created || 0),
+      change: stats.change_percent ? String(stats.change_percent) : '+0',
       changeUnit: '',
       subtitle: stats.trend === 'up' ? '较上周增长' : (stats.trend === 'down' ? '较上周下降' : '与上周持平'),
       showChart: false
     },
     {
       title: '测试通过率',
-      value: stats.successRate ? `${stats.successRate}%` : '0%',
-      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      value: stats.success_rate ? `${stats.success_rate}%` : '0%',
+      change: stats.change_percent ? String(stats.change_percent) : '+0',
       changeUnit: '%',
       subtitle: stats.trend === 'up' ? '质量持续提升' : (stats.trend === 'down' ? '质量有所下降' : '质量保持稳定'),
       showChart: false
     },
     {
       title: '活跃项目',
-      value: String(dashboardData.value.projectStats?.length || 0),
+      value: String(dashboardData.value.project_stats?.length || dashboardData.value.system_status?.active_projects || 0),
       change: '+0',
       changeUnit: '',
       subtitle: '项目稳定运行',
@@ -135,8 +135,8 @@ const metricsData = computed(() => {
     },
     {
       title: '总执行次数',
-      value: String(stats.totalExecutions || 0),
-      change: stats.changePercent ? String(stats.changePercent) : '+0',
+      value: String(stats.total_executions || 0),
+      change: stats.change_percent ? String(stats.change_percent) : '+0',
       changeUnit: '',
       subtitle: stats.trend === 'up' ? '执行次数增加' : (stats.trend === 'down' ? '执行次数减少' : '执行次数稳定'),
       showChart: false
@@ -146,16 +146,16 @@ const metricsData = computed(() => {
 
 // 最近编辑的项目数据 - 从真实API获取
 const recentProjects = computed(() => {
-  if (!dashboardData.value?.projectStats) {
+  if (!dashboardData.value?.project_stats) {
     return loadingProjects.value ? [] : []
   }
 
-  return dashboardData.value.projectStats.slice(0, 6).map((project, index) => ({
-    id: project.projectId,
-    name: project.projectName || `项目${project.projectId}`,
-    description: `执行次数: ${project.executions || 0}，成功率: ${project.successRate || 0}%`,
+  return dashboardData.value.project_stats.slice(0, 6).map((project, index) => ({
+    id: project.project_id,
+    name: project.project_name || `项目${project.project_id}`,
+    description: `执行次数: ${project.executions || 0}，成功率: ${project.success_rate || 0}%`,
     updateTime: new Date().toISOString().split('T')[0],
-    coverage: project.successRate || 0,
+    coverage: project.success_rate || 0,
     tags: [],
     owner: null
   }))
@@ -197,9 +197,9 @@ const resourceData = computed(() => {
 
   const system = dashboardData.value.system_status
   return [
-    { label: 'CPU使用率', value: `${system.cpuUsage || 0}%`, percent: system.cpuUsage || 0, color: `linear-gradient(90deg, #67c23a ${system.cpuUsage || 0}%, #f0f0f0 ${system.cpuUsage || 0}%)` },
-    { label: '内存使用率', value: `${system.memoryUsage || 0}%`, percent: system.memoryUsage || 0, color: `linear-gradient(90deg, #409eff ${system.memoryUsage || 0}%, #f0f0f0 ${system.memoryUsage || 0}%)` },
-    { label: '磁盘空间', value: `${system.diskUsage || 0}%`, percent: system.diskUsage || 0, color: `linear-gradient(90deg, #e6a23c ${system.diskUsage || 0}%, #f0f0f0 ${system.diskUsage || 0}%)` }
+    { label: 'CPU使用率', value: `${system.cpu_usage || 0}%`, percent: system.cpu_usage || 0, color: `linear-gradient(90deg, #67c23a ${system.cpu_usage || 0}%, #f0f0f0 ${system.cpu_usage || 0}%)` },
+    { label: '内存使用率', value: `${system.memory_usage || 0}%`, percent: system.memory_usage || 0, color: `linear-gradient(90deg, #409eff ${system.memory_usage || 0}%, #f0f0f0 ${system.memory_usage || 0}%)` },
+    { label: '磁盘空间', value: `${system.disk_usage || 0}%`, percent: system.disk_usage || 0, color: `linear-gradient(90deg, #e6a23c ${system.disk_usage || 0}%, #f0f0f0 ${system.disk_usage || 0}%)` }
   ]
 })
 
@@ -294,13 +294,13 @@ const loadRecentProjects = async () => {
     
     if (actualData && actualData.items) {
       // 如果dashboard没有项目数据，使用这个
-      if (!dashboardData.value?.projectStats) {
+      if (!dashboardData.value?.project_stats) {
         dashboardData.value = dashboardData.value || {}
-        dashboardData.value.projectStats = actualData.items.map(item => ({
-          projectId: item.projectId,
-          projectName: item.projectName || item.name,
+        dashboardData.value.project_stats = actualData.items.map(item => ({
+          project_id: item.project_id || item.id,
+          project_name: item.project_name || item.name,
           executions: 0,
-          successRate: 0
+          success_rate: 0
         }))
       }
     }
