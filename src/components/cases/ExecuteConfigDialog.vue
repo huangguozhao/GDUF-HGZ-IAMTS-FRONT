@@ -653,6 +653,12 @@ const handleCancel = () => {
   padding: 20px;
 }
 
+/* 执行方式 form-item 最小高度 */
+.config-card :deep(.el-form-item) {
+  margin-bottom: 0;
+  min-height: 110px;
+}
+
 /* 选项样式 */
 .option-content {
   display: flex;
@@ -809,18 +815,35 @@ const handleCancel = () => {
 
 .execution-mode-group :deep(.el-radio) {
   margin-right: 0;
+  display: flex;
+  align-items: flex-start;
 }
 
+.execution-mode-group :deep(.el-radio__input) {
+  margin-top: 2px;
+}
+
+/* 隐藏默认的 radio 文字，使用自定义内容 */
 .execution-mode-group :deep(.el-radio__label) {
-  display: none;
+  display: inline-block;
 }
 
 .mode-option {
-  padding: 12px 16px;
+  padding: 16px 20px;
   border: 2px solid #e4e7ed;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  min-height: 80px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.execution-mode-group :deep(.el-radio__input) {
+  position: absolute;
+  top: 16px;
+  left: 16px;
 }
 
 .mode-option:hover {
@@ -835,7 +858,8 @@ const handleCancel = () => {
 .mode-content {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
+  padding-left: 24px;
 }
 
 .mode-title {
