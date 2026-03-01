@@ -1379,184 +1379,15 @@
     </el-dialog>
 
     <!-- 执行测试配置对话框 -->
-    <el-dialog
-      v-model="executeDialogVisible"
-      title="执行测试配置"
-      width="720px"
-      class="execute-dialog"
-      :close-on-click-modal="false"
-    >
-      <div class="execute-content">
-        <div class="execute-header-section">
-          <div class="execute-header-icon">
-            <el-icon size="24" color="#409eff"><CaretRight /></el-icon>
-          </div>
-          <div class="execute-header-info">
-            <h3 class="execute-title">测试执行设置</h3>
-            <p class="execute-subtitle">配置测试执行参数，准备开始测试</p>
-          </div>
-        </div>
-
-        <div class="execute-form-section">
-          <el-form :model="executeFormData" label-width="120px" class="execute-form">
-            <div class="execute-form-grid">
-              <el-form-item label="执行环境" prop="environment" class="form-item-enhanced">
-                <el-select
-                  v-model="executeFormData.environment"
-                  placeholder="请选择执行环境"
-                  class="enhanced-select"
-                >
-                  <template #prefix>
-                    <el-icon><Monitor /></el-icon>
-                  </template>
-                  <el-option label="开发环境 (dev)" value="dev">
-                    <div class="option-content">
-                      <span class="option-label">开发环境</span>
-                      <span class="option-desc">用于开发阶段测试</span>
-                    </div>
-                  </el-option>
-                  <el-option label="测试环境 (test)" value="test">
-                    <div class="option-content">
-                      <span class="option-label">测试环境</span>
-                      <span class="option-desc">用于功能测试</span>
-                    </div>
-                  </el-option>
-                  <el-option label="预发布环境 (staging)" value="staging">
-                    <div class="option-content">
-                      <span class="option-label">预发布环境</span>
-                      <span class="option-desc">用于集成测试</span>
-                    </div>
-                  </el-option>
-                  <el-option label="生产环境 (prod)" value="prod">
-                    <div class="option-content">
-                      <span class="option-label">生产环境</span>
-                      <span class="option-desc">生产环境验证</span>
-                    </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-
-              <el-form-item label="执行模式" prop="async" class="form-item-enhanced">
-                <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
-                  <div class="mode-option">
-                    <el-radio :label="false" class="mode-radio">
-                      <div class="mode-content">
-                        <el-icon class="mode-icon"><Clock /></el-icon>
-                        <div class="mode-text">
-                          <div class="mode-title">同步执行</div>
-                          <div class="mode-desc">立即执行并等待结果</div>
-                        </div>
-                      </div>
-                    </el-radio>
-                  </div>
-                  <div class="mode-option">
-                    <el-radio :label="true" class="mode-radio">
-                      <div class="mode-content">
-                        <el-icon class="mode-icon"><Timer /></el-icon>
-                        <div class="mode-text">
-                          <div class="mode-title">异步执行</div>
-                          <div class="mode-desc">后台执行，支持长时间任务</div>
-                        </div>
-                      </div>
-                    </el-radio>
-                  </div>
-                </el-radio-group>
-              </el-form-item>
-
-              <el-form-item label="Base URL" prop="baseUrl" class="full-width form-item-enhanced">
-                <el-input
-                  v-model="executeFormData.baseUrl"
-                  placeholder="留空则使用环境默认 URL（例如 https://api.example.com）"
-                  class="enhanced-input"
-                >
-                  <template #prefix>
-                    <el-icon><Link /></el-icon>
-                  </template>
-                </el-input>
-                <div class="form-tip">
-                  <el-icon class="tip-icon"><InfoFilled /></el-icon>
-                  <span>可选配置，将覆盖环境默认URL</span>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="超时时间" prop="timeout" class="form-item-enhanced">
-                <div class="timeout-input-group">
-                  <el-input-number
-                    v-model="executeFormData.timeout"
-                    :min="1"
-                    :max="300"
-                    class="timeout-input"
-                    controls-position="right"
-                  />
-                  <span class="timeout-unit">秒</span>
-                </div>
-                <div class="form-tip">
-                  <el-icon class="tip-icon"><Timer /></el-icon>
-                  <span>请求超时时间范围：1-300秒</span>
-                </div>
-              </el-form-item>
-
-              <el-form-item label="执行变量" prop="variables" class="full-width variables-field form-item-enhanced">
-                <div class="variables-container">
-                  <div class="variables-header">
-                    <el-icon class="variables-icon"><Document /></el-icon>
-                    <span class="variables-label">JSON变量配置</span>
-                    <el-button
-                      v-if="executeVariables"
-                      size="small"
-                      type="text"
-                      @click="formatVariables"
-                      class="format-btn"
-                    >
-                      <el-icon><MagicStick /></el-icon>
-                      格式化
-                    </el-button>
-                  </div>
-                  <el-input
-                    v-model="executeVariables"
-                    type="textarea"
-                    :rows="6"
-                    placeholder='可选，JSON 格式变量，例如：{"username":"testuser","password":"Test@123"}'
-                    class="variables-textarea"
-                  />
-                  <div v-if="variablesError" class="variables-error">
-                    <el-icon class="error-icon"><Warning /></el-icon>
-                    <span>{{ variablesError }}</span>
-                  </div>
-                  <div v-else class="variables-hint">
-                    <el-icon class="hint-icon"><InfoFilled /></el-icon>
-                    <span>支持 JSON 格式变量；留空将使用默认值</span>
-                  </div>
-                </div>
-              </el-form-item>
-            </div>
-          </el-form>
-        </div>
-      </div>
-
-      <template #footer>
-        <div class="execute-dialog-footer">
-          <div class="footer-left">
-            <el-button @click="executeDialogVisible = false" plain>
-              <el-icon><CircleClose /></el-icon>
-              <span>取消</span>
-            </el-button>
-          </div>
-          <div class="footer-right">
-            <el-button
-              type="primary"
-              @click="handleConfirmExecute"
-              :loading="executing"
-              class="execute-btn"
-              :disabled="!executeFormData.environment"
-            >
-              <el-icon v-if="!executing"><CaretRight /></el-icon>
-              <span>{{ executing ? '执行中...' : '开始执行' }}</span>
-            </el-button>
-          </div>
-        </div>
-      </template>
-    </el-dialog>
+    <ExecuteConfigDialog
+      v-model:visible="executeDialogVisible"
+      title="测试用例执行"
+      :target-info="executeTargetInfo"
+      :initial-config="executeFormData"
+      :initial-variables="executeVariables"
+      :loading="executing"
+      @confirm="handleExecuteFromDialog"
+    />
 
     <!-- 执行结果对话框 -->
     <el-dialog
@@ -1761,6 +1592,7 @@ import {
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
+import ExecuteConfigDialog from '../components/cases/ExecuteConfigDialog.vue'
 import ApiDetail from '../components/cases/ApiDetail.vue'
 import LevelStats from '../components/cases/LevelStats.vue'
 import EnvironmentConfigDialog from '../components/cases/EnvironmentConfigDialog.vue'
@@ -1912,6 +1744,45 @@ const executeFormData = reactive({
   variables: {},
   async: false
 })
+
+// 执行目标信息
+const executeTargetInfo = computed(() => {
+  const testCase = selectedNode.value
+  const isExecutingApi = selectedLevel.value === 'api'
+  
+  if (isExecutingApi && testCase) {
+    return {
+      name: testCase.name || '接口测试',
+      tag: `${testCase.method || 'GET'} ${testCase.path || ''}`,
+      tagType: 'warning',
+      description: `将执行该接口下 ${testCase.cases?.length || 0} 个测试用例`,
+      stats: [
+        { label: '接口', value: testCase.path || '-' },
+        { label: '用例数', value: testCase.cases?.length || 0 }
+      ]
+    }
+  }
+  
+  return {
+    name: testCase?.name || '测试用例',
+    tag: testCase?.case_code || testCase?.caseCode || '自动生成',
+    tagType: 'success',
+    description: testCase ? `用例编码：${testCase.case_code || testCase?.caseCode || '自动生成'}` : '',
+    stats: [
+      { label: '优先级', value: testCase?.priority || 'P2' },
+      { label: '严重程度', value: testCase?.severity || 'Medium' }
+    ]
+  }
+})
+
+// 处理执行配置对话框的确认
+const handleExecuteFromDialog = (config) => {
+  // 更新执行表单数据
+  Object.assign(executeFormData, config)
+  // 调用原来的执行方法
+  handleConfirmExecute()
+}
+
 const executeResult = ref(null)
 const resultDialogVisible = ref(false)
 

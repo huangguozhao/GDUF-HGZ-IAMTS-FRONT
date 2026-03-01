@@ -89,26 +89,50 @@ export function useExecution(props, emit, deps = {}) {
             const totalCases = response.data.totalCases || response.data.total_cases || 0
             const passed = response.data.passed || 0
             const failed = response.data.failed || 0
+            const isPassed = failed === 0 && passed > 0
+            
+            // 使用后端返回的执行信息，如果没有则使用默认值
+            const executionScope = response.data.executionScope || 'api'
+            const executionType = response.data.executionType || 'manual'
+            const environment = response.data.environment || requestData.environment || 'dev'
+            
             executionResult.value = {
+              // 基本信息
               executionId: response.data.executionId || response.data.execution_id,
+              recordId: response.data.executionId || response.data.execution_id,
               apiId: response.data.apiId || response.data.api_id,
               apiName: response.data.apiName || response.data.api_name,
+              apiMethod: response.data.apiMethod || response.data.api_method,
+              apiPath: response.data.apiPath || response.data.api_path,
               caseName: `接口测试: ${response.data.apiName || response.data.api_name || props.api?.name}`,
-              status: failed === 0 && passed > 0 ? 'passed' : (failed > 0 ? 'failed' : 'not_executed'),
-              duration: response.data.totalDuration || response.data.total_duration,
+              scopeName: `接口测试: ${response.data.apiName || response.data.api_name || props.api?.name}`,
+              status: isPassed ? 'passed' : 'failed',
+              // 时间信息
               startTime: response.data.startTime || response.data.start_time,
               endTime: response.data.endTime || response.data.end_time,
+              duration: response.data.totalDuration || response.data.total_duration || 0,
+              durationSeconds: (response.data.totalDuration || response.data.total_duration || 0) / 1000,
+              // 测试统计
+              totalCases,
+              executedCases: totalCases,
+              passedCases: passed,
+              failedCases: failed,
+              skippedCases: response.data.skipped || 0,
+              successRate: response.data.successRate || response.data.success_rate || (totalCases > 0 ? (passed / totalCases * 100) : 0),
+              // 断言结果
               responseStatus: 200,
               assertionsPassed: passed,
               assertionsFailed: failed,
-              totalCases,
-              successRate: response.data.successRate || response.data.success_rate || 0,
               failureMessage: failed > 0 ? `${failed}个用例执行失败` : null,
               failureType: response.data.failureType || response.data.failure_type,
               reportId: response.data.reportId || response.data.report_id,
               detailUrl: response.data.detailUrl || response.data.detail_url,
               caseResults: response.data.caseResults || response.data.case_results || [],
-              assertionDetails: response.data.assertionDetails || response.data.assertion_details || []
+              assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
+              // 额外信息
+              environment,
+              executionType,
+              executionScope
             }
             executeDialogVisible.value = false
             resultDialogVisible.value = true
@@ -134,17 +158,41 @@ export function useExecution(props, emit, deps = {}) {
             ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
             executeDialogVisible.value = false
           } else {
+            // 单个测试用例执行结果
+            // 使用后端返回的实际断言统计，如果没有则根据状态判断
+            const assertionsPassed = response.data.assertionsPassed ?? response.data.assertions_passed ?? 
+              (response.data.status === 'passed' ? 1 : 0)
+            const assertionsFailed = response.data.assertionsFailed ?? response.data.assertions_failed ?? 
+              (response.data.status === 'failed' || response.data.status === 'broken' ? 1 : 0)
+            
             executionResult.value = {
+              // 基本信息
               executionId: response.data.executionId || response.data.execution_id,
+              recordId: response.data.executionId || response.data.execution_id,
               caseId: response.data.caseId || response.data.case_id,
+              caseCode: response.data.caseCode || response.data.case_code,
               caseName: response.data.caseName || response.data.case_name,
+              scopeName: response.data.caseName || response.data.case_name || '单个测试用例',
+              // 接口信息（新增）
+              apiId: response.data.apiId || response.data.api_id,
+              apiName: response.data.apiName || response.data.api_name,
               status: response.data.status,
-              duration: response.data.duration,
+              // 时间信息
               startTime: response.data.startTime || response.data.start_time,
               endTime: response.data.endTime || response.data.end_time,
+              duration: response.data.duration || 0,
+              durationSeconds: (response.data.duration || 0) / 1000,
+              // 测试统计（单个用例）
+              totalCases: 1,
+              executedCases: 1,
+              passedCases: assertionsPassed,
+              failedCases: assertionsFailed,
+              skippedCases: response.data.skippedCases || response.data.skipped_cases || 0,
+              successRate: response.data.successRate || response.data.success_rate || (assertionsFailed === 0 && assertionsPassed > 0 ? 100 : 0),
+              // 断言结果
               responseStatus: response.data.responseStatus || response.data.response_status,
-              assertionsPassed: response.data.assertionsPassed || response.data.assertions_passed || 0,
-              assertionsFailed: response.data.assertionsFailed || response.data.assertions_failed || 0,
+              assertionsPassed,
+              assertionsFailed,
               failureMessage: response.data.failureMessage || response.data.failure_message,
               failureType: response.data.failureType || response.data.failure_type,
               failureTrace: response.data.failureTrace || response.data.failure_trace,
@@ -152,7 +200,11 @@ export function useExecution(props, emit, deps = {}) {
               reportId: response.data.reportId || response.data.report_id,
               assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
               responseBody: response.data.responseBody || response.data.response_body,
-              responseHeaders: response.data.responseHeaders || response.data.response_headers
+              responseHeaders: response.data.responseHeaders || response.data.response_headers,
+              // 额外信息（使用后端返回的值）
+              environment: response.data.environment || requestData.environment || 'dev',
+              executionType: response.data.executionType || 'manual',
+              executionScope: response.data.executionScope || 'test_case'
             }
             executeDialogVisible.value = false
             resultDialogVisible.value = true

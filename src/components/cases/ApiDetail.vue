@@ -1067,231 +1067,303 @@
       :title="isExecutingApi ? '🚀 执行接口测试' : '🎯 执行测试用例'"
       width="900px"
       :close-on-click-modal="false"
+      destroy-on-close
     >
       <div class="execute-dialog-content">
-        <!-- 基本配置卡片 -->
-        <el-card class="config-card" shadow="never">
-          <template #header>
-            <div class="card-header">
-              <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- 执行目标信息卡片 -->
+        <el-card class="target-info-card" shadow="never">
+          <div class="target-header">
+            <div class="target-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>基本配置</span>
             </div>
-          </template>
-
-          <el-row :gutter="20">
-            <el-col :span="12">
-              <el-form-item label="执行环境" required>
-                <el-select v-model="executeFormData.environment" placeholder="请选择执行环境" style="width: 100%">
-                  <el-option label="开发环境 (dev)" value="dev">
-                    <div class="option-content">
-                      <span class="option-dot dev"></span>
-                      <span>开发环境</span>
-                      <span class="option-desc">dev</span>
-                    </div>
-                  </el-option>
-                  <el-option label="测试环境 (test)" value="test">
-                    <div class="option-content">
-                      <span class="option-dot test"></span>
-                      <span>测试环境</span>
-                      <span class="option-desc">test</span>
-                    </div>
-                  </el-option>
-                  <el-option label="预发布环境 (staging)" value="staging">
-                    <div class="option-content">
-                      <span class="option-dot staging"></span>
-                      <span>预发布环境</span>
-                      <span class="option-desc">staging</span>
-                    </div>
-                  </el-option>
-                  <el-option label="生产环境 (prod)" value="prod">
-                    <div class="option-content">
-                      <span class="option-dot prod"></span>
-                      <span>生产环境</span>
-                      <span class="option-desc">prod</span>
-                    </div>
-                  </el-option>
-                </el-select>
-              </el-form-item>
-            </el-col>
-
-            <el-col :span="12">
-              <el-form-item label="超时时间">
-                <el-input-number
-                  v-model="executeFormData.timeout"
-                  :min="1"
-                  :max="300"
-                  placeholder="30"
-                  style="width: 120px"
-                />
-                <span class="unit-text">秒</span>
-                <el-tooltip content="请求超时时间，建议根据接口复杂度设置" placement="top">
-                  <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                  </svg>
-                </el-tooltip>
-              </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-form-item label="Base URL">
-            <el-input
-              v-model="executeFormData.baseUrl"
-              placeholder="留空则使用环境默认URL，如：https://api.example.com"
-              clearable
-            >
-              <template #prefix>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </template>
-            </el-input>
-          </el-form-item>
+            <div class="target-details">
+              <div class="target-title">{{ isExecutingApi ? '接口测试' : '单个用例测试' }}</div>
+              <div class="target-meta">
+                <el-tag v-if="isExecutingApi && api" size="small" type="info">
+                  {{ api.method }} {{ api.path }}
+                </el-tag>
+                <el-tag v-else-if="currentTestCase" size="small" type="success">
+                  {{ currentTestCase.case_code || currentTestCase.caseCode || '用例-' + (currentTestCase.id || currentTestCase.caseId) }}
+                </el-tag>
+                <span class="target-desc" v-if="isExecutingApi">
+                  将执行该接口下 {{ api?.caseCount || 0 }} 个测试用例
+                </span>
+                <span class="target-desc" v-else>
+                  将执行单个测试用例
+                </span>
+              </div>
+            </div>
+          </div>
         </el-card>
 
-        <!-- 接口测试高级配置 -->
-        <template v-if="isExecutingApi">
-          <el-card class="config-card advanced-card" shadow="never">
-            <template #header>
-              <div class="card-header">
-                <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                <span>测试用例筛选</span>
-                <el-tag size="small" type="info">高级选项</el-tag>
-              </div>
-            </template>
-
+        <!-- 环境配置区域 -->
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>执行环境</span>
+          </div>
+          <el-card class="config-card" shadow="never">
             <el-row :gutter="20">
               <el-col :span="12">
-                <el-form-item label="并发执行数">
-                  <el-input-number
-                    v-model="executeFormData.concurrency"
-                    :min="1"
-                    :max="10"
-                    placeholder="1"
-                    style="width: 120px"
-                  />
-                  <span class="unit-text">个并发</span>
-                  <el-tooltip content="同时执行的测试用例数量，过多可能影响性能" placement="top">
-                    <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                      <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                  </el-tooltip>
+                <el-form-item label="执行环境" required>
+                  <el-select v-model="executeFormData.environment" placeholder="请选择执行环境" style="width: 100%">
+                    <el-option label="开发环境 (dev)" value="dev">
+                      <div class="option-content">
+                        <span class="option-dot dev"></span>
+                        <span>开发环境</span>
+                        <span class="option-desc">dev</span>
+                      </div>
+                    </el-option>
+                    <el-option label="测试环境 (test)" value="test">
+                      <div class="option-content">
+                        <span class="option-dot test"></span>
+                        <span>测试环境</span>
+                        <span class="option-desc">test</span>
+                      </div>
+                    </el-option>
+                    <el-option label="预发布环境 (staging)" value="staging">
+                      <div class="option-content">
+                        <span class="option-dot staging"></span>
+                        <span>预发布环境</span>
+                        <span class="option-desc">staging</span>
+                      </div>
+                    </el-option>
+                    <el-option label="生产环境 (prod)" value="prod">
+                      <div class="option-content">
+                        <span class="option-dot prod"></span>
+                        <span>生产环境</span>
+                        <span class="option-desc">prod</span>
+                      </div>
+                    </el-option>
+                  </el-select>
                 </el-form-item>
               </el-col>
 
-              <el-col :span="12">
-                <el-form-item label="执行顺序">
-                  <el-select v-model="executeFormData.executionOrder" placeholder="选择执行顺序" style="width: 100%">
-                    <el-option label="🔥 优先级降序（推荐）" value="priority_desc" />
-                    <el-option label="⬆️ 优先级升序" value="priority_asc" />
-                    <el-option label="📝 名称升序" value="name_asc" />
-                    <el-option label="📝 名称降序" value="name_desc" />
-                  </el-select>
+              <el-col :span="6">
+                <el-form-item label="超时时间">
+                  <el-input-number
+                    v-model="executeFormData.timeout"
+                    :min="1"
+                    :max="300"
+                    placeholder="30"
+                    style="width: 100%"
+                  />
+                </el-form-item>
+              </el-col>
+
+              <el-col :span="6">
+                <el-form-item label="单位">
+                  <div class="timeout-unit">秒</div>
                 </el-form-item>
               </el-col>
             </el-row>
 
-            <el-form-item label="优先级过滤">
-              <el-select
-                v-model="executeFormData.caseFilter.priority"
-                multiple
-                placeholder="选择要执行的优先级（留空执行全部）"
-                style="width: 100%"
+            <el-form-item label="Base URL">
+              <el-input
+                v-model="executeFormData.baseUrl"
+                placeholder="留空则使用环境默认URL"
+                clearable
               >
-                <el-option label="🚨 P0（最高优先级）" value="P0" />
-                <el-option label="⚡ P1（高优先级）" value="P1" />
-                <el-option label="📋 P2（中等优先级）" value="P2" />
-                <el-option label="📄 P3（低优先级）" value="P3" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item label="标签过滤">
-              <el-select
-                v-model="executeFormData.caseFilter.tags"
-                multiple
-                filterable
-                allow-create
-                placeholder="选择或输入标签进行过滤"
-                style="width: 100%"
-              >
-                <el-option label="🚀 冒烟测试" value="冒烟测试" />
-                <el-option label="🔄 回归测试" value="回归测试" />
-                <el-option label="✨ 功能测试" value="功能测试" />
-                <el-option label="🐛 缺陷验证" value="缺陷验证" />
-                <el-option label="⚡ 性能测试" value="性能测试" />
-              </el-select>
-            </el-form-item>
-
-            <el-form-item>
-              <el-checkbox v-model="executeFormData.caseFilter.enabledOnly">
-                <span class="checkbox-text">仅执行已启用的测试用例</span>
-                <el-tooltip content="跳过已禁用的测试用例，提高执行效率" placement="top">
-                  <svg class="info-icon" width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                    <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                <template #prefix>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                </el-tooltip>
-              </el-checkbox>
+                </template>
+              </el-input>
+              <div class="url-preview" v-if="getPreviewUrl()">
+                <span class="preview-label">预览：</span>
+                <span class="preview-url">{{ getPreviewUrl() }}</span>
+              </div>
             </el-form-item>
           </el-card>
+        </div>
+
+        <!-- 接口测试高级配置 -->
+        <template v-if="isExecutingApi">
+          <div class="config-section">
+            <div class="section-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              <span>测试用例筛选</span>
+              <el-tag size="small" type="warning">高级选项</el-tag>
+            </div>
+            <el-card class="config-card advanced-card" shadow="never">
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="并发执行数">
+                    <el-input-number
+                      v-model="executeFormData.concurrency"
+                      :min="1"
+                      :max="10"
+                      placeholder="1"
+                      style="width: 100%"
+                    />
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="执行顺序">
+                    <el-select v-model="executeFormData.executionOrder" placeholder="选择执行顺序" style="width: 100%">
+                      <el-option label="🔥 优先级降序（推荐）" value="priority_desc" />
+                      <el-option label="⬆️ 优先级升序" value="priority_asc" />
+                      <el-option label="📝 名称升序" value="name_asc" />
+                      <el-option label="📝 名称降序" value="name_desc" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-row :gutter="20">
+                <el-col :span="12">
+                  <el-form-item label="优先级过滤">
+                    <el-select
+                      v-model="executeFormData.caseFilter.priority"
+                      multiple
+                      placeholder="全部优先级"
+                      style="width: 100%"
+                    >
+                      <el-option label="🚨 P0（最高优先级）" value="P0" />
+                      <el-option label="⚡ P1（高优先级）" value="P1" />
+                      <el-option label="📋 P2（中等优先级）" value="P2" />
+                      <el-option label="📄 P3（低优先级）" value="P3" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+
+                <el-col :span="12">
+                  <el-form-item label="标签过滤">
+                    <el-select
+                      v-model="executeFormData.caseFilter.tags"
+                      multiple
+                      filterable
+                      allow-create
+                      placeholder="全部标签"
+                      style="width: 100%"
+                    >
+                      <el-option label="🚀 冒烟测试" value="冒烟测试" />
+                      <el-option label="🔄 回归测试" value="回归测试" />
+                      <el-option label="✨ 功能测试" value="功能测试" />
+                      <el-option label="🐛 缺陷验证" value="缺陷验证" />
+                      <el-option label="⚡ 性能测试" value="性能测试" />
+                    </el-select>
+                  </el-form-item>
+                </el-col>
+              </el-row>
+
+              <el-form-item>
+                <el-checkbox v-model="executeFormData.caseFilter.enabledOnly">
+                  <span>仅执行已启用的测试用例</span>
+                </el-checkbox>
+              </el-form-item>
+            </el-card>
+          </div>
         </template>
 
         <!-- 执行模式配置 -->
-        <el-card class="config-card mode-card" shadow="never">
+        <div class="config-section">
+          <div class="section-header">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>执行模式与变量</span>
+          </div>
+          <el-card class="config-card" shadow="never">
+            <el-form-item label="执行方式">
+              <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
+                <el-radio :label="false" class="mode-option">
+                  <div class="mode-content">
+                    <div class="mode-title">⚡ 同步执行</div>
+                    <div class="mode-desc">等待测试完成并返回详细结果</div>
+                  </div>
+                </el-radio>
+                <el-radio :label="true" class="mode-option">
+                  <div class="mode-content">
+                    <div class="mode-title">🚀 异步执行</div>
+                    <div class="mode-desc">立即返回任务ID，后台执行</div>
+                  </div>
+                </el-radio>
+              </el-radio-group>
+            </el-form-item>
+
+            <el-form-item label="执行变量">
+              <div class="variables-header">
+                <el-input
+                  v-model="executeVariables"
+                  type="textarea"
+                  :rows="4"
+                  placeholder='{"username": "testuser", "token": "your-token"}'
+                  class="variables-textarea"
+                />
+                <div class="variable-actions">
+                  <el-button size="small" text @click="insertVariableTemplate('user')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    用户变量
+                  </el-button>
+                  <el-button size="small" text @click="insertVariableTemplate('token')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Token
+                  </el-button>
+                  <el-button size="small" text @click="insertVariableTemplate('custom')">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    自定义
+                  </el-button>
+                </div>
+              </div>
+            </el-form-item>
+          </el-card>
+        </div>
+
+        <!-- 执行预览摘要 -->
+        <el-card class="summary-card" shadow="never">
           <template #header>
-            <div class="card-header">
-              <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <div class="summary-header">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
               </svg>
-              <span>执行模式</span>
+              <span>执行预览</span>
             </div>
           </template>
-
-          <el-form-item label="执行方式">
-            <el-radio-group v-model="executeFormData.async" class="execution-mode-group">
-              <el-radio :label="false" class="mode-option">
-                <div class="mode-content">
-                  <div class="mode-title">⚡ 同步执行</div>
-                  <div class="mode-desc">等待测试完成并返回详细结果</div>
-                </div>
-              </el-radio>
-              <el-radio :label="true" class="mode-option">
-                <div class="mode-content">
-                  <div class="mode-title">🚀 异步执行</div>
-                  <div class="mode-desc">立即返回任务ID，后台执行</div>
-                </div>
-              </el-radio>
-            </el-radio-group>
-          </el-form-item>
-
-          <el-form-item label="执行变量">
-            <el-input
-              v-model="executeVariables"
-              type="textarea"
-              :rows="4"
-              placeholder='可选，JSON格式的变量，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123",&#10;  "token": "your-api-token"&#10;}'
-              class="variables-textarea"
-            >
-              <template #prefix>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                  <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </template>
-            </el-input>
-            <div class="variable-hint">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
-                <path d="M12 16v-4M12 8h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-              </svg>
-              <span>变量会覆盖默认值，支持动态参数化测试</span>
+          <div class="summary-content">
+            <div class="summary-item">
+              <span class="summary-label">执行目标：</span>
+              <span class="summary-value">{{ isExecutingApi ? '接口测试' : '单个用例测试' }}</span>
             </div>
-          </el-form-item>
+            <div class="summary-item">
+              <span class="summary-label">执行环境：</span>
+              <el-tag size="small" :type="getEnvironmentTagType(executeFormData.environment)">
+                {{ executeFormData.environment }}
+              </el-tag>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">超时设置：</span>
+              <span class="summary-value">{{ executeFormData.timeout }} 秒</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">执行方式：</span>
+              <span class="summary-value">{{ executeFormData.async ? '异步执行' : '同步执行' }}</span>
+            </div>
+            <div class="summary-item" v-if="isExecutingApi">
+              <span class="summary-label">并发数：</span>
+              <span class="summary-value">{{ executeFormData.concurrency }} 个并发</span>
+            </div>
+            <div class="summary-item">
+              <span class="summary-label">变量数量：</span>
+              <span class="summary-value">{{ getVariableCount() }} 个</span>
+            </div>
+          </div>
         </el-card>
       </div>
 
@@ -2125,6 +2197,73 @@ const {
   handleRetestFromResult,
   handleTest
 } = useExecution(props, emit, { activeTab, loadHistoryRecords })
+
+// ========== 执行配置对话框辅助方法 ==========
+
+// 环境配置映射
+const environmentConfigs = {
+  dev: { url: 'http://dev-api.example.com', color: '#67c23a' },
+  test: { url: 'http://test-api.example.com', color: '#e6a23c' },
+  staging: { url: 'http://staging-api.example.com', color: '#f56c6c' },
+  prod: { url: 'https://api.example.com', color: '#909399' }
+}
+
+// 获取预览URL
+const getPreviewUrl = () => {
+  const baseUrl = executeFormData.baseUrl || environmentConfigs[executeFormData.environment]?.url || ''
+  const apiPath = isExecutingApi.value && api.value ? api.value.path : ''
+  if (!baseUrl && !apiPath) return ''
+  return baseUrl + apiPath
+}
+
+// 获取环境标签类型
+const getEnvironmentTagType = (env) => {
+  const types = {
+    dev: 'success',
+    test: 'warning',
+    staging: 'danger',
+    prod: 'info'
+  }
+  return types[env] || 'info'
+}
+
+// 获取变量数量
+const getVariableCount = () => {
+  if (!executeVariables.value) return 0
+  try {
+    const parsed = JSON.parse(executeVariables.value)
+    return Object.keys(parsed).length
+  } catch {
+    return 0
+  }
+}
+
+// 插入变量模板
+const insertVariableTemplate = (type) => {
+  const templates = {
+    user: {
+      username: 'testuser',
+      password: 'Test@123',
+      email: 'test@example.com'
+    },
+    token: {
+      access_token: 'your-access-token',
+      refresh_token: 'your-refresh-token',
+      expires_in: 7200
+    },
+    custom: {
+      key: 'value'
+    }
+  }
+  
+  try {
+    const currentVars = executeVariables.value ? JSON.parse(executeVariables.value) : {}
+    const newVars = { ...currentVars, ...templates[type] }
+    executeVariables.value = JSON.stringify(newVars, null, 2)
+  } catch {
+    executeVariables.value = JSON.stringify(templates[type], null, 2)
+  }
+}
 
 // 切换测试用例启用状态
 const handleToggleTestCaseStatus = async (testCase) => {
@@ -4265,7 +4404,7 @@ onMounted(() => {
 
 .execute-dialog-enhanced .el-dialog__header {
   margin: 0;
-  padding: 24px 24px 0 24px;
+  padding: 20px 24px;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -4279,7 +4418,7 @@ onMounted(() => {
 }
 
 .execute-dialog-enhanced .el-dialog__body {
-  padding: 24px;
+  padding: 20px 24px;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -4288,6 +4427,87 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+/* 执行目标信息卡片 */
+.target-info-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 12px;
+}
+
+.target-info-card .el-card__body {
+  padding: 20px;
+}
+
+.target-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.target-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.target-details {
+  flex: 1;
+}
+
+.target-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+  margin-bottom: 4px;
+}
+
+.target-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.target-meta .el-tag {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+}
+
+.target-desc {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 配置区块 */
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+}
+
+.section-header svg {
+  color: #409eff;
+}
+
+.section-header .el-tag {
+  margin-left: auto;
 }
 
 .config-card {
@@ -4305,6 +4525,39 @@ onMounted(() => {
   padding: 16px 20px;
   border-bottom: 1px solid #f5f5f5;
   background: #fafafa;
+}
+
+.config-card .el-card__body {
+  padding: 20px;
+}
+
+/* URL预览 */
+.url-preview {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #f5f7fa;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-label {
+  color: #909399;
+}
+
+.preview-url {
+  color: #409eff;
+  font-family: 'Monaco', 'Menlo', monospace;
+  word-break: break-all;
+}
+
+/* 超时单位 */
+.timeout-unit {
+  color: #606266;
+  font-size: 14px;
+  line-height: 32px;
 }
 
 .card-header {
@@ -4429,6 +4682,77 @@ onMounted(() => {
 .variables-textarea .el-input__inner {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 13px;
+}
+
+.variables-header {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.variable-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.variable-actions .el-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 执行摘要卡片 */
+.summary-card {
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border: none;
+}
+
+.summary-card .el-card__header {
+  background: transparent;
+  border-bottom: 1px solid #e4e7ed;
+  padding: 12px 16px;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #303133;
+  font-size: 14px;
+}
+
+.summary-header svg {
+  color: #409eff;
+}
+
+.summary-content {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  min-width: 150px;
+}
+
+.summary-label {
+  color: #909399;
+  font-size: 13px;
+}
+
+.summary-value {
+  color: #303133;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .variable-hint {
