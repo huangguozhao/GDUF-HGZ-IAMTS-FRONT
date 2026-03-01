@@ -2183,8 +2183,25 @@ const handleSaveTestCase = async () => {
 }
 
 // 初始化执行相关的响应式变量（将在 useExecution 中被赋值）
-const resultDialogVisible = ref(false)
-const executionResult = ref(null)
+
+// 执行相关逻辑已移至 `useExecution` 可组合函数
+import useExecution from './apiDetail/useExecution'
+const {
+  executeDialogVisible,
+  executing,
+  executeVariables,
+  isExecutingApi,
+  executeFormData,
+  resultDialogVisible,
+  executionResult,
+  currentTestCase,
+  handleRunTestCase,
+  handleConfirmExecute,
+  handleViewLogs,
+  handleViewReport,
+  handleRetestFromResult,
+  handleTest
+} = useExecution(props, emit, { activeTab })
 
 // 测试历史相关逻辑已移至 `useHistoryExport` 可组合函数
 import useHistoryExport from './apiDetail/useHistoryExport'
@@ -2216,23 +2233,6 @@ const {
   handleOpenExportHistoryDialog,
   handleConfirmExportHistory
 } = useHistoryExport(props, emit, { resultDialogVisible, executionResult })
-
-// 执行相关逻辑已移至 `useExecution` 可组合函数
-import useExecution from './apiDetail/useExecution'
-const {
-  executeDialogVisible,
-  executing,
-  executeVariables,
-  isExecutingApi,
-  executeFormData,
-  currentTestCase,
-  handleRunTestCase,
-  handleConfirmExecute,
-  handleViewLogs,
-  handleViewReport,
-  handleRetestFromResult,
-  handleTest
-} = useExecution(props, emit, { activeTab, loadHistoryRecords })
 
 // ========== 执行配置对话框辅助方法 ==========
 

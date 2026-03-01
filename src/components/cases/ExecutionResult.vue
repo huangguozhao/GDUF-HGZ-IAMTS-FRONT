@@ -129,7 +129,7 @@
             </div>
           </div>
           <el-button 
-            v-if="executionResult.errorMessage"
+            v-if="effectiveErrorMessage"
             type="primary" 
             link 
             @click="showErrorDetail = !showErrorDetail"
@@ -143,13 +143,13 @@
         <el-collapse-transition>
           <div class="failure-detail" v-show="showErrorDetail">
             <!-- 失败原因 -->
-            <div class="detail-item" v-if="executionResult.errorMessage">
+            <div class="detail-item" v-if="effectiveErrorMessage">
               <div class="detail-label">
                 <el-icon><InfoFilled /></el-icon>
                 失败原因
               </div>
               <div class="detail-content error-content">
-                <pre class="error-message">{{ executionResult.errorMessage }}</pre>
+                <pre class="error-message">{{ effectiveErrorMessage }}</pre>
               </div>
             </div>
 
@@ -165,7 +165,7 @@
             </div>
 
             <!-- 快速修复建议 -->
-            <div class="quick-fix-section" v-if="getQuickFixSuggestions(executionResult.errorMessage).length > 0">
+            <div class="quick-fix-section" v-if="getQuickFixSuggestions(effectiveErrorMessage).length > 0">
               <div class="detail-label">
                 <el-icon><MagicStick /></el-icon>
                 💡 快速修复建议
@@ -173,7 +173,7 @@
               <div class="quick-fix-list">
                 <div 
                   class="quick-fix-item" 
-                  v-for="(suggestion, index) in getQuickFixSuggestions(executionResult.errorMessage)" 
+                  v-for="(suggestion, index) in getQuickFixSuggestions(effectiveErrorMessage)" 
                   :key="index"
                 >
                   <div class="fix-step">{{ index + 1 }}</div>
@@ -185,9 +185,9 @@
         </el-collapse-transition>
 
         <!-- 一键修复按钮（针对可修复的错误） -->
-        <div class="auto-fix-section" v-if="canAutoFix(executionResult.errorMessage)">
+        <div class="auto-fix-section" v-if="canAutoFix(effectiveErrorMessage)">
           <el-alert
-            :title="getAutoFixTitle(executionResult.errorMessage)"
+            :title="getAutoFixTitle(effectiveErrorMessage)"
             type="warning"
             :closable="false"
             show-icon
@@ -246,14 +246,14 @@
           type="primary"
           :icon="Document"
           @click="$emit('view-logs')"
-          v-if="executionResult.logFilePath"
+          v-if="effectiveLogsLink"
         >
           查看执行日志
         </el-button>
         <el-button
           :icon="DocumentCopy"
           @click="$emit('view-report')"
-          v-if="executionResult.reportUrl"
+          v-if="effectiveReportId"
         >
           查看测试报告
         </el-button>
@@ -309,6 +309,21 @@ const emit = defineEmits(['update:modelValue', 'view-logs', 'view-report', 'rete
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v)
+})
+
+// 处理字段名映射（兼容不同的字段名）
+const effectiveErrorMessage = computed(() => {
+  return props.executionResult?.errorMessage || props.executionResult?.failureMessage || ''
+})
+
+// 处理日志链接字段映射
+const effectiveLogsLink = computed(() => {
+  return props.executionResult?.logsLink || props.executionResult?.logs_link || props.executionResult?.logFilePath || ''
+})
+
+// 处理报告ID字段映射
+const effectiveReportId = computed(() => {
+  return props.executionResult?.reportId || props.executionResult?.report_id || props.executionResult?.reportUrl || ''
 })
 
 // AI诊断相关

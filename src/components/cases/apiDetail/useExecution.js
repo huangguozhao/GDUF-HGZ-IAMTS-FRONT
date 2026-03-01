@@ -3,7 +3,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { executeTestCase, executeApiTest } from '@/api/testCase'
 
 export function useExecution(props, emit, deps = {}) {
-  // deps can include activeTab (ref) and loadHistoryRecords (fn)
+  // deps can include activeTab (ref) - loadHistoryRecords is optional
   const executeDialogVisible = ref(false)
   const executing = ref(false)
   const executeVariables = ref('')
