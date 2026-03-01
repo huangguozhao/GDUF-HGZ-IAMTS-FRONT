@@ -418,7 +418,11 @@ const triggerAIDiagnosis = async () => {
   showAIDiagnosis.value = true
   
   try {
+    // 构建诊断参数
     const params = {
+      // 优先使用executionId（用于批量诊断）
+      executionId: props.executionResult.executionId || props.executionResult.recordId || null,
+      // 单个用例信息
       failureMessage: props.executionResult.failureMessage || props.executionResult.errorMessage || '',
       failureType: props.executionResult.failureType || '',
       responseStatus: props.executionResult.responseStatus || props.executionResult.response_status || null,
