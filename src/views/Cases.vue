@@ -1399,50 +1399,85 @@
       <div class="execution-result-container" v-if="executeResult">
         <!-- 结果状态横幅 -->
         <div class="result-banner" :class="'status-' + executeResult.status">
-          <div class="banner-icon">
-            <el-icon v-if="executeResult.status === 'passed'" :size="60" color="#67c23a">
+          <div class="banner-icon-wrapper" :class="executeResult.status">
+            <el-icon v-if="executeResult.status === 'passed'" :size="48">
               <CircleCheckFilled />
             </el-icon>
-            <el-icon v-else :size="60" color="#f56c6c">
+            <el-icon v-else :size="48">
               <CircleCloseFilled />
             </el-icon>
           </div>
           <div class="banner-content">
             <h3 class="result-title">
-              {{ executeResult.status === 'passed' ? '✓ 测试通过' : '✗ 测试失败' }}
+              {{ executeResult.status === 'passed' ? '🎉 测试通过' : '😞 测试失败' }}
             </h3>
-            <p class="result-subtitle">{{ executeResult.caseName }}</p>
+            <p class="result-subtitle">
+              <el-tag size="small" effect="plain">
+                {{ executeResult.caseName || '未知用例' }}
+              </el-tag>
+            </p>
+          </div>
+          <div class="banner-badge" :class="executeResult.status">
+            {{ executeResult.status === 'passed' ? 'SUCCESS' : 'FAILED' }}
           </div>
         </div>
 
         <!-- 执行信息 -->
         <div class="result-info-section">
           <div class="info-grid">
+            <!-- 执行ID -->
             <div class="info-card">
-              <div class="info-label">执行ID</div>
-              <div class="info-value">{{ executeResult.executionId }}</div>
+              <div class="info-card-header">
+                <el-icon><Ticket /></el-icon>
+                <span class="info-label">执行ID</span>
+              </div>
+              <div class="info-value code">{{ executeResult.executionId }}</div>
             </div>
+
+            <!-- 响应状态 -->
             <div class="info-card">
-              <div class="info-label">响应状态码</div>
+              <div class="info-card-header">
+                <el-icon><Connection /></el-icon>
+                <span class="info-label">响应状态</span>
+              </div>
               <div class="info-value">
-                <el-tag
-                  :type="executeResult.responseStatus >= 200 && executeResult.responseStatus < 300 ? 'success' : 'danger'"
-                  size="small"
+                <el-tag 
+                  :type="getStatusTagType(executeResult.responseStatus)"
+                  size="large"
+                  effect="dark"
                 >
-                  {{ executeResult.responseStatus }}
+                  {{ executeResult.responseStatus || '-' }}
                 </el-tag>
               </div>
             </div>
+
+            <!-- 执行耗时 -->
             <div class="info-card">
-              <div class="info-label">执行耗时</div>
-              <div class="info-value highlight">{{ executeResult.duration }}ms</div>
+              <div class="info-card-header">
+                <el-icon><Timer /></el-icon>
+                <span class="info-label">执行耗时</span>
+              </div>
+              <div class="info-value highlight">
+                <span class="duration-value">{{ formatDuration(executeResult.duration) }}</span>
+              </div>
             </div>
-            <div class="info-card">
-              <div class="info-label">断言结果</div>
-              <div class="info-value">
-                <span class="success-count">{{ executeResult.assertionsPassed }} 通过</span>
-                <span class="divider">/</span>
-                <span class="failed-count">{{ executeResult.assertionsFailed }} 失败</span>
+
+            <!-- 断言结果 -->
+            <div class="info-card assertion-card">
+              <div class="info-card-header">
+                <el-icon><Checked /></el-icon>
+                <span class="info-label">断言结果</span>
+              </div>
+              <div class="info-value assertion-values">
+                <span class="assertion-item passed">
+                  <el-icon><CircleCheck /></el-icon>
+                  {{ executeResult.assertionsPassed || 0 }} 通过
+                </span>
+                <span class="assertion-divider">|</span>
+                <span class="assertion-item failed">
+                  <el-icon><CircleClose /></el-icon>
+                  {{ executeResult.assertionsFailed || 0 }} 失败
+                </span>
               </div>
             </div>
           </div>
@@ -1451,19 +1486,86 @@
         <!-- 时间信息 -->
         <div class="result-time-section">
           <div class="time-item">
-            <span class="time-label">开始时间：</span>
-            <span class="time-value">{{ formatTime(executeResult.startTime) }}</span>
+            <div class="time-icon">
+              <el-icon><Clock /></el-icon>
+            </div>
+            <div class="time-content">
+              <span class="time-label">开始时间</span>
+              <span class="time-value">{{ formatTime(executeResult.startTime) || '-' }}</span>
+            </div>
+          </div>
+          <div class="time-divider">
+            <el-icon><Right /></el-icon>
           </div>
           <div class="time-item">
-            <span class="time-label">结束时间：</span>
-            <span class="time-value">{{ formatTime(executeResult.endTime) }}</span>
+            <div class="time-icon end">
+              <el-icon><Clock /></el-icon>
+            </div>
+            <div class="time-content">
+              <span class="time-label">结束时间</span>
+              <span class="time-value">{{ formatTime(executeResult.endTime) || '-' }}</span>
+            </div>
           </div>
         </div>
 
         <!-- 失败信息（如果有） -->
-        <div class="result-failure-section" v-if="executeResult.status === 'failed' && executeResult.failureMessage">
-          <div class="failure-title">失败原因</div>
-          <div class="failure-message">{{ executeResult.failureMessage }}</div>
+        <div class="result-failure-section" v-if="executeResult.status === 'failed'">
+          <!-- 失败概览卡片 -->
+          <div class="failure-overview">
+            <div class="failure-icon">
+              <el-icon :size="24"><WarningFilled /></el-icon>
+            </div>
+            <div class="failure-summary">
+              <div class="failure-title-row">
+                <span class="failure-title-text">执行失败</span>
+                <el-tag size="small" type="danger" effect="dark" v-if="executeResult.failureType">
+                  {{ getFailureTypeText(executeResult.failureType) }}
+                </el-tag>
+              </div>
+            </div>
+            <el-button 
+              type="primary" 
+              link 
+              @click="showErrorDetail = !showErrorDetail"
+            >
+              <el-icon><ArrowDown v-if="!showErrorDetail" /><ArrowUp v-else /></el-icon>
+              {{ showErrorDetail ? '收起详情' : '展开详情' }}
+            </el-button>
+          </div>
+
+          <!-- 错误详情 -->
+          <el-collapse-transition>
+            <div class="failure-detail" v-show="showErrorDetail">
+              <!-- 失败原因 -->
+              <div class="detail-item" v-if="executeResult.failureMessage">
+                <div class="detail-label">
+                  <el-icon><InfoFilled /></el-icon>
+                  失败原因
+                </div>
+                <div class="detail-content error-content">
+                  <pre class="error-message">{{ executeResult.failureMessage }}</pre>
+                </div>
+              </div>
+
+              <!-- 快速修复建议 -->
+              <div class="quick-fix-section" v-if="getQuickFixSuggestions(executeResult.failureMessage).length > 0">
+                <div class="detail-label">
+                  <el-icon><MagicStick /></el-icon>
+                  💡 快速修复建议
+                </div>
+                <div class="quick-fix-list">
+                  <div 
+                    class="quick-fix-item" 
+                    v-for="(suggestion, index) in getQuickFixSuggestions(executeResult.failureMessage)" 
+                    :key="index"
+                  >
+                    <div class="fix-step">{{ index + 1 }}</div>
+                    <div class="fix-content">{{ suggestion }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </el-collapse-transition>
         </div>
 
         <!-- 失败类型（如果有） -->
@@ -1588,7 +1690,15 @@ import {
   Clock,
   MagicStick,
   DocumentCopy,
-  Refresh
+  Refresh,
+  ArrowDown,
+  ArrowUp,
+  Setting,
+  Ticket,
+  Connection,
+  Checked,
+  Right,
+  CircleCheck
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
@@ -1785,6 +1895,66 @@ const handleExecuteFromDialog = (config) => {
 
 const executeResult = ref(null)
 const resultDialogVisible = ref(false)
+const showErrorDetail = ref(true)
+
+// 失败修复建议函数
+const getQuickFixSuggestions = (errorMessage) => {
+  if (!errorMessage) return []
+  const suggestions = []
+  
+  if (errorMessage.includes('no protocol') || errorMessage.includes('URL格式错误')) {
+    suggestions.push('检查Base URL是否正确配置，确保包含协议前缀（如 http:// 或 https://）')
+    suggestions.push('在执行配置中填写正确的环境Base URL（如 http://localhost:8080）')
+    suggestions.push('检查接口路径是否以 / 开头')
+  }
+  
+  if (errorMessage.includes('timeout') || errorMessage.includes('超时')) {
+    suggestions.push('增加请求超时时间')
+    suggestions.push('检查目标服务器是否可达')
+  }
+  
+  if (errorMessage.includes('connection') || errorMessage.includes('连接')) {
+    suggestions.push('检查目标服务器是否启动')
+    suggestions.push('检查防火墙设置')
+  }
+  
+  if (errorMessage.includes('401') || errorMessage.includes('403') || errorMessage.includes('认证')) {
+    suggestions.push('检查Token是否过期')
+    suggestions.push('验证认证信息是否正确')
+  }
+  
+  if (errorMessage.includes('404')) {
+    suggestions.push('检查API路径是否正确')
+    suggestions.push('确认接口是否已部署')
+  }
+  
+  if (errorMessage.includes('500')) {
+    suggestions.push('检查服务器端代码是否有bug')
+    suggestions.push('查看服务器日志获取详细错误信息')
+  }
+  
+  return suggestions
+}
+
+// 格式化执行时长
+const formatDuration = (ms) => {
+  if (!ms && ms !== 0) return '-'
+  if (ms < 1000) return `${ms}ms`
+  if (ms < 60000) return `${(ms / 1000).toFixed(2)}s`
+  const minutes = Math.floor(ms / 60000)
+  const seconds = ((ms % 60000) / 1000).toFixed(0)
+  return `${minutes}m ${seconds}s`
+}
+
+// 根据响应状态码获取标签类型
+const getStatusTagType = (status) => {
+  if (!status) return 'info'
+  if (status >= 200 && status < 300) return 'success'
+  if (status >= 400 && status < 500) return 'warning'
+  if (status >= 500) return 'danger'
+  if (status < 0) return 'info'  // 负数状态码如 -4 表示错误
+  return 'info'
+}
 
 // 折叠面板控制变量
 const activeResponseCollapse = ref([])
@@ -5925,79 +6095,273 @@ onMounted(async () => {
 .result-banner {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 32px 24px;
-  border-radius: calc(var(--card-radius) + 2px);
-  margin-bottom: 24px;
-  box-shadow: var(--card-shadow);
-  transition: var(--card-transition);
+  gap: 20px;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
 .result-banner.status-passed {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e1f3d8 100%);
+  background: linear-gradient(135deg, #e8f8e8 0%, #d4f4d4 100%);
   border: 2px solid #67c23a;
 }
 
 .result-banner.status-failed {
-  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  background: linear-gradient(135deg, #ffe8e8 0%, #ffd4d4 100%);
   border: 2px solid #f56c6c;
 }
 
-.banner-icon {
+.result-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.result-banner.status-passed::before {
+  background: linear-gradient(90deg, #67c23a, #85ce61);
+}
+
+.result-banner.status-failed::before {
+  background: linear-gradient(90deg, #f56c6c, #f78989);
+}
+
+.banner-icon-wrapper {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  animation: bannerPop .4s cubic-bezier(.2,.8,.2,1) both;
 }
 
-/* 结果横幅图标入场动画 */
-.banner-icon {
-  animation: bannerPop .32s cubic-bezier(.2,.8,.2,1) both;
+.banner-icon-wrapper.passed {
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(103, 194, 58, 0.3);
 }
 
-@keyframes bannerPop {
-  0% { transform: scale(.7); opacity: 0; }
-  60% { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-@keyframes fadeInUp {
-  0% { opacity: 0; transform: translateY(8px); }
-  100% { opacity: 1; transform: translateY(0); }
+.banner-icon-wrapper.failed {
+  background: linear-gradient(135deg, #f56c6c 0%, #f78989 100%);
+  color: white;
+  box-shadow: 0 8px 20px rgba(245, 108, 108, 0.3);
 }
 
 .banner-content {
   flex: 1;
+  min-width: 0;
 }
 
 .result-title {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 600;
+  margin: 0 0 10px 0;
+  font-size: 26px;
+  font-weight: 700;
   color: #303133;
+  letter-spacing: -0.5px;
 }
 
 .result-subtitle {
   margin: 0;
-  font-size: 16px;
-  color: #606266;
+}
+
+.banner-badge {
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  flex-shrink: 0;
+}
+
+.banner-badge.passed {
+  background: rgba(103, 194, 58, 0.15);
+  color: #67c23a;
+}
+
+.banner-badge.failed {
+  background: rgba(245, 108, 108, 0.15);
+  color: #f56c6c;
+}
+
+/* 结果横幅图标入场动画 */
+@keyframes bannerPop {
+  0% { transform: scale(.5); opacity: 0; }
+  60% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 /* 执行信息卡片 */
 .result-info-section {
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .info-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
+  gap: 14px;
 }
 
 .info-card {
-  background: #fafafa;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  background: white;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
   padding: 16px;
   text-align: center;
   transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  border-color: #409eff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.info-card-header .el-icon {
+  font-size: 16px;
+  color: #409eff;
+}
+
+.info-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: #909399;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.info-value.code {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+  color: #606266;
+  word-break: break-all;
+}
+
+.info-value.highlight {
+  color: #409eff;
+}
+
+.duration-value {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* 断言结果特殊样式 */
+.assertion-card .info-value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.assertion-values {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.assertion-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.assertion-item.passed {
+  color: #67c23a;
+}
+
+.assertion-item.failed {
+  color: #f56c6c;
+}
+
+.assertion-divider {
+  color: #dcdfe6;
+  font-size: 16px;
+}
+
+/* 时间信息 */
+.result-time-section {
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border: 1px solid #ebeef5;
+}
+
+.time-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.time-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 16px;
+}
+
+.time-icon.end {
+  background: linear-gradient(135deg, #909399 0%, #b1b3b8 100%);
+}
+
+.time-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.time-label {
+  font-size: 11px;
+  color: #909399;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.time-value {
+  font-size: 14px;
+  color: #303133;
+  font-weight: 500;
+}
+
+.time-divider {
+  color: #c0c4cc;
+  font-size: 18px;
 }
 
 .info-card:hover {
@@ -6062,24 +6426,145 @@ onMounted(async () => {
 
 /* 失败信息 */
 .result-failure-section {
-  background: #fef0f0;
+  background: linear-gradient(135deg, #fef0f0 0%, #fff5f5 100%);
   border: 1px solid #fbc4c4;
-  border-radius: 6px;
+  border-radius: 12px;
   padding: 16px;
   margin-bottom: 24px;
+  overflow: hidden;
 }
 
-.failure-title {
-  font-size: 14px;
+/* 失败概览 */
+.failure-overview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.failure-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f56c6c 0%, #e94343 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.failure-summary {
+  flex: 1;
+}
+
+.failure-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.failure-title-text {
+  font-size: 15px;
   font-weight: 600;
+  color: #303133;
+}
+
+/* 失败详情 */
+.failure-detail {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px dashed #fbc4c4;
+}
+
+.detail-item {
+  margin-bottom: 10px;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 6px;
+}
+
+.detail-label .el-icon {
   color: #f56c6c;
+}
+
+.detail-content {
+  padding: 10px;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #ebeef5;
+}
+
+.error-content {
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+}
+
+.error-message {
+  margin: 0;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
+  font-size: 12px;
+  color: #e6a23c;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+/* 快速修复 */
+.quick-fix-section {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae7ff;
+}
+
+.quick-fix-section .detail-label {
+  color: #096dd9;
   margin-bottom: 8px;
 }
 
-.failure-message {
-  font-size: 14px;
+.quick-fix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.quick-fix-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px;
+  background: white;
+  border-radius: 4px;
+}
+
+.fix-step {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.fix-content {
+  flex: 1;
+  font-size: 12px;
   color: #606266;
-  line-height: 1.6;
+  line-height: 1.4;
+  padding-top: 1px;
 }
 
 /* 结果详情区域 */
