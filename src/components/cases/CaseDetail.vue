@@ -200,21 +200,93 @@
                 </div>
               </div>
 
-              <!-- 快速修复建议 -->
-              <div class="quick-fix-section" v-if="getQuickFixSuggestions(executionResult.failureMessage).length > 0">
-                <div class="detail-label">
+              <!-- AI诊断按钮 -->
+              <div 
+                class="ai-diagnosis-btn-wrapper" 
+                v-if="!showAIDiagnosis"
+              >
+                <el-button 
+                  type="primary" 
+                  class="ai-diagnosis-btn"
+                  @click="triggerAIDiagnosis"
+                  :loading="aiDiagnosisLoading"
+                >
                   <el-icon><MagicStick /></el-icon>
-                  💡 快速修复建议
+                  AI诊断
+                </el-button>
+              </div>
+
+              <!-- AI诊断结果 -->
+              <div class="quick-fix-section" v-if="showAIDiagnosis">
+                <!-- 加载中 -->
+                <div v-if="aiDiagnosisLoading" class="ai-diagnosis-loading">
+                  <el-icon class="is-loading"><Loading /></el-icon>
+                  <span>AI正在诊断中...</span>
                 </div>
-                <div class="quick-fix-list">
-                  <div 
-                    class="quick-fix-item" 
-                    v-for="(suggestion, index) in getQuickFixSuggestions(executionResult.failureMessage)" 
-                    :key="index"
-                  >
-                    <div class="fix-step">{{ index + 1 }}</div>
-                    <div class="fix-content">{{ suggestion }}</div>
+                
+                <!-- 诊断结果 -->
+                <template v-else-if="aiDiagnosisResult">
+                  <div class="detail-label">
+                    <el-icon><MagicStick /></el-icon>
+                    💡 AI诊断结果
                   </div>
+                  
+                  <!-- 严重程度 -->
+                  <div class="diagnosis-severity" :class="'severity-' + aiDiagnosisResult.severity">
+                    <el-tag :type="aiDiagnosisResult.severity === 'high' ? 'danger' : aiDiagnosisResult.severity === 'medium' ? 'warning' : 'info'" size="large">
+                      严重程度: {{ aiDiagnosisResult.severity === 'high' ? '高' : aiDiagnosisResult.severity === 'medium' ? '中' : '低' }}
+                    </el-tag>
+                  </div>
+                  
+                  <!-- 根本原因 -->
+                  <div class="diagnosis-root-cause" v-if="aiDiagnosisResult.rootCause">
+                    <div class="detail-label">根本原因</div>
+                    <div class="root-cause-content">{{ aiDiagnosisResult.rootCause }}</div>
+                  </div>
+                  
+                  <!-- 发现的问题 -->
+                  <div class="diagnosis-issues" v-if="aiDiagnosisResult.issues && aiDiagnosisResult.issues.length > 0">
+                    <div class="detail-label">发现问题</div>
+                    <div class="issues-list">
+                      <div 
+                        class="issue-item" 
+                        v-for="(issue, index) in aiDiagnosisResult.issues" 
+                        :key="index"
+                        :class="'issue-' + issue.severity"
+                      >
+                        <el-tag :type="issue.severity === 'high' ? 'danger' : 'warning'" size="small">
+                          {{ issue.severity === 'high' ? '高' : '中' }}
+                        </el-tag>
+                        <span class="issue-title">{{ issue.title }}</span>
+                        <span class="issue-desc">{{ issue.description }}</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <!-- 修复建议 -->
+                  <div class="diagnosis-suggestions" v-if="aiDiagnosisResult.suggestions && aiDiagnosisResult.suggestions.length > 0">
+                    <div class="detail-label">修复建议</div>
+                    <div class="quick-fix-list">
+                      <div 
+                        class="quick-fix-item" 
+                        v-for="(suggestion, index) in aiDiagnosisResult.suggestions" 
+                        :key="index"
+                      >
+                        <div class="fix-step">{{ index + 1 }}</div>
+                        <div class="fix-content">
+                          <div class="suggestion-title">{{ suggestion.title }}</div>
+                          <div class="suggestion-content">{{ suggestion.content }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </template>
+                
+                <!-- 诊断失败 -->
+                <div v-else class="ai-diagnosis-error">
+                  <el-alert type="error" :closable="false">
+                    AI诊断暂时不可用，请查看上方失败原因
+                  </el-alert>
                 </div>
               </div>
             </div>
@@ -1050,7 +1122,8 @@ import {
   Ticket,
   Connection,
   Checked,
-  Right
+  Right,
+  Loading
 } from '@element-plus/icons-vue'
 import { 
   executeTestCase, 
@@ -1063,6 +1136,7 @@ import {
   getExecutionRecords,
   exportTestCase
 } from '../../api/testCase'
+import { diagnose } from '../../api/diagnosis'
 import { exportTestCaseLocal } from '../../utils/exportTestCase'
 import ExecutionHistoryModal from './ExecutionHistoryModal.vue'
 import CaseDetailHeader from './CaseDetailHeader.vue'
@@ -1673,6 +1747,44 @@ const handleExecuteFromDialog = (config) => {
 const resultDialogVisible = ref(false)
 const executionResult = ref(null)
 const showErrorDetail = ref(true)
+const showAIDiagnosis = ref(false)  // AI诊断展开状态
+const aiDiagnosisLoading = ref(false)  // AI诊断加载状态
+const aiDiagnosisResult = ref(null)  // AI诊断结果
+
+// 触发AI诊断
+const triggerAIDiagnosis = async () => {
+  if (!executionResult.value) return
+  
+  aiDiagnosisLoading.value = true
+  showAIDiagnosis.value = true
+  
+  try {
+    const params = {
+      failureMessage: executionResult.value.failureMessage || '',
+      failureType: executionResult.value.failureType || '',
+      responseStatus: executionResult.value.responseStatus || null,
+      responseBody: executionResult.value.responseBody || '',
+      apiPath: executionResult.value.apiPath || '',
+      apiMethod: executionResult.value.apiMethod || '',
+      caseName: executionResult.value.caseName || ''
+    }
+    
+    const res = await diagnose(params)
+    
+    if (res.code === 1) {
+      aiDiagnosisResult.value = res.data
+    } else {
+      ElMessage.error(res.msg || 'AI诊断失败')
+      aiDiagnosisResult.value = null
+    }
+  } catch (error) {
+    console.error('AI诊断失败:', error)
+    ElMessage.error('AI诊断失败，请稍后重试')
+    aiDiagnosisResult.value = null
+  } finally {
+    aiDiagnosisLoading.value = false
+  }
+}
 
 // 失败类型和修复建议相关函数
 const getFailureTypeText = (type) => {
@@ -1936,6 +2048,11 @@ const handleConfirmExecute = async () => {
     const response = await executeTestCase(null, caseId, requestData)
     
     if (response.code === 1) {
+      // 重置AI诊断状态
+      showAIDiagnosis.value = false
+      aiDiagnosisResult.value = null
+      aiDiagnosisLoading.value = false
+      
       if (requestData.async) {
         // 异步执行
         ElMessage.success(`测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
@@ -3561,6 +3678,146 @@ onMounted(() => {
   white-space: pre-wrap;
   word-break: break-all;
   line-height: 1.5;
+}
+
+/* AI诊断按钮 */
+.ai-diagnosis-btn-wrapper {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.ai-diagnosis-btn {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  padding: 12px 28px;
+  font-weight: 500;
+  font-size: 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.35);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ai-diagnosis-btn .el-icon {
+  font-size: 16px;
+}
+
+.ai-diagnosis-btn:hover {
+  background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.45);
+}
+
+.ai-diagnosis-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* AI诊断按钮 - 加载状态 */
+.ai-diagnosis-btn.is-loading {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  opacity: 0.8;
+}
+
+/* AI诊断加载中 */
+.ai-diagnosis-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  color: #409eff;
+  font-size: 14px;
+}
+
+.ai-diagnosis-loading .el-icon {
+  font-size: 20px;
+  animation: rotating 2s linear infinite;
+}
+
+@keyframes rotating {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* AI诊断结果 */
+.diagnosis-severity {
+  margin-bottom: 12px;
+}
+
+/* 根本原因 */
+.diagnosis-root-cause {
+  margin-bottom: 12px;
+  padding: 12px;
+  background: white;
+  border-radius: 6px;
+}
+
+.root-cause-content {
+  color: #f56c6c;
+  font-weight: 500;
+  line-height: 1.6;
+}
+
+/* 发现的问题 */
+.diagnosis-issues {
+  margin-bottom: 12px;
+}
+
+.issues-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.issue-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: white;
+  border-radius: 6px;
+  border-left: 3px solid #e6a23c;
+}
+
+.issue-item.issue-high {
+  border-left-color: #f56c6c;
+  background: #fef0f0;
+}
+
+.issue-title {
+  font-weight: 500;
+  color: #303133;
+}
+
+.issue-desc {
+  color: #909399;
+  font-size: 12px;
+}
+
+/* 修复建议 */
+.diagnosis-suggestions {
+  margin-top: 12px;
+}
+
+.suggestion-title {
+  font-weight: 500;
+  color: #303133;
+  margin-bottom: 4px;
+}
+
+.suggestion-content {
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* 诊断失败提示 */
+.ai-diagnosis-error {
+  padding: 12px;
 }
 
 /* 快速修复 */

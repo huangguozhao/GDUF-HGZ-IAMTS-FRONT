@@ -5,17 +5,20 @@ import request from './request'
  */
 
 /**
- * 执行AI诊断
+ * 执行AI诊断（测试失败诊断）
  * @param {Object} params - 诊断参数
- * @param {string} params.diagnosisType - 诊断类型: test_failure, performance, error_log
- * @param {string} params.errorMessage - 错误信息
- * @param {string} params.errorLog - 错误日志
- * @param {string} params.description - 问题描述
+ * @param {string} params.failureMessage - 失败消息
+ * @param {string} params.failureType - 失败类型
+ * @param {number} params.responseStatus - HTTP响应状态码
+ * @param {string} params.responseBody - 响应体
+ * @param {string} params.apiPath - API路径
+ * @param {string} params.apiMethod - API方法
+ * @param {string} params.caseName - 用例名称
  * @returns {Promise}
  */
 export const diagnose = (params) => {
   return request({
-    url: '/ai-diagnosis/diagnose',
+    url: '/api/ai-diagnosis/execute',
     method: 'post',
     data: params,
     timeout: 60000 // AI诊断需要较长时间，设置60秒超时
