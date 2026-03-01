@@ -243,6 +243,137 @@ export function useExecution(props, emit, deps = {}) {
     executeDialogVisible.value = true
   }
 
+  // 快速执行：使用默认配置直接执行，无需打开配置对话框
+  const handleQuickExecute = async () => {
+    try {
+      executing.value = true
+
+      // 使用默认配置
+      const requestData = {
+        environment: 'dev',
+        async: false,
+        base_url: '',
+        timeout: 30,
+        variables: {}
+      }
+
+      // 判断是执行测试用例还是接口测试
+      const hasTestCase = currentTestCase.value && (currentTestCase.value.case_id || currentTestCase.value.caseId || currentTestCase.value.id)
+      
+      if (hasTestCase) {
+        // 执行单个测试用例
+        const caseId = currentTestCase.value.case_id || currentTestCase.value.caseId || currentTestCase.value.id
+        const response = await executeTestCase(caseId, requestData)
+        
+        if (response.code === 1) {
+          const assertionsPassed = response.data.assertionsPassed ?? response.data.assertions_passed ?? 
+            (response.data.status === 'passed' ? 1 : 0)
+          const assertionsFailed = response.data.assertionsFailed ?? response.data.assertions_failed ?? 
+            (response.data.status === 'failed' || response.data.status === 'broken' ? 1 : 0)
+          
+          executionResult.value = {
+            executionId: response.data.executionId || response.data.execution_id,
+            recordId: response.data.executionId || response.data.execution_id,
+            caseId: response.data.caseId || response.data.case_id,
+            caseCode: response.data.caseCode || response.data.case_code,
+            caseName: response.data.caseName || response.data.case_name,
+            scopeName: response.data.caseName || response.data.case_name || '单个测试用例',
+            apiId: response.data.apiId || response.data.api_id,
+            apiName: response.data.apiName || response.data.api_name,
+            status: response.data.status,
+            startTime: response.data.startTime || response.data.start_time,
+            endTime: response.data.endTime || response.data.end_time,
+            duration: response.data.duration || 0,
+            durationSeconds: (response.data.duration || 0) / 1000,
+            totalCases: 1,
+            executedCases: 1,
+            passedCases: assertionsPassed,
+            failedCases: assertionsFailed,
+            skippedCases: response.data.skippedCases || response.data.skipped_cases || 0,
+            successRate: response.data.successRate || response.data.success_rate || (assertionsFailed === 0 && assertionsPassed > 0 ? 100 : 0),
+            responseStatus: response.data.responseStatus || response.data.response_status,
+            assertionsPassed,
+            assertionsFailed,
+            failureMessage: response.data.failureMessage || response.data.failure_message,
+            failureType: response.data.failureType || response.data.failure_type,
+            failureTrace: response.data.failureTrace || response.data.failure_trace,
+            logsLink: response.data.logsLink || response.data.logs_link,
+            reportId: response.data.reportId || response.data.report_id,
+            assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
+            responseBody: response.data.responseBody || response.data.response_body,
+            responseHeaders: response.data.responseHeaders || response.data.response_headers,
+            environment: response.data.environment || requestData.environment || 'dev',
+            executionType: response.data.executionType || 'manual',
+            executionScope: response.data.executionScope || 'test_case'
+          }
+          resultDialogVisible.value = true
+          emit('refresh-cases')
+        } else {
+          ElMessage.error(response.msg || '执行失败')
+        }
+      } else if (props.api) {
+        // 执行接口测试（所有关联的测试用例）
+        const apiId = props.api?.api_id || props.api?.id || props.api?.apiId
+        if (!apiId) {
+          ElMessage.error('无法获取接口ID')
+          executing.value = false
+          return
+        }
+
+        const response = await executeApiTest(apiId, requestData)
+        if (response.code === 1) {
+          const totalCases = response.data.totalCases || response.data.total_cases || 0
+          const passed = response.data.passed || 0
+          const failed = response.data.failed || 0
+          const isPassed = failed === 0 && passed > 0
+          
+          const executionScope = response.data.executionScope || 'api'
+          const executionType = response.data.executionType || 'manual'
+          const environment = response.data.environment || requestData.environment || 'dev'
+          
+          executionResult.value = {
+            executionId: response.data.executionId || response.data.execution_id,
+            recordId: response.data.executionId || response.data.execution_id,
+            apiId: response.data.apiId || response.data.api_id,
+            apiName: response.data.apiName || response.data.api_name,
+            apiMethod: response.data.apiMethod || response.data.api_method,
+            apiPath: response.data.apiPath || response.data.api_path,
+            caseName: `接口测试: ${response.data.apiName || response.data.api_name || props.api?.name}`,
+            scopeName: `接口测试: ${response.data.apiName || response.data.api_name || props.api?.name}`,
+            status: isPassed ? 'passed' : 'failed',
+            startTime: response.data.startTime || response.data.start_time,
+            endTime: response.data.endTime || response.data.end_time,
+            duration: response.data.totalDuration || response.data.total_duration || 0,
+            durationSeconds: (response.data.totalDuration || response.data.total_duration || 0) / 1000,
+            totalCases,
+            executedCases: totalCases,
+            passedCases: passed,
+            failedCases: failed,
+            skippedCases: response.data.skipped || 0,
+            successRate: response.data.successRate || response.data.success_rate || (totalCases > 0 ? (passed / totalCases * 100) : 0),
+            responseStatus: 200,
+            assertionsPassed: passed,
+            assertionsFailed: failed,
+            environment,
+            executionType,
+            executionScope
+          }
+          resultDialogVisible.value = true
+          emit('refresh-cases')
+        } else {
+          ElMessage.error(response.msg || '执行失败')
+        }
+      } else {
+        ElMessage.warning('没有可执行的测试用例或接口')
+      }
+    } catch (error) {
+      console.error('快速执行失败:', error)
+      ElMessage.error(error.msg || error.message || '快速执行失败，请稍后重试')
+    } finally {
+      executing.value = false
+    }
+  }
+
   const handleTest = () => {
     Object.assign(executeFormData, {
       environment: 'dev',
@@ -274,6 +405,7 @@ export function useExecution(props, emit, deps = {}) {
     currentTestCase,
     handleRunTestCase,
     handleConfirmExecute,
+    handleQuickExecute,
     handleViewLogs,
     handleViewReport,
     handleRetestFromResult,

@@ -3,8 +3,32 @@
     <!-- 头部 -->
     <div class="detail-header">
       <div class="header-left">
-        <h2 class="api-title">{{ api?.name || '未知接口' }}</h2>
+        <h2 class="api-title">
+          {{ api?.name || '未知接口' }}
+          <el-tag v-if="api?.apiCode || api?.api_code" size="small" class="api-code-tag">
+            {{ api?.apiCode || api?.api_code }}
+          </el-tag>
+        </h2>
+        
+        <!-- 接口描述 -->
+        <div v-if="api?.description" class="api-description">
+          {{ api?.description }}
+        </div>
+        
+        <!-- 标签 -->
+        <div v-if="parseApiTags(api?.tags).length > 0" class="api-tags">
+          <el-tag 
+            v-for="(tag, index) in parseApiTags(api?.tags)" 
+            :key="index" 
+            size="small" 
+            class="api-tag-item"
+          >
+            {{ tag }}
+          </el-tag>
+        </div>
+        
         <div class="api-info-line">
+          <span v-if="api?.baseUrl" class="api-base-url">{{ api?.baseUrl }}</span>
           <span class="api-path">{{ api?.path || api?.url || '-' }}</span>
           <button class="copy-path-btn" @click.stop="copyApiPath" :title="'复制路径'">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true">
@@ -12,9 +36,9 @@
               <rect x="8" y="5" width="13" height="13" rx="2" stroke="currentColor" stroke-width="1.5"/>
             </svg>
           </button>
-        <span class="method-tag" :class="'method-' + (api?.method || '').toLowerCase()">
-          {{ api?.method || '-' }}
-        </span>
+          <span class="method-tag" :class="'method-' + (api?.method || '').toLowerCase()">
+            {{ api?.method || '-' }}
+          </span>
           <el-tag 
             :type="getStatusTagType(api?.status)" 
             size="small"
@@ -24,10 +48,16 @@
           </el-tag>
           <span class="version-tag">v{{ api?.version || '1.0' }}</span>
         </div>
+        
+        <!-- 认证配置信息 -->
         <div class="api-meta">
           <span class="meta-item">
             <span class="meta-label">认证方式：</span>
             <span class="meta-value">{{ getAuthTypeText(api?.authType || api?.auth_type) }}</span>
+          </span>
+          <span class="meta-item" v-if="api?.authConfig || api?.auth_config">
+            <span class="meta-label">认证配置：</span>
+            <span class="meta-value auth-config-value">{{ formatAuthConfig(api?.authConfig || api?.auth_config) }}</span>
           </span>
           <span class="meta-item">
             <span class="meta-label">超时时间：</span>
@@ -45,8 +75,14 @@
       </div>
       <div class="header-right">
         <div class="detail-actions">
-          <el-button size="small" type="primary" @click="executeDialogVisible = true">调试</el-button>
-          <el-button size="small" @click="$emit('refresh')">刷新</el-button>
+          <el-button size="small" type="primary" @click="handleTest">
+            <el-icon><CaretRight /></el-icon>
+            执行测试
+          </el-button>
+          <el-button size="small" @click="$emit('refresh')">
+            <el-icon><Refresh /></el-icon>
+            刷新
+          </el-button>
         </div>
         <div class="creator-info" v-if="api?.creatorInfo || api?.creator_info">
           <el-avatar :size="32" :src="getCreatorAvatar()" class="creator-avatar">
@@ -2211,7 +2247,7 @@ const environmentConfigs = {
 // 获取预览URL
 const getPreviewUrl = () => {
   const baseUrl = executeFormData.baseUrl || environmentConfigs[executeFormData.environment]?.url || ''
-  const apiPath = isExecutingApi.value && api.value ? api.value.path : ''
+  const apiPath = isExecutingApi.value && props.api ? props.api.path : ''
   if (!baseUrl && !apiPath) return ''
   return baseUrl + apiPath
 }
@@ -2574,6 +2610,40 @@ const getAuthTypeText = (authType) => {
   return textMap[authType] || authType || '无认证'
 }
 
+// 解析接口标签
+const parseApiTags = (tags) => {
+  if (!tags) return []
+  try {
+    if (typeof tags === 'string') {
+      const parsed = JSON.parse(tags)
+      return Array.isArray(parsed) ? parsed : []
+    }
+    if (Array.isArray(tags)) {
+      return tags
+    }
+    return []
+  } catch {
+    return []
+  }
+}
+
+// 格式化认证配置
+const formatAuthConfig = (authConfig) => {
+  if (!authConfig) return '-'
+  try {
+    const config = typeof authConfig === 'string' ? JSON.parse(authConfig) : authConfig
+    const parts = []
+    if (config.tokenType) parts.push(`类型: ${config.tokenType}`)
+    if (config.headerName) parts.push(`Header: ${config.headerName}`)
+    if (config.keyName) parts.push(`Key: ${config.keyName}`)
+    if (config.tokenUrl) parts.push(`TokenURL: ${config.tokenUrl}`)
+    if (config.clientId) parts.push(`ClientID: ${config.clientId}`)
+    return parts.length > 0 ? parts.join(' | ') : '-'
+  } catch {
+    return '-'
+  }
+}
+
 /**
  * 处理项目改变
  */
@@ -2919,10 +2989,41 @@ onMounted(() => {
 }
 
 .api-title {
-  margin: 0 0 12px 0;
+  margin: 0 0 8px 0;
   font-size: 20px;
   font-weight: 600;
   color: #303133;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.api-code-tag {
+  font-size: 12px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+}
+
+.api-description {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 10px;
+  line-height: 1.5;
+}
+
+.api-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.api-tag-item {
+  background: #f0f2f5;
+  color: #606266;
+  border: none;
 }
 
 .api-info-line {
@@ -2937,6 +3038,13 @@ onMounted(() => {
   font-size: 14px;
   color: #606266;
   font-family: 'Courier New', monospace;
+}
+
+.api-base-url {
+  font-size: 14px;
+  color: #909399;
+  font-family: 'Courier New', monospace;
+  font-weight: 500;
 }
 
 .method-tag {
@@ -3003,6 +3111,21 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 6px;
 }
+.detail-actions .el-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+.detail-actions .el-button--primary {
+  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  border: none;
+}
+.detail-actions .el-button--primary:hover {
+  background: linear-gradient(135deg, #3a8ee6 0%, #5cadff 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(64, 158, 255, 0.4);
+}
 
 .meta-item {
   display: flex;
@@ -3017,6 +3140,14 @@ onMounted(() => {
 .meta-value {
   color: #606266;
   font-weight: 500;
+}
+
+.auth-config-value {
+  font-size: 12px;
+  color: #E6A23C;
+  background: #fdf6ec;
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .header-right {
