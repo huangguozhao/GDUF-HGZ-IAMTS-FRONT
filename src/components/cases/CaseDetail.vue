@@ -1537,7 +1537,7 @@ const executing = ref(false)
 const executeVariables = ref('')
 const variablesError = ref('')
 const executeFormData = reactive({
-  environment: 'dev',
+  environment: null,
   baseUrl: '',
   timeout: 30,
   variables: {},

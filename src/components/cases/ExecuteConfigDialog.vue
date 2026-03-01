@@ -55,35 +55,25 @@
                     v-model="config.environment"
                     placeholder="请选择执行环境"
                     style="width: 100%"
+                    :loading="loadingEnvironments"
+                    filterable
                   >
-                    <el-option label="开发环境 (dev)" value="dev">
+                    <el-option
+                      v-for="env in environmentList"
+                      :key="env.env_id"
+                      :label="`${env.env_name} (${env.env_code})`"
+                      :value="env.env_id"
+                    >
                       <div class="option-content">
-                        <span class="option-dot dev"></span>
-                        <span>开发环境</span>
-                        <span class="option-desc">dev</span>
+                        <span 
+                          class="option-dot" 
+                          :style="{ background: envTypeColors[env.env_type] || '#909399' }"
+                        ></span>
+                        <span>{{ env.env_name }}</span>
+                        <span class="option-desc">{{ env.base_url || env.env_code }}</span>
                       </div>
                     </el-option>
-                    <el-option label="测试环境 (test)" value="test">
-                      <div class="option-content">
-                        <span class="option-dot test"></span>
-                        <span>测试环境</span>
-                        <span class="option-desc">test</span>
-                      </div>
-                    </el-option>
-                    <el-option label="预发布环境 (staging)" value="staging">
-                      <div class="option-content">
-                        <span class="option-dot staging"></span>
-                        <span>预发布环境</span>
-                        <span class="option-desc">staging</span>
-                      </div>
-                    </el-option>
-                    <el-option label="生产环境 (prod)" value="prod">
-                      <div class="option-content">
-                        <span class="option-dot prod"></span>
-                        <span>生产环境</span>
-                        <span class="option-desc">prod</span>
-                      </div>
-                    </el-option>
+                    <el-empty v-if="!loadingEnvironments && environmentList.length === 0" description="暂无环境配置" :image-size="60" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -274,7 +264,8 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
+import { getEnvironmentConfigList } from '../../api/environment'
 
 const props = defineProps({
   visible: {
@@ -326,19 +317,66 @@ const config = ref({ ...props.initialConfig })
 const variablesText = ref(props.initialVariables)
 const variablesError = ref('')
 
-// 环境配置映射
-const environmentConfigs = {
-  dev: { url: 'http://dev-api.example.com', color: '#67c23a' },
-  test: { url: 'http://test-api.example.com', color: '#e6a23c' },
-  staging: { url: 'http://staging-api.example.com', color: '#f56c6c' },
-  prod: { url: 'https://api.example.com', color: '#909399' }
+// 动态环境列表
+const environmentList = ref([])
+const loadingEnvironments = ref(false)
+
+// 环境类型到颜色的映射
+const envTypeColors = {
+  development: '#67c23a',
+  testing: '#e6a23c',
+  staging: '#f56c6c',
+  production: '#909399',
+  performance: '#409eff',
+  disaster_recovery: '#e6a23c'
+}
+
+// 获取环境列表
+const fetchEnvironments = async () => {
+  loadingEnvironments.value = true
+  try {
+    const res = await getEnvironmentConfigList({ status: 'active', pageSize: 100 })
+    // 处理后端返回 code=1 表示成功的情况
+    if ((res.code === 200 || res.code === 1) && res.data) {
+      environmentList.value = res.data.items || res.data.list || []
+      
+      console.log('环境列表加载成功:', environmentList.value)
+      
+      // 自动选择默认环境或第一个环境
+      if (!config.value.environment && environmentList.value.length > 0) {
+        // 优先选择默认环境
+        const defaultEnv = environmentList.value.find(env => env.is_default)
+        config.value.environment = defaultEnv ? defaultEnv.env_id : environmentList.value[0].env_id
+      }
+    } else {
+      console.warn('环境列表加载失败:', res.msg)
+    }
+  } catch (error) {
+    console.error('获取环境列表失败:', error)
+  } finally {
+    loadingEnvironments.value = false
+  }
+}
+
+// 根据环境ID获取环境信息
+const getEnvironmentById = (envId) => {
+  return environmentList.value.find(env => env.env_id === envId)
 }
 
 // 计算预览URL
 const previewUrl = computed(() => {
-  const baseUrl = config.value.baseUrl || environmentConfigs[config.value.environment]?.url || ''
-  if (!baseUrl) return ''
-  return baseUrl
+  // 如果有手动输入的baseUrl，优先使用
+  if (config.value.baseUrl) {
+    return config.value.baseUrl
+  }
+  
+  // 否则从选中的环境中获取
+  const selectedEnv = getEnvironmentById(config.value.environment)
+  if (selectedEnv && selectedEnv.baseUrl) {
+    return selectedEnv.baseUrl
+  }
+  
+  return ''
 })
 
 // 计算变量数量
@@ -358,6 +396,8 @@ watch(() => props.visible, (val) => {
     config.value = { ...props.initialConfig }
     variablesText.value = props.initialVariables
     variablesError.value = ''
+    // 弹窗打开时获取环境列表
+    fetchEnvironments()
   }
 })
 
@@ -378,14 +418,20 @@ const validateVariables = () => {
 }
 
 // 获取环境标签类型
-const getEnvironmentTagType = (env) => {
+const getEnvironmentTagType = (envId) => {
+  // envId 现在是环境ID（数字）
+  const env = getEnvironmentById(envId)
+  if (!env) return 'info'
+  
   const types = {
-    dev: 'success',
-    test: 'warning',
+    development: 'success',
+    testing: 'warning',
     staging: 'danger',
-    prod: 'info'
+    production: 'info',
+    performance: 'primary',
+    disaster_recovery: 'warning'
   }
-  return types[env] || 'info'
+  return types[env.env_type] || 'info'
 }
 
 // 插入变量模板
@@ -434,8 +480,14 @@ const formatVariables = () => {
 const handleConfirm = () => {
   if (!validateVariables()) return
   
+  // 获取完整的环境信息
+  const selectedEnv = getEnvironmentById(config.value.environment)
+  
   emit('confirm', {
     ...config.value,
+    environment: config.value.environment,  // 保留环境ID用于后端
+    environmentInfo: selectedEnv,           // 传递完整环境对象
+    baseUrl: config.value.baseUrl || selectedEnv?.base_url || '',  // 使用手动输入的或环境默认的
     variables: variablesText.value
   })
 }
