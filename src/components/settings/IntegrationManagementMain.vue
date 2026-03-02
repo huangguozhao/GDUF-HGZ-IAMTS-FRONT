@@ -1,5 +1,18 @@
 <template>
   <div class="integration-management-main">
+    <!-- 集成管理头部 -->
+    <div class="integration-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <el-icon :size="28"><Connection /></el-icon>
+        </div>
+        <div class="header-text">
+          <h3 class="header-title">集成管理</h3>
+          <p class="header-description">配置和管理外部系统集成，包括API、Webhook、Jenkins等</p>
+        </div>
+      </div>
+    </div>
+
     <!-- 集成概览 -->
     <div class="settings-section">
       <h4 class="section-subtitle">集成概览</h4>
@@ -88,6 +101,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Connection } from '@element-plus/icons-vue'
 import {
   getIntegrationSettings,
   updateIntegrationSettings,
@@ -294,6 +308,47 @@ onMounted(() => {
   max-width: 100%;
 }
 
+/* 集成管理头部 - 蓝色渐变 */
+.integration-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.header-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
 .settings-section {
   margin-bottom: 32px;
 }
@@ -309,9 +364,9 @@ onMounted(() => {
   margin: 0 0 20px 0;
   font-size: 16px;
   font-weight: 500;
-  color: #303133;
+  color: #1890ff;
   padding-bottom: 8px;
-  border-bottom: 2px solid #409eff;
+  border-bottom: 2px solid #1890ff;
 }
 
 .integration-overview {

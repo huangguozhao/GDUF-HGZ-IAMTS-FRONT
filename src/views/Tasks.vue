@@ -743,7 +743,7 @@ onMounted(() => {
 }
 
 .breadcrumb-item:hover:not(.active) {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .breadcrumb-item.active {
@@ -902,7 +902,7 @@ onMounted(() => {
 }
 
 .task-name:hover {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .task-target {
@@ -917,7 +917,7 @@ onMounted(() => {
   content: '';
   width: 6px;
   height: 6px;
-  background: linear-gradient(135deg, #409eff, #67c23a);
+  background: linear-gradient(135deg, #1890ff, #67c23a);
   border-radius: 50%;
 }
 
@@ -1037,7 +1037,7 @@ onMounted(() => {
 .stat-value {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #409eff, #67c23a);
+  background: linear-gradient(135deg, #1890ff, #67c23a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

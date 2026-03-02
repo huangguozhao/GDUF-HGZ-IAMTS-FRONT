@@ -376,9 +376,9 @@ initializeDefaults()
   margin: 0 0 20px 0;
   font-size: 16px;
   font-weight: 500;
-  color: #303133;
+  color: #1890ff;
   padding-bottom: 8px;
-  border-bottom: 2px solid #409eff;
+  border-bottom: 2px solid #1890ff;
 }
 
 .settings-grid {
@@ -426,7 +426,7 @@ initializeDefaults()
 
 .channel-icon {
   font-size: 24px;
-  color: #409eff;
+  color: #1890ff;
 }
 
 .channel-name {

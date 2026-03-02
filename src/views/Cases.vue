@@ -470,7 +470,7 @@
                     <span class="status-value">良好</span>
                   </div>
                   <div class="status-item">
-                    <el-icon color="#409eff" :size="16">
+                    <el-icon color="#1890ff" :size="16">
                       <InfoFilled />
                     </el-icon>
                     <span class="status-label">最后更新</span>
@@ -812,14 +812,14 @@
                     <span class="status-value">正常</span>
                   </div>
                   <div class="status-item">
-                    <el-icon color="#409eff" :size="16">
+                    <el-icon color="#1890ff" :size="16">
                       <InfoFilled />
                     </el-icon>
                     <span class="status-label">CPU使用率</span>
                     <span class="status-value">35%</span>
                   </div>
                   <div class="status-item">
-                    <el-icon color="#409eff" :size="16">
+                    <el-icon color="#1890ff" :size="16">
                       <InfoFilled />
                     </el-icon>
                     <span class="status-label">内存使用</span>
@@ -1041,7 +1041,7 @@
         <template v-if="dialogType === 'case'">
           <div class="case-edit-header">
             <div class="case-edit-header-icon">
-              <el-icon color="#409eff"><Document /></el-icon>
+              <el-icon color="#1890ff"><Document /></el-icon>
             </div>
             <div class="case-edit-header-info">
               <h3 class="case-edit-title">编辑测试用例</h3>
@@ -1358,7 +1358,7 @@
                 />
 
                 <div class="extractor-tip">
-                  <el-icon color="#409eff"><InfoFilled /></el-icon>
+                  <el-icon color="#1890ff"><InfoFilled /></el-icon>
                   <span>提取器用于从响应中提取数据供后续用例使用，如提取登录token、订单ID等</span>
                 </div>
                 </div>
@@ -4525,7 +4525,7 @@ onMounted(async () => {
 }
 
 .collapse-btn:hover {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .sidebar-content {
@@ -4546,7 +4546,7 @@ onMounted(async () => {
 .toolbar-create-btn {
   flex: 1;
   padding: 8px 16px;
-  background: #409eff;
+  background: #1890ff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -4584,8 +4584,8 @@ onMounted(async () => {
 }
 
 .toolbar-icon-btn:hover {
-  color: #409eff;
-  border-color: #409eff;
+  color: #1890ff;
+  border-color: #1890ff;
   background: #ecf5ff;
 }
 
@@ -4611,7 +4611,7 @@ onMounted(async () => {
 
 .search-input:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: #1890ff;
 }
 
 .search-input::placeholder {
@@ -4673,7 +4673,7 @@ onMounted(async () => {
 }
 
 .case-item-tree.is-selected .case-item-label {
-  color: #409eff;
+  color: #1890ff;
   font-weight: 500;
 }
 
@@ -4950,7 +4950,7 @@ onMounted(async () => {
 
 .env-search-input:focus {
   outline: none;
-  border-color: #409eff;
+  border-color: #1890ff;
 }
 
 .env-search-input::placeholder {
@@ -4997,9 +4997,9 @@ onMounted(async () => {
 }
 
 .env-sidebar-item.is-active {
-  background: #409eff;
+  background: #1890ff;
   color: white;
-  border-color: #409eff;
+  border-color: #1890ff;
 }
 
 .env-sidebar-item.is-active .env-item-name {
@@ -5007,7 +5007,7 @@ onMounted(async () => {
 }
 
 .env-sidebar-item.is-active .badge-text {
-  color: #409eff;
+  color: #1890ff;
   background: white;
 }
 
@@ -5049,7 +5049,7 @@ onMounted(async () => {
   display: inline-block;
   padding: 2px 8px;
   background: #e6f4ff;
-  color: #409eff;
+  color: #1890ff;
   border-radius: 10px;
   font-size: 11px;
   margin-right: 6px;
@@ -5072,7 +5072,7 @@ onMounted(async () => {
 .env-add-btn {
   width: 100%;
   padding: 8px 12px;
-  background: #409eff;
+  background: #1890ff;
   color: white;
   border: none;
   border-radius: 4px;
@@ -5211,12 +5211,12 @@ onMounted(async () => {
 }
 
 .env-tab-item:hover {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .env-tab-item.active {
-  color: #409eff;
-  border-bottom-color: #409eff;
+  color: #1890ff;
+  border-bottom-color: #1890ff;
 }
 
 /* 标签页内容 */
@@ -5378,7 +5378,7 @@ onMounted(async () => {
 }
 
 .config-table :deep(.el-input__inner:focus) {
-  border: 1px solid #409eff;
+  border: 1px solid #1890ff;
   background: white;
 }
 
@@ -5525,7 +5525,7 @@ onMounted(async () => {
 .step-number {
   width: 28px;
   height: 28px;
-  background: #409eff;
+  background: #1890ff;
   color: white;
   border-radius: 50%;
   display: flex;
@@ -5786,7 +5786,7 @@ onMounted(async () => {
   justify-content: center;
   width: 48px;
   height: 48px;
-  background: #409eff;
+  background: #1890ff;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
 }
@@ -5975,18 +5975,18 @@ onMounted(async () => {
 }
 
 .mode-option:hover {
-  border-color: #409eff;
+  border-color: #1890ff;
   box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
   transform: translateY(-2px);
 }
 
 .mode-option .el-radio__input.is-checked + .el-radio__label {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .mode-option .el-radio__input.is-checked .el-radio__inner {
-  background: #409eff;
-  border-color: #409eff;
+  background: #1890ff;
+  border-color: #1890ff;
   animation: radioCheckPulse 0.25s ease;
 }
 
@@ -6015,7 +6015,7 @@ onMounted(async () => {
 }
 
 .mode-icon {
-  color: #409eff;
+  color: #1890ff;
   font-size: 20px;
   flex-shrink: 0;
 }
@@ -6079,12 +6079,12 @@ onMounted(async () => {
 }
 
 .variables-container:hover {
-  border-color: #409eff;
+  border-color: #1890ff;
   box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
 }
 
 .variables-container:focus-within {
-  border-color: #409eff;
+  border-color: #1890ff;
   box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2);
 }
 
@@ -6096,7 +6096,7 @@ onMounted(async () => {
 }
 
 .variables-icon {
-  color: #409eff;
+  color: #1890ff;
   font-size: 16px;
 }
 
@@ -6108,7 +6108,7 @@ onMounted(async () => {
 
 .format-btn {
   margin-left: auto;
-  color: #409eff;
+  color: #1890ff;
   transition: all 0.2s ease;
   position: relative;
   overflow: hidden;
@@ -6334,7 +6334,7 @@ onMounted(async () => {
 }
 
 .info-card:hover {
-  border-color: #409eff;
+  border-color: #1890ff;
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.1);
   transform: translateY(-2px);
 }
@@ -6349,7 +6349,7 @@ onMounted(async () => {
 
 .info-card-header .el-icon {
   font-size: 16px;
-  color: #409eff;
+  color: #1890ff;
 }
 
 .info-label {
@@ -6374,7 +6374,7 @@ onMounted(async () => {
 }
 
 .info-value.highlight {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .duration-value {
@@ -6445,7 +6445,7 @@ onMounted(async () => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #66b1ff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6499,7 +6499,7 @@ onMounted(async () => {
 }
 
 .info-value.highlight {
-  color: #409eff;
+  color: #1890ff;
 }
 
 .success-count {
@@ -6682,7 +6682,7 @@ onMounted(async () => {
   justify-content: center;
   gap: 10px;
   padding: 20px;
-  color: #409eff;
+  color: #1890ff;
   font-size: 14px;
 }
 
@@ -6806,7 +6806,7 @@ onMounted(async () => {
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409eff 0%, #1890ff 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #1890ff 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -6835,7 +6835,7 @@ onMounted(async () => {
   color: #303133;
   margin-bottom: 12px;
   padding-bottom: 8px;
-  border-bottom: 2px solid #409eff;
+  border-bottom: 2px solid #1890ff;
 }
 
 /* 失败类型 */

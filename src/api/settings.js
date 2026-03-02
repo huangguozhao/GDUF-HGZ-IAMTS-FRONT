@@ -94,7 +94,7 @@ export const deleteSystemConfig = (id) => {
  */
 export const getRoles = (params) => {
   return request({
-    url: '/settings/roles',
+    url: '/roles',
     method: 'get',
     params
   })
@@ -107,7 +107,7 @@ export const getRoles = (params) => {
  */
 export const createRole = (data) => {
   return request({
-    url: '/settings/roles',
+    url: '/roles',
     method: 'post',
     data
   })
@@ -121,7 +121,7 @@ export const createRole = (data) => {
  */
 export const updateRole = (id, data) => {
   return request({
-    url: `/settings/roles/${id}`,
+    url: `/roles/${id}`,
     method: 'put',
     data
   })
@@ -134,7 +134,7 @@ export const updateRole = (id, data) => {
  */
 export const deleteRole = (id) => {
   return request({
-    url: `/settings/roles/${id}`,
+    url: `/roles/${id}`,
     method: 'delete'
   })
 }
@@ -147,7 +147,7 @@ export const deleteRole = (id) => {
  */
 export const assignRolePermissions = (roleId, permissions) => {
   return request({
-    url: `/settings/roles/${roleId}/permissions`,
+    url: `/roles/${roleId}/permissions`,
     method: 'put',
     data: { permissions }
   })
@@ -161,7 +161,7 @@ export const assignRolePermissions = (roleId, permissions) => {
  */
 export const assignUserRoles = (userId, roleIds) => {
   return request({
-    url: `/settings/users/${userId}/roles`,
+    url: `/users/${userId}/roles`,
     method: 'put',
     data: { roleIds }
   })
@@ -174,7 +174,7 @@ export const assignUserRoles = (userId, roleIds) => {
  */
 export const getPermissionLogs = (params) => {
   return request({
-    url: '/settings/permission-logs',
+    url: '/permission-logs',
     method: 'get',
     params
   })
@@ -186,7 +186,7 @@ export const getPermissionLogs = (params) => {
  */
 export const getPermissionSettings = () => {
   return request({
-    url: '/settings/permissions',
+    url: '/permissions',
     method: 'get'
   })
 }
@@ -198,7 +198,7 @@ export const getPermissionSettings = () => {
  */
 export const updatePermissionSettings = (data) => {
   return request({
-    url: '/settings/permissions',
+    url: '/permissions',
     method: 'put',
     data
   })
@@ -210,7 +210,7 @@ export const updatePermissionSettings = (data) => {
  */
 export const exportPermissions = () => {
   return request({
-    url: '/settings/permissions/export',
+    url: '/permissions/export',
     method: 'get',
     responseType: 'blob'
   })
@@ -246,7 +246,7 @@ export const updateNotificationSettings = (data) => {
  */
 export const getIntegrationSettings = () => {
   return request({
-    url: '/settings/integrations',
+    url: '/integrations',
     method: 'get'
   })
 }
@@ -258,7 +258,7 @@ export const getIntegrationSettings = () => {
  */
 export const updateIntegrationSettings = (data) => {
   return request({
-    url: '/settings/integrations',
+    url: '/integrations',
     method: 'put',
     data
   })
@@ -271,7 +271,7 @@ export const updateIntegrationSettings = (data) => {
  */
 export const testEmailConfig = (data) => {
   return request({
-    url: '/settings/test-email',
+    url: '/test-email',
     method: 'post',
     data
   })
@@ -284,7 +284,7 @@ export const testEmailConfig = (data) => {
  */
 export const testSmsConfig = (data) => {
   return request({
-    url: '/settings/test-sms',
+    url: '/test-sms',
     method: 'post',
     data
   })

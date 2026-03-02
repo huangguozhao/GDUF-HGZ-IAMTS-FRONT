@@ -575,18 +575,32 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+  border-radius: 12px;
+  color: white;
 }
 
 .config-title {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: white;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+}
+
+.header-actions .el-button {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.header-actions .el-button:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .config-content {
@@ -597,16 +611,19 @@ onMounted(() => {
 
 .config-section {
   background: #fff;
-  border-radius: 8px;
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .section-title {
   margin: 0 0 16px 0;
   font-size: 16px;
-  font-weight: 500;
-  color: #303133;
+  font-weight: 600;
+  color: #1890ff;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e6f7ff;
+}
   padding-bottom: 8px;
   border-bottom: 2px solid #409eff;
 }
@@ -704,11 +721,17 @@ onMounted(() => {
 .stat-card {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e9ecef;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #e6f7ff 0%, #f0f5ff 100%);
+  border-radius: 12px;
+  border: 1px solid #91d5ff;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.15);
 }
 
 .stat-info {

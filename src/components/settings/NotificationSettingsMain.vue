@@ -1,9 +1,16 @@
 <template>
   <div class="notification-settings-main">
-    <!-- 通知设置头部 -->
-    <div class="settings-header">
-      <h3 class="section-title">通知设置</h3>
-      <p class="section-description">配置系统通知、邮件、短信等通知渠道和规则</p>
+    <!-- 通知设置头部 - 蓝色渐变 -->
+    <div class="notification-header">
+      <div class="header-content">
+        <div class="header-icon">
+          <el-icon :size="28"><Bell /></el-icon>
+        </div>
+        <div class="header-text">
+          <h3 class="header-title">通知设置</h3>
+          <p class="header-description">配置系统通知、邮件、短信等通知渠道和规则</p>
+        </div>
+      </div>
     </div>
 
     <!-- 通知设置标签页 -->
@@ -76,6 +83,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Bell } from '@element-plus/icons-vue'
 import {
   getNotificationSettings,
   updateNotificationSettings,
@@ -367,6 +375,47 @@ onMounted(() => {
 <style scoped>
 .notification-settings-main {
   padding: 20px;
+}
+
+/* 通知设置头部 - 蓝色渐变 */
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%);
+  color: white;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.header-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 10px;
+  backdrop-filter: blur(10px);
+}
+
+.header-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.header-description {
+  margin: 4px 0 0;
+  font-size: 13px;
+  opacity: 0.9;
 }
 
 .settings-header {
