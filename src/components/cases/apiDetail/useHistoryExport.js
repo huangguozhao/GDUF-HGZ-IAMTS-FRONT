@@ -95,36 +95,37 @@ export function useHistoryExport(props, emit, deps = {}) {
       if (response.code === 1 && response.data) {
         const { items, total } = response.data
         historyRecords.value = items.map(item => ({
-          id: item.recordId,
-          recordId: item.recordId,
-          testTime: formatTime(item.startTime),
-          startTime: item.startTime,
-          endTime: item.endTime,
-          executor: item.executorInfo?.name || '未知',
-          executorId: item.executedBy,
-          executorAvatar: item.executorInfo?.avatarUrl || '',
-          responseTime: formatDuration(item.durationSeconds),
-          durationSeconds: item.durationSeconds,
-          status: item.status === 'completed' ? 'passed' : item.status,
-          executionStatus: item.status,
-          executionType: item.executionType,
+          // 处理字段命名兼容（下划线和驼峰）
+          id: item.recordId || item.record_id,
+          recordId: item.recordId || item.record_id,
+          testTime: formatTime(item.startTime || item.start_time),
+          startTime: item.startTime || item.start_time,
+          endTime: item.endTime || item.end_time,
+          executor: item.executorInfo?.name || item.executor_info?.name || '未知',
+          executorId: item.executedBy || item.executed_by,
+          executorAvatar: item.executorInfo?.avatarUrl || item.executor_info?.avatar_url || '',
+          responseTime: formatDuration(item.durationSeconds || item.duration_seconds),
+          durationSeconds: item.durationSeconds || item.duration_seconds,
+          status: (item.status || item.execution_status) === 'completed' ? 'passed' : (item.status || item.execution_status),
+          executionStatus: item.status || item.execution_status,
+          executionType: item.executionType || item.execution_type,
           environment: item.environment,
-          totalCases: item.totalCases,
-          executedCases: item.executedCases,
-          passedCases: item.passedCases,
-          failedCases: item.failedCases,
-          skippedCases: item.skippedCases,
-          successRate: item.successRate,
-          errorMessage: item.errorMessage,
-          reportUrl: item.reportUrl,
-          scopeName: item.scopeName,
+          totalCases: item.totalCases || item.total_cases,
+          executedCases: item.executedCases || item.executed_cases,
+          passedCases: item.passedCases || item.passed_cases,
+          failedCases: item.failedCases || item.failed_cases,
+          skippedCases: item.skippedCases || item.skipped_cases,
+          successRate: item.successRate || item.success_rate,
+          errorMessage: item.errorMessage || item.error_message,
+          reportUrl: item.reportUrl || item.report_url,
+          scopeName: item.scopeName || item.scope_name,
           browser: item.browser,
-          appVersion: item.appVersion,
-          executionConfig: item.executionConfig,
-          logFilePath: item.logFilePath,
-          triggeredTaskId: item.triggeredTaskId,
-          createdAt: item.createdAt,
-          updatedAt: item.updatedAt
+          appVersion: item.appVersion || item.app_version,
+          executionConfig: item.executionConfig || item.execution_config,
+          logFilePath: item.logFilePath || item.log_file_path,
+          triggeredTaskId: item.triggeredTaskId || item.triggered_task_id,
+          createdAt: item.createdAt || item.created_at,
+          updatedAt: item.updatedAt || item.updated_at
         }))
         historyTotal.value = total
       } else {
@@ -148,29 +149,31 @@ export function useHistoryExport(props, emit, deps = {}) {
     try {
       const response = await getExecutionRecordById(record.recordId)
       if (response.code === 1 && response.data) {
+        const data = response.data
+        // 处理字段命名兼容（下划线和驼峰）
         // 设置执行结果数据，用于显示在ExecutionResult组件中
         executionResult.value = {
-          recordId: response.data.recordId,
-          executionScope: response.data.executionScope,
-          refId: response.data.refId,
-          scopeName: response.data.scopeName,
-          executorInfo: response.data.executorInfo,
-          executionType: response.data.executionType,
-          environment: response.data.environment,
-          status: response.data.status,
-          startTime: response.data.startTime,
-          endTime: response.data.endTime,
-          durationSeconds: response.data.durationSeconds,
-          totalCases: response.data.totalCases,
-          executedCases: response.data.executedCases,
-          passedCases: response.data.passedCases,
-          failedCases: response.data.failedCases,
-          skippedCases: response.data.skippedCases,
-          successRate: response.data.successRate,
-          reportUrl: response.data.reportUrl,
-          errorMessage: response.data.errorMessage,
-          browser: response.data.browser,
-          appVersion: response.data.appVersion
+          recordId: data.recordId || data.record_id,
+          executionScope: data.executionScope || data.execution_scope,
+          refId: data.refId || data.ref_id,
+          scopeName: data.scopeName || data.scope_name,
+          executorInfo: data.executorInfo || data.executor_info,
+          executionType: data.executionType || data.execution_type,
+          environment: data.environment,
+          status: data.status,
+          startTime: data.startTime || data.start_time,
+          endTime: data.endTime || data.end_time,
+          durationSeconds: data.durationSeconds || data.duration_seconds,
+          totalCases: data.totalCases || data.total_cases,
+          executedCases: data.executedCases || data.executed_cases,
+          passedCases: data.passedCases || data.passed_cases,
+          failedCases: data.failedCases || data.failed_cases,
+          skippedCases: data.skippedCases || data.skipped_cases,
+          successRate: data.successRate || data.success_rate,
+          reportUrl: data.reportUrl || data.report_url,
+          errorMessage: data.errorMessage || data.error_message,
+          browser: data.browser,
+          appVersion: data.appVersion || data.app_version
         }
         resultDialogVisible.value = true
       } else {

@@ -2436,20 +2436,29 @@ const loadLatestExecutionResult = async () => {
     if (response.code === 1 && response.data && response.data.items.length > 0) {
       const latestRecord = response.data.items[0]
       
-      // 更新测试状态
-      testStatus.value = mapExecutionStatus(latestRecord.status)
+      // 处理字段命名兼容（下划线和驼峰）
+      const record = {
+        status: latestRecord.status || latestRecord.status,
+        startTime: latestRecord.startTime || latestRecord.start_time,
+        durationSeconds: latestRecord.durationSeconds || latestRecord.duration_seconds,
+        executionConfig: latestRecord.executionConfig || latestRecord.execution_config,
+        errorMessage: latestRecord.errorMessage || latestRecord.error_message
+      }
       
-      // 更新时间信息 - 使用驼峰命名
-      testTime.value = formatTime(latestRecord.startTime)
-      responseTime.value = formatDuration(latestRecord.durationSeconds)
+      // 更新测试状态
+      testStatus.value = mapExecutionStatus(record.status)
+      
+      // 更新时间信息
+      testTime.value = formatTime(record.startTime)
+      responseTime.value = formatDuration(record.durationSeconds)
       
       // 解析执行配置JSON
       let executionConfig = null
-      if (latestRecord.executionConfig) {
+      if (record.executionConfig) {
         try {
-          executionConfig = typeof latestRecord.executionConfig === 'string' 
-            ? JSON.parse(latestRecord.executionConfig)
-            : latestRecord.executionConfig
+          executionConfig = typeof record.executionConfig === 'string' 
+            ? JSON.parse(record.executionConfig)
+            : record.executionConfig
         } catch (e) {
           console.error('解析执行配置失败:', e)
         }
@@ -2483,7 +2492,7 @@ const loadLatestExecutionResult = async () => {
         }
       } else {
         // 如果没有响应数据，显示基本信息
-        formattedResponse.value = latestRecord.errorMessage || '暂无响应数据'
+        formattedResponse.value = record.errorMessage || '暂无响应数据'
       }
     } else {
       // 没有执行记录

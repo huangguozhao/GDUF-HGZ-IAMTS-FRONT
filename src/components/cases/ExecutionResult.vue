@@ -590,42 +590,100 @@ const handleVisibleChange = (value) => {
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 32px 24px;
-  border-radius: 8px;
+  padding: 28px 32px;
+  border-radius: 12px;
   margin-bottom: 24px;
   flex-wrap: wrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.1;
+}
+
+.result-banner.status-passed::before {
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+}
+
+.result-banner.status-failed::before {
+  background: linear-gradient(135deg, #f56c6c 0%, #f78989 100%);
 }
 
 .result-banner.status-passed {
-  background: linear-gradient(135deg, #f0f9ff 0%, #e1f3d8 100%);
+  background: linear-gradient(135deg, #f0f9ff 0%, #e8f5e9 100%);
   border: 2px solid #67c23a;
+  box-shadow: 0 4px 12px rgba(103, 194, 58, 0.15);
 }
 
 .result-banner.status-failed {
-  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  background: linear-gradient(135deg, #fef0f0 0%, #fff5f5 100%);
   border: 2px solid #f56c6c;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.15);
 }
 
 .banner-icon {
   flex-shrink: 0;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.result-banner.status-passed .banner-icon {
+  background: linear-gradient(135deg, #67c23a 0%, #85ce61 100%);
+  box-shadow: 0 4px 15px rgba(103, 194, 58, 0.4);
+}
+
+.result-banner.status-failed .banner-icon {
+  background: linear-gradient(135deg, #f56c6c 0%, #f78989 100%);
+  box-shadow: 0 4px 15px rgba(245, 108, 108, 0.4);
 }
 
 .banner-content {
   flex: 1;
   min-width: 200px;
+  position: relative;
+  z-index: 1;
 }
 
 .result-title {
   margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 700;
   color: #303133;
+  letter-spacing: 1px;
+}
+
+.result-banner.status-passed .result-title {
+  color: #67c23a;
+}
+
+.result-banner.status-failed .result-title {
+  color: #f56c6c;
 }
 
 .result-subtitle {
   margin: 0;
   font-size: 16px;
   color: #606266;
+  font-weight: 500;
+}
+
+/* AI诊断按钮 */
+.result-banner .ai-diagnosis-btn {
+  position: relative;
+  z-index: 1;
 }
 
 .result-info-section {
@@ -643,65 +701,116 @@ const handleVisibleChange = (value) => {
 }
 
 .info-card {
-  background: #fafafa;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 20px 16px;
   text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #409eff 0%, #67c23a 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.info-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.15);
+}
+
+.info-card:hover::before {
+  opacity: 1;
 }
 
 .info-label {
-  font-size: 12px;
+  font-size: 13px;
   color: #909399;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .info-value {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 20px;
+  font-weight: 700;
   color: #303133;
 }
 
 .info-value.highlight {
-  color: #409eff;
+  background: linear-gradient(135deg, #409eff 0%, #67c23a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .success-count {
   color: #67c23a;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .failed-count {
   color: #f56c6c;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .divider {
-  margin: 0 4px;
+  margin: 0 6px;
   color: #c0c4cc;
 }
 
 .result-time-section {
-  background: #f5f7fa;
-  border-radius: 6px;
-  padding: 16px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 24px;
   margin-bottom: 24px;
   display: flex;
   justify-content: space-around;
+  border: 1px solid #e4e7ed;
+  position: relative;
+}
+
+.result-time-section::before {
+  content: '执行信息';
+  position: absolute;
+  top: -10px;
+  left: 20px;
+  background: white;
+  padding: 0 8px;
+  font-size: 12px;
+  color: #409eff;
+  font-weight: 600;
 }
 
 .time-item {
   font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .time-label {
   color: #909399;
-  margin-right: 8px;
+  font-weight: 500;
 }
 
 .time-value {
   color: #303133;
-  font-weight: 500;
+  font-weight: 600;
+  background: linear-gradient(135deg, #303133 0%, #606266 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .result-failure-section {
@@ -869,6 +978,20 @@ const handleVisibleChange = (value) => {
   display: flex;
   gap: 12px;
   justify-content: center;
+  padding-top: 16px;
+  border-top: 1px dashed #e4e7ed;
+}
+
+.result-links-section .el-button {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.result-links-section .el-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
 }
 
 .case-results-section {
@@ -918,7 +1041,8 @@ const handleVisibleChange = (value) => {
 
 .total-count {
   color: #409eff;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 22px;
 }
 
 .test-stats-section {
@@ -932,31 +1056,67 @@ const handleVisibleChange = (value) => {
   margin-bottom: 16px;
   padding-bottom: 8px;
   border-bottom: 2px solid #409eff;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.test-stats-title::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(180deg, #409eff 0%, #67c23a 100%);
+  border-radius: 2px;
 }
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 16px;
 }
 
 .stat-item {
-  background: #fafafa;
+  background: linear-gradient(135deg, #ffffff 0%, #f5f7fa 100%);
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 20px 16px;
   text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.stat-item:nth-child(1)::before { background: #409eff; }
+.stat-item:nth-child(2)::before { background: #909399; }
+.stat-item:nth-child(3)::before { background: #67c23a; }
+.stat-item:nth-child(4)::before { background: #f56c6c; }
+.stat-item:nth-child(5)::before { background: #e6a23c; }
+.stat-item:nth-child(6)::before { background: #9c27b0; }
+
+.stat-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
 .stat-label {
-  font-size: 12px;
+  font-size: 13px;
   color: #909399;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  font-weight: 500;
 }
 
 .stat-value {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
   color: #303133;
 }
 
@@ -967,7 +1127,7 @@ const handleVisibleChange = (value) => {
 .stat-value.skipped { color: #e6a23c; }
 
 .stat-value.rate {
-  font-size: 20px;
+  font-size: 22px;
   color: #f56c6c;
 }
 
@@ -979,8 +1139,11 @@ const handleVisibleChange = (value) => {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border: none;
   padding: 12px 28px;
+  border-radius: 25px;
   box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
   transition: all 0.3s ease;
+  font-weight: 600;
+  letter-spacing: 1px;
 }
 
 .ai-diagnosis-btn:hover {
@@ -993,8 +1156,12 @@ const handleVisibleChange = (value) => {
 }
 
 .ai-diagnosis-btn-wrapper {
-  margin-top: 16px;
+  margin-top: 20px;
   text-align: center;
+  padding: 16px;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 8px;
+  border: 1px dashed rgba(102, 126, 234, 0.3);
 }
 
 /* AI诊断加载状态 */
