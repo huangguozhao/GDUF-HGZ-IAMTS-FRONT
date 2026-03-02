@@ -255,9 +255,11 @@ export function transformTestCaseToBackend(testCase) {
     tags: testCase.tags || []
   }
   
-  // 用例编码
+  // 用例编码 - 支持驼峰和snake_case两种格式
   if (testCase.case_code) {
     data.case_code = testCase.case_code
+  } else if (testCase.caseCode) {
+    data.case_code = testCase.caseCode
   }
   
   // 处理请求参数 - 支持新旧两种方式
@@ -267,14 +269,10 @@ export function transformTestCaseToBackend(testCase) {
     } catch (e) {
       console.error('解析请求参数覆盖失败:', e)
     }
-  } else if (testCase.request_params) {
-    try {
-      data.request_override = typeof testCase.request_params === 'string' 
-        ? JSON.parse(testCase.request_params)
-        : testCase.request_params
-    } catch (e) {
-      console.error('解析请求参数失败:', e)
-    }
+  } else if (testCase.request_override) {
+    data.request_override = testCase.request_override
+  } else if (testCase.requestOverride) {
+    data.request_override = testCase.requestOverride
   }
   
   // 处理前置条件
@@ -286,18 +284,24 @@ export function transformTestCaseToBackend(testCase) {
     }
   } else if (testCase.pre_conditions) {
     data.pre_conditions = testCase.pre_conditions
+  } else if (testCase.preConditions) {
+    data.pre_conditions = testCase.preConditions
   }
   
-  // 处理预期状态码
+  // 处理预期状态码 - 支持驼峰和snake_case
   if (testCase.expected_http_status) {
     data.expected_http_status = testCase.expected_http_status
+  } else if (testCase.expectedHttpStatus) {
+    data.expected_http_status = testCase.expectedHttpStatus
   } else if (testCase.expected_status_code) {
     data.expected_http_status = testCase.expected_status_code
   }
   
-  // 处理预期响应
+  // 处理预期响应 - 支持驼峰和snake_case
   if (testCase.expected_response_body) {
     data.expected_response_body = testCase.expected_response_body
+  } else if (testCase.expectedResponseBody) {
+    data.expected_response_body = testCase.expectedResponseBody
   }
   
   // 处理响应Schema
@@ -309,6 +313,8 @@ export function transformTestCaseToBackend(testCase) {
     }
   } else if (testCase.expected_response_schema) {
     data.expected_response_schema = testCase.expected_response_schema
+  } else if (testCase.expectedResponseSchema) {
+    data.expected_response_schema = testCase.expectedResponseSchema
   }
   
   // 处理验证规则 - 转换为断言数组
@@ -318,24 +324,45 @@ export function transformTestCaseToBackend(testCase) {
     data.assertions = testCase.assertions
   }
   
-  // 测试步骤
+  // 测试步骤 - 支持驼峰和snake_case
   if (testCase.test_steps) {
     data.test_steps = testCase.test_steps
+  } else if (testCase.testSteps) {
+    data.test_steps = testCase.testSteps
   }
   
-  // 提取器和验证器
+  // 提取器 - 支持驼峰和snake_case
   if (testCase.extractors) {
     data.extractors = testCase.extractors
   }
+  
+  // 验证器 - 支持驼峰和snake_case
   if (testCase.validators) {
     data.validators = testCase.validators
   }
   
-  // 其他字段
-  if (testCase.is_enabled !== undefined) data.is_enabled = testCase.is_enabled
-  if (testCase.is_template !== undefined) data.is_template = testCase.is_template
-  if (testCase.template_id) data.template_id = testCase.template_id
-  if (testCase.version) data.version = testCase.version
+  // 其他字段 - 支持驼峰和snake_case
+  if (testCase.is_enabled !== undefined) {
+    data.is_enabled = testCase.is_enabled
+  } else if (testCase.isEnabled !== undefined) {
+    data.is_enabled = testCase.isEnabled
+  }
+  
+  if (testCase.is_template !== undefined) {
+    data.is_template = testCase.is_template
+  } else if (testCase.isTemplate !== undefined) {
+    data.is_template = testCase.isTemplate
+  }
+  
+  if (testCase.template_id) {
+    data.template_id = testCase.template_id
+  } else if (testCase.templateId) {
+    data.template_id = testCase.templateId
+  }
+  
+  if (testCase.version) {
+    data.version = testCase.version
+  }
   
   return data
 }
