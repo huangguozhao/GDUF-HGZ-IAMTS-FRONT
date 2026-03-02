@@ -252,11 +252,11 @@
           <template #default="{ row }">
             <div style="padding: 0 10px">
             <el-progress 
-                :percentage="parseFloat(row.successRate || 0)"
-                :color="getSuccessRateColor(row.successRate)"
+                :percentage="parseFloat((row.successRate || 0) * 100)"
+                :color="getSuccessRateColor(row.successRate * 100)"
                 :stroke-width="6"
                 :show-text="true"
-                :format="() => `${row.successRate}%`"
+                :format="() => `${((row.successRate || 0) * 100).toFixed(1)}%`"
               />
           </div>
         </template>
@@ -357,7 +357,7 @@
           <StatsCard flat label="失败用例" :value="currentReport.failedCases || 0" icon="❌" variant="danger" />
           <StatsCard flat label="跳过用例" :value="currentReport.skippedCases || 0" icon="⚠️" variant="warning" />
           <StatsCard flat label="总用例数" :value="currentReport.totalCases || 0" icon="📊" variant="info" />
-          <StatsCard flat label="成功率" :value="`${currentReport.successRate}%`" icon="🎯" variant="primary" />
+          <StatsCard flat label="成功率" :value="`${((currentReport.successRate || 0) * 100).toFixed(1)}%`" icon="🎯" variant="primary" />
           <StatsCard flat label="执行耗时" :value="formatDuration(currentReport.duration)" icon="⏱️" />
         </div>
 
@@ -518,13 +518,13 @@
                 <el-descriptions-item label="成功率" :span="3">
                   <div style="display: flex; align-items: center; gap: 16px;">
                     <el-progress
-                      :percentage="parseFloat(currentReport.successRate || 0)"
-                      :color="getSuccessRateColor(currentReport.successRate)"
+                      :percentage="parseFloat((currentReport.successRate || 0) * 100)"
+                      :color="getSuccessRateColor((currentReport.successRate || 0) * 100)"
                       :stroke-width="20"
                       style="flex: 1"
                     />
-                    <el-tag size="large" :type="parseFloat(currentReport.successRate) >= 80 ? 'success' : 'danger'">
-                      {{ currentReport.successRate }}%
+                    <el-tag size="large" :type="((currentReport.successRate || 0) * 100) >= 80 ? 'success' : 'danger'">
+                      {{ ((currentReport.successRate || 0) * 100).toFixed(1) }}%
                     </el-tag>
                   </div>
                 </el-descriptions-item>
@@ -720,32 +720,45 @@ const monthlyReports = computed(() => {
   return reportList.value.length
 })
 
-// 转换后端数据为前端格式
+// 转换后端数据为前端格式（兼容驼峰和下划线两种格式）
 const transformBackendData = (item) => {
   return {
-    reportId: item.report_id,
-    reportName: item.report_name,
-    reportType: item.report_type,
-    executionId: item.execution_id,  // 添加 executionId 映射
-    projectId: item.project_id,
-    projectName: item.project_name,
+    // 主键 - 兼容驼峰和下划线
+    reportId: item.reportId || item.report_id,
+    reportName: item.reportName || item.report_name,
+    reportType: item.reportType || item.report_type,
+    // 执行ID
+    executionId: item.executionId || item.execution_id,
+    // 项目信息
+    projectId: item.projectId || item.project_id,
+    projectName: item.projectName || item.project_name,
+    // 环境
     environment: item.environment,
-    startTime: item.start_time,
-    endTime: item.end_time,
+    // 时间
+    startTime: item.startTime || item.start_time,
+    endTime: item.endTime || item.end_time,
     duration: item.duration,
-    totalCases: item.total_cases,
-    executedCases: item.executed_cases,
-    passedCases: item.passed_cases,
-    failedCases: item.failed_cases,
-    brokenCases: item.broken_cases,
-    skippedCases: item.skipped_cases,
-    successRate: item.success_rate,
-    reportStatus: item.report_status,
-    fileFormat: item.file_format,
-    generatedBy: item.generated_by,
-    generatorName: item.generator_name,
-    createdAt: item.created_at,
-    isDeleted: item.is_deleted
+    // 用例统计 - 兼容驼峰和下划线
+    totalCases: item.totalCases ?? item.total_cases,
+    executedCases: item.executedCases ?? item.executed_cases,
+    passedCases: item.passedCases ?? item.passed_cases,
+    failedCases: item.failedCases ?? item.failed_cases,
+    brokenCases: item.brokenCases ?? item.broken_cases,
+    skippedCases: item.skippedCases ?? item.skipped_cases,
+    // 成功率 - 后端返回的是0-1的小数，需要转成百分比显示
+    successRate: item.successRate ?? item.success_rate ?? 0,
+    // 状态和格式
+    reportStatus: item.reportStatus || item.report_status,
+    fileFormat: item.fileFormat || item.file_format,
+    // 生成者信息
+    generatedBy: item.generatedBy || item.generated_by,
+    generatorName: item.generatorName || item.generator_name,
+    // 其他
+    createdAt: item.createdAt || item.created_at,
+    isDeleted: item.isDeleted ?? item.is_deleted,
+    // 文件信息（详情可能返回）
+    fileSize: item.fileSize || item.file_size,
+    downloadUrl: item.downloadUrl || item.download_url
   }
 }
 
@@ -1164,7 +1177,7 @@ const initGaugeChart = async () => {
   const echarts = await loadEcharts()
   gaugeChartInstance = echarts.init(gaugeChartRef.value)
   
-  const successRate = parseFloat(currentReport.value.successRate || 0)
+  const successRate = parseFloat((currentReport.value.successRate || 0) * 100)
   
   const option = {
     series: [

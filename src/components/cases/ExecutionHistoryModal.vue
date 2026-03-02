@@ -111,7 +111,7 @@
       <div class="stats-cards">
         <div class="stat-card total">
           <div class="stat-icon">
-            <el-icon size="24"><Clock /></el-icon>
+            <div class="icon-circle blue"><el-icon size="20"><Clock /></el-icon></div>
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ statistics?.totalExecutions || 0 }}</div>
@@ -120,7 +120,7 @@
         </div>
         <div class="stat-card success">
           <div class="stat-icon">
-            <el-icon size="24" color="#67c23a"><CircleCheckFilled /></el-icon>
+            <div class="icon-circle green"><el-icon size="20"><CircleCheckFilled /></el-icon></div>
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ statistics?.completedExecutions || 0 }}</div>
@@ -129,7 +129,7 @@
         </div>
         <div class="stat-card failed">
           <div class="stat-icon">
-            <el-icon size="24" color="#f56c6c"><CircleCloseFilled /></el-icon>
+            <div class="icon-circle red"><el-icon size="20"><CircleCloseFilled /></el-icon></div>
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ statistics?.failedExecutions || 0 }}</div>
@@ -138,7 +138,7 @@
         </div>
         <div class="stat-card rate">
           <div class="stat-icon">
-            <el-icon size="24" color="#409eff"><TrendCharts /></el-icon>
+            <div class="icon-circle orange"><el-icon size="20"><TrendCharts /></el-icon></div>
           </div>
           <div class="stat-content">
             <div class="stat-number">{{ (statistics?.avgSuccessRate || 0).toFixed(1) }}%</div>
@@ -958,41 +958,74 @@ watch(() => props.visible, (newVisible) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  padding: 18px 24px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
 .filter-group {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
 .filter-select {
-  width: 140px;
+  width: 150px;
+}
+
+.filter-select :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+  transition: all 0.2s ease;
+}
+
+.filter-select :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+}
+
+.filter-select :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset;
 }
 
 .search-group {
   display: flex;
-  gap: 12px;
+  gap: 16px;
   align-items: center;
 }
 
 .search-input {
-  width: 250px;
+  width: 280px;
+}
+
+.search-input :deep(.el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+  transition: all 0.2s ease;
+}
+
+.search-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+}
+
+.search-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #409eff inset;
 }
 
 .export-btn {
-  border: 1px solid #dcdfe6;
+  border: 1px solid #e2e8f0;
   background: white;
-  color: #606266;
+  color: #475569;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-weight: 500;
 }
 
 .export-btn:hover {
   border-color: #409eff;
   color: #409eff;
+  background: #f0f9ff;
 }
 
 /* sparkline 样式 */
@@ -1038,64 +1071,106 @@ watch(() => props.visible, (newVisible) => {
 .stats-cards {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 24px;
 }
 
 .stat-card {
   display: flex;
   align-items: center;
-  padding: 20px;
+  padding: 24px;
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-  border: 1px solid #f0f0f0;
-  transition: all 0.3s ease;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, var(--card-color) 0%, transparent 100%);
+  opacity: 0.8;
 }
 
 .stat-card:hover {
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
-  transform: translateY(-2px);
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
 }
 
 .stat-card.total {
+  --card-color: #409eff;
   border-left: 4px solid #409eff;
 }
 
 .stat-card.success {
+  --card-color: #67c23a;
   border-left: 4px solid #67c23a;
 }
 
 .stat-card.failed {
+  --card-color: #f56c6c;
   border-left: 4px solid #f56c6c;
 }
 
 .stat-card.rate {
+  --card-color: #e6a23c;
   border-left: 4px solid #e6a23c;
 }
 
 .stat-icon {
   margin-right: 16px;
-  padding: 12px;
-  border-radius: 8px;
-  background: #f8f9fa;
+}
+
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-circle.blue {
+  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+  color: #0284c7;
+}
+
+.icon-circle.green {
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #16a34a;
+}
+
+.icon-circle.red {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
+}
+
+.icon-circle.orange {
+  background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+  color: #ea580c;
 }
 
 .stat-card.total .stat-icon {
-  background: #f0f9ff;
-  color: #409eff;
+  background: transparent;
 }
 
 .stat-card.success .stat-icon {
-  background: #f0f9ff;
+  background: transparent;
 }
 
 .stat-card.failed .stat-icon {
-  background: #fef0f0;
+  background: transparent;
 }
 
 .stat-card.rate .stat-icon {
-  background: #fdf6ec;
+  background: transparent;
 }
 
 .stat-content {
@@ -1180,11 +1255,11 @@ watch(() => props.visible, (newVisible) => {
 /* 表格容器 */
 .table-container {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
   margin-bottom: 20px;
-  border: 1px solid #f0f0f0;
+  border: 1px solid rgba(0, 0, 0, 0.04);
 }
 
 .history-table {
@@ -1192,38 +1267,47 @@ watch(() => props.visible, (newVisible) => {
 }
 
 .history-table :deep(.el-table__header) {
-  background: #fafafa;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
 .history-table :deep(.el-table__header th) {
-  background: #fafafa;
-  color: #606266;
+  background: transparent;
+  color: #475569;
   font-weight: 600;
-  border-bottom: 1px solid #e4e7ed;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid #e2e8f0;
+  padding: 16px 0;
 }
 
 .history-table :deep(.el-table__row) {
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.history-table :deep(.el-table__row td) {
+  padding: 16px 0;
 }
 
 .history-table :deep(.el-table__row:hover) {
-  background: #f5f7fa;
+  background: linear-gradient(90deg, #f8fafc 0%, #f0f9ff 100%);
 }
 
 .history-table :deep(.success-row) {
-  background: #f0f9ff;
+  background: linear-gradient(90deg, #f0fdf4 0%, #dcfce7 100%);
 }
 
 .history-table :deep(.success-row:hover) {
-  background: #e1f5fe;
+  background: linear-gradient(90deg, #dcfce7 0%, #bbf7d0 100%);
 }
 
 .history-table :deep(.failed-row) {
-  background: #fef0f0;
+  background: linear-gradient(90deg, #fef2f2 0%, #fee2e2 100%);
 }
 
 .history-table :deep(.failed-row:hover) {
-  background: #fde2e2;
+  background: linear-gradient(90deg, #fee2e2 0%, #fecaca 100%);
 }
 
 /* 表格单元格样式 */

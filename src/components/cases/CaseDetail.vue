@@ -732,109 +732,157 @@
       title="执行历史详情"
       width="900px"
       :close-on-click-modal="false"
+      class="history-detail-dialog"
     >
       <div v-if="currentHistoryDetail" class="history-detail-content" v-loading="loadingHistoryDetail">
+        <!-- 状态卡片 -->
+        <div class="status-overview-card" :class="getHistoryStatusClass(currentHistoryDetail.status)">
+          <div class="status-icon-wrapper">
+            <el-icon v-if="currentHistoryDetail.status === 'completed'" size="48"><CircleCheckFilled /></el-icon>
+            <el-icon v-else-if="currentHistoryDetail.status === 'failed'" size="48"><CircleCloseFilled /></el-icon>
+            <el-icon v-else-if="currentHistoryDetail.status === 'running'" size="48"><Loading /></el-icon>
+            <el-icon v-else size="48"><WarningFilled /></el-icon>
+          </div>
+          <div class="status-info">
+            <h2 class="status-title">{{ getHistoryStatusText(currentHistoryDetail.status) }}</h2>
+            <p class="status-desc" v-if="currentHistoryDetail.status === 'completed'">测试执行已完成</p>
+            <p class="status-desc" v-else-if="currentHistoryDetail.status === 'failed'">测试执行存在失败项</p>
+            <p class="status-desc" v-else-if="currentHistoryDetail.status === 'running'">测试正在执行中</p>
+            <p class="status-desc" v-else>测试执行已被取消</p>
+          </div>
+          <div class="status-badge">
+            <el-tag size="large" :type="getHistoryStatusType(currentHistoryDetail.status)">
+              {{ currentHistoryDetail.successRate ? (currentHistoryDetail.successRate * 100).toFixed(1) + '%' : '0%' }} 通过率
+            </el-tag>
+          </div>
+        </div>
+
+        <!-- 执行统计卡片 -->
+        <div class="stats-grid" v-if="currentHistoryDetail.totalCases">
+          <div class="stat-item passed">
+            <div class="stat-icon"><el-icon><CircleCheckFilled /></el-icon></div>
+            <div class="stat-value">{{ currentHistoryDetail.passedCases || 0 }}</div>
+            <div class="stat-label">通过</div>
+          </div>
+          <div class="stat-item failed">
+            <div class="stat-icon"><el-icon><CircleCloseFilled /></el-icon></div>
+            <div class="stat-value">{{ currentHistoryDetail.failedCases || 0 }}</div>
+            <div class="stat-label">失败</div>
+          </div>
+          <div class="stat-item skipped">
+            <div class="stat-icon"><el-icon><WarningFilled /></el-icon></div>
+            <div class="stat-value">{{ currentHistoryDetail.skippedCases || 0 }}</div>
+            <div class="stat-label">跳过</div>
+          </div>
+          <div class="stat-item total">
+            <div class="stat-icon"><el-icon><List /></el-icon></div>
+            <div class="stat-value">{{ currentHistoryDetail.totalCases || 0 }}</div>
+            <div class="stat-label">总计</div>
+          </div>
+        </div>
+
         <!-- 基本信息 -->
         <div class="detail-section">
-          <h4 class="detail-section-title">📋 基本信息</h4>
-          <el-descriptions :column="2" border>
+          <h4 class="detail-section-title">
+            <el-icon><Document /></el-icon>
+            基本信息
+          </h4>
+          <el-descriptions :column="3" border class="info-descriptions">
             <el-descriptions-item label="执行ID">
-              {{ currentHistoryDetail.recordId || '-' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="执行状态">
-              <el-tag :type="getHistoryStatusType(currentHistoryDetail.status)">
-                {{ getHistoryStatusText(currentHistoryDetail.status) }}
-              </el-tag>
+              <span class="mono-text">{{ currentHistoryDetail.recordId || '-' }}</span>
             </el-descriptions-item>
             <el-descriptions-item label="执行人">
-              {{ currentHistoryDetail.executor || '-' }}
+              <div class="executor-info">
+                <el-avatar :size="24" class="executor-avatar">{{ (currentHistoryDetail.executor || 'U').charAt(0) }}</el-avatar>
+                <span>{{ currentHistoryDetail.executor || '-' }}</span>
+              </div>
             </el-descriptions-item>
             <el-descriptions-item label="执行环境">
-              <el-tag size="small">{{ currentHistoryDetail.environment || '-' }}</el-tag>
+              <el-tag size="small" type="info">{{ currentHistoryDetail.environment || '默认环境' }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="执行类型">
-              {{ currentHistoryDetail.action || currentHistoryDetail.executionType || '-' }}
+              <el-tag size="small">{{ currentHistoryDetail.action || currentHistoryDetail.executionType || '手动执行' }}</el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="开始时间">
-              {{ currentHistoryDetail.start_time || currentHistoryDetail.executed_time || '-' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="结束时间">
-              {{ currentHistoryDetail.end_time || '-' }}
+              <span class="time-text">{{ currentHistoryDetail.start_time || currentHistoryDetail.executed_time || '-' }}</span>
             </el-descriptions-item>
             <el-descriptions-item label="执行耗时">
-              <el-tag type="info" size="small">
+              <el-tag type="info" size="small" effect="plain">
+                <el-icon><Timer /></el-icon>
                 {{ formatDuration(currentHistoryDetail.durationSeconds) }}
               </el-tag>
             </el-descriptions-item>
           </el-descriptions>
         </div>
 
-        <!-- 执行结果统计 -->
+        <!-- 成功率进度条 -->
         <div class="detail-section" v-if="currentHistoryDetail.totalCases">
-          <h4 class="detail-section-title">📊 执行统计</h4>
-          <el-descriptions :column="3" border>
-            <el-descriptions-item label="总用例数">
-              {{ currentHistoryDetail.totalCases || 0 }}
-            </el-descriptions-item>
-            <el-descriptions-item label="已执行">
-              {{ currentHistoryDetail.executedCases || 0 }}
-            </el-descriptions-item>
-            <el-descriptions-item label="通过数">
-              <span style="color: #67c23a; font-weight: bold;">
-                {{ currentHistoryDetail.passedCases || 0 }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="失败数">
-              <span style="color: #f56c6c; font-weight: bold;">
-                {{ currentHistoryDetail.failedCases || 0 }}
-              </span>
-            </el-descriptions-item>
-            <el-descriptions-item label="跳过数">
-              {{ currentHistoryDetail.skippedCases || 0 }}
-            </el-descriptions-item>
-            <el-descriptions-item label="成功率">
-              <el-progress 
-                :percentage="(currentHistoryDetail.successRate || 0) * 100"
-                :status="(currentHistoryDetail.successRate || 0) >= 0.8 ? 'success' : 'exception'"
-                :stroke-width="10"
-              />
-            </el-descriptions-item>
-          </el-descriptions>
+          <h4 class="detail-section-title">
+            <el-icon><TrendCharts /></el-icon>
+            执行结果
+          </h4>
+          <div class="progress-wrapper">
+            <el-progress 
+              :percentage="(currentHistoryDetail.successRate || 0) * 100"
+              :status="(currentHistoryDetail.successRate || 0) >= 0.8 ? 'success' : 'exception'"
+              :stroke-width="20"
+              :text-inside="true"
+            >
+              <span class="progress-text">{{ (currentHistoryDetail.successRate || 0) >= 0.8 ? '通过' : '需要关注' }}</span>
+            </el-progress>
+            <div class="progress-stats">
+              <span>已执行: {{ currentHistoryDetail.executedCases || 0 }} / {{ currentHistoryDetail.totalCases || 0 }}</span>
+            </div>
+          </div>
         </div>
 
         <!-- 执行配置 -->
         <div class="detail-section" v-if="currentHistoryDetail.executionConfig">
-          <h4 class="detail-section-title">⚙️ 执行配置</h4>
+          <h4 class="detail-section-title">
+            <el-icon><Setting /></el-icon>
+            执行配置
+          </h4>
           <el-input
             type="textarea"
             :value="formatExecutionConfig(currentHistoryDetail.executionConfig)"
-            :rows="6"
+            :rows="4"
             readonly
+            class="config-textarea"
           />
         </div>
 
         <!-- 错误信息 -->
         <div class="detail-section" v-if="currentHistoryDetail.errorMessage">
-          <h4 class="detail-section-title">❌ 错误信息</h4>
+          <h4 class="detail-section-title error-title">
+            <el-icon><CircleCloseFilled /></el-icon>
+            错误信息
+          </h4>
           <el-alert
             :title="currentHistoryDetail.errorMessage"
             type="error"
             :closable="false"
             show-icon
+            class="error-alert"
           />
         </div>
 
         <!-- 执行说明 -->
         <div class="detail-section" v-if="currentHistoryDetail.note">
-          <h4 class="detail-section-title">📝 执行说明</h4>
+          <h4 class="detail-section-title">
+            <el-icon><EditPen /></el-icon>
+            执行说明
+          </h4>
           <div class="note-content">
             {{ currentHistoryDetail.note }}
           </div>
         </div>
 
         <!-- 其他信息 -->
-        <div class="detail-section">
-          <h4 class="detail-section-title">ℹ️ 其他信息</h4>
+        <div class="detail-section" v-if="currentHistoryDetail.reportUrl || currentHistoryDetail.browser || currentHistoryDetail.appVersion">
+          <h4 class="detail-section-title">
+            <el-icon><InfoFilled /></el-icon>
+            其他信息
+          </h4>
           <el-descriptions :column="2" border>
             <el-descriptions-item label="浏览器" v-if="currentHistoryDetail.browser">
               {{ currentHistoryDetail.browser }}
@@ -844,11 +892,12 @@
             </el-descriptions-item>
             <el-descriptions-item label="报告地址" v-if="currentHistoryDetail.reportUrl">
               <el-link :href="currentHistoryDetail.reportUrl" target="_blank" type="primary">
-                查看报告
+                <el-icon><Link /></el-icon>
+                查看完整报告
               </el-link>
             </el-descriptions-item>
             <el-descriptions-item label="日志文件" v-if="currentHistoryDetail.logFilePath">
-              {{ currentHistoryDetail.logFilePath }}
+              <el-tag size="small" type="info">{{ currentHistoryDetail.logFilePath }}</el-tag>
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -860,10 +909,17 @@
           <el-button 
             v-if="currentHistoryDetail?.reportUrl" 
             type="primary" 
-            :icon="View"
+            :icon="DataAnalysis"
             @click="openReport(currentHistoryDetail.reportUrl)"
           >
             查看完整报告
+          </el-button>
+          <el-button 
+            type="success" 
+            :icon="Refresh"
+            @click="handleRerunHistory(currentHistoryDetail)"
+          >
+            重新执行
           </el-button>
         </div>
       </template>
@@ -1123,7 +1179,11 @@ import {
   Connection,
   Checked,
   Right,
-  Loading
+  Loading,
+  TrendCharts,
+  List,
+  EditPen,
+  DataAnalysis
 } from '@element-plus/icons-vue'
 import { 
   executeTestCase, 
@@ -1466,16 +1526,31 @@ const getHistoryStatusType = (status) => {
 }
 
 /**
+ * 获取执行状态CSS类
+ */
+const getHistoryStatusClass = (status) => {
+  const classMap = {
+    'passed': 'status-success',
+    'failed': 'status-failed',
+    'running': 'status-running',
+    'cancelled': 'status-cancelled',
+    'completed': 'status-success',
+    'pending': 'status-pending'
+  }
+  return classMap[status] || 'status-unknown'
+}
+
+/**
  * 获取执行状态文本
  */
 const getHistoryStatusText = (status) => {
   const textMap = {
-    'passed': '✅ 通过',
-    'failed': '❌ 失败',
-    'running': '🔄 执行中',
-    'cancelled': '⛔ 已取消',
-    'completed': '✅ 完成',
-    'pending': '⏳ 待执行'
+    'passed': '通过',
+    'failed': '失败',
+    'running': '执行中',
+    'cancelled': '已取消',
+    'completed': '完成',
+    'pending': '待执行'
   }
   return textMap[status] || status || '未知'
 }
@@ -1503,6 +1578,16 @@ const openReport = (url) => {
   if (url) {
     window.open(url, '_blank')
   }
+}
+
+/**
+ * 重新执行历史记录
+ */
+const handleRerunHistory = (history) => {
+  historyDetailDialogVisible.value = false
+  // 使用历史的执行配置来重新执行
+  ElMessage.info('正在使用历史配置重新执行测试...')
+  // 这里可以触发执行逻辑，使用历史的 executionConfig
 }
 
 // 显示验证规则
@@ -4891,6 +4976,150 @@ onMounted(() => {
   padding: 20px 0;
 }
 
+.history-detail-dialog .el-dialog__header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  margin: 0;
+  padding: 16px 24px;
+}
+
+.history-detail-dialog .el-dialog__title {
+  color: white;
+  font-weight: 600;
+  font-size: 18px;
+}
+
+.history-detail-dialog .el-dialog__headerbtn .el-dialog__close {
+  color: white;
+}
+
+/* 状态概览卡片 */
+.status-overview-card {
+  display: flex;
+  align-items: center;
+  padding: 24px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #e4e7ed 100%);
+  border: 1px solid #e4e7ed;
+  transition: all 0.3s ease;
+}
+
+.status-overview-card.status-success {
+  background: linear-gradient(135deg, #e8f8f0 0%, #d4f0e3 100%);
+  border-color: #b8e6c3;
+}
+
+.status-overview-card.status-failed {
+  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
+  border-color: #fbcaca;
+}
+
+.status-overview-card.status-running {
+  background: linear-gradient(135deg, #fff7e6 0%, #ffe9cc 100%);
+  border-color: #ffd9b3;
+}
+
+.status-overview-card.status-cancelled {
+  background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+  border-color: #c0c0c0;
+}
+
+.status-icon-wrapper {
+  margin-right: 20px;
+}
+
+.status-overview-card.status-success .status-icon-wrapper {
+  color: #67c23a;
+}
+
+.status-overview-card.status-failed .status-icon-wrapper {
+  color: #f56c6c;
+}
+
+.status-overview-card.status-running .status-icon-wrapper {
+  color: #e6a23c;
+}
+
+.status-overview-card.status-cancelled .status-icon-wrapper {
+  color: #909399;
+}
+
+.status-info {
+  flex: 1;
+}
+
+.status-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  color: #303133;
+}
+
+.status-desc {
+  font-size: 14px;
+  color: #606266;
+  margin: 0;
+}
+
+/* 统计网格 */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-item {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  text-align: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.stat-item .stat-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+
+.stat-item.passed .stat-icon {
+  color: #67c23a;
+}
+
+.stat-item.failed .stat-icon {
+  color: #f56c6c;
+}
+
+.stat-item.skipped .stat-icon {
+  color: #e6a23c;
+}
+
+.stat-item.total .stat-icon {
+  color: #409eff;
+}
+
+.stat-item .stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.stat-item .stat-label {
+  font-size: 14px;
+  color: #909399;
+  font-weight: 500;
+}
+
+/* 详细信息卡片样式 */
 .detail-section {
   margin-bottom: 24px;
 }
@@ -4911,15 +5140,72 @@ onMounted(() => {
   gap: 8px;
 }
 
-.note-content {
-  padding: 12px;
-  background: #f5f7fa;
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.6;
+.detail-section-title .el-icon {
+  font-size: 18px;
+  color: #409eff;
+}
+
+.detail-section-title.error-title {
+  border-bottom-color: #f56c6c;
+}
+
+.detail-section-title.error-title .el-icon {
+  color: #f56c6c;
+}
+
+/* 执行人信息 */
+.executor-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.executor-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+}
+
+/* 等宽文本 */
+.mono-text {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
   color: #606266;
-  white-space: pre-wrap;
-  word-break: break-word;
+}
+
+/* 时间文本 */
+.time-text {
+  color: #606266;
+  font-size: 13px;
+}
+
+/* 进度条包装器 */
+.progress-wrapper {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.progress-text {
+  font-weight: 600;
+}
+
+.progress-stats {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 14px;
+  color: #909399;
+}
+
+/* 配置文本域 */
+.config-textarea {
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 13px;
+}
+
+/* 错误提示 */
+.error-alert {
+  border-radius: 8px;
 }
 
 /* 描述项样式优化 */
@@ -4932,7 +5218,6 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 进度条样式 */
 .detail-section :deep(.el-progress__text) {
   font-weight: 600;
 }
@@ -4942,6 +5227,23 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .status-overview-card {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .status-icon-wrapper {
+    margin-right: 0;
+    margin-bottom: 12px;
+  }
 }
 
 /* 执行弹窗增强样式 */

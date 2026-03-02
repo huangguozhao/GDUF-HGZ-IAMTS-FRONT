@@ -364,41 +364,54 @@ const fetchTasks = async () => {
   }
 }
 
-// 转换后端数据为前端需要的格式
+// 转换后端数据为前端需要的格式（兼容驼峰和下划线两种格式）
 const transformBackendData = (item) => {
   return {
-    id: item.task_id,
-    name: item.task_name,
+    // 任务基本信息 - 兼容驼峰和下划线
+    id: item.taskId || item.task_id,
+    name: item.taskName || item.task_name,
     description: item.description,
-    taskType: item.task_type,
-    targetId: item.target_id,
-    targetName: item.target_name || '',
-    frequency: item.trigger_type,
-    lastExecution: item.last_execution_time ? formatDateTime(item.last_execution_time) : '-',
-    nextExecution: item.next_trigger_time ? formatDateTime(item.next_trigger_time) : '-',
-    caseCount: item.total_executions || 0,
-    creator: item.created_by || '-',
-    status: item.is_enabled ? 'enabled' : 'disabled',
-    createTime: item.created_at ? formatDateTime(item.created_at) : '-',
-    executionTime: item.daily_hour !== undefined ?
-      `${String(item.daily_hour).padStart(2, '0')}:${String(item.daily_minute || 0).padStart(2, '0')}` : '-',
-    timeout: item.timeout_seconds ? Math.ceil(item.timeout_seconds / 60) : 60,
-    lastExecutionStatus: item.last_execution_status,
-    successRate: item.success_rate || 0,
-    totalExecutions: item.total_executions || 0,
-    successfulExecutions: item.successful_executions || 0,
-    failedExecutions: item.failed_executions || 0,
-    weeklyDays: item.weekly_days,
-    monthlyDay: item.monthly_day,
-    triggerType: item.trigger_type,
-    executionEnvironment: item.execution_environment,
-    cronExpression: item.cron_expression,
-    retryEnabled: item.retry_enabled,
-    maxRetryAttempts: item.max_retry_attempts,
-    notifyOnSuccess: item.notify_on_success,
-    notifyOnFailure: item.notify_on_failure,
-    notificationRecipients: item.notification_recipients,
-    isEnabled: item.is_enabled
+    taskType: item.taskType || item.task_type,
+    targetId: item.targetId || item.target_id,
+    targetName: item.targetName || item.target_name || '',
+    // 触发类型和频率
+    frequency: item.triggerType || item.trigger_type,
+    triggerType: item.triggerType || item.trigger_type,
+    simpleRepeatInterval: item.simpleRepeatInterval || item.simple_repeat_interval,
+    simpleRepeatCount: item.simpleRepeatCount || item.simple_repeat_count,
+    cronExpression: item.cronExpression || item.cron_expression,
+    weeklyDays: item.weeklyDays || item.weekly_days,
+    monthlyDay: item.monthlyDay || item.monthly_day,
+    executionTime: item.dailyHour !== undefined ?
+      `${String(item.dailyHour).padStart(2, '0')}:${String(item.dailyMinute || 0).padStart(2, '0')}` : '-',
+    // 执行配置
+    executionEnvironment: item.executionEnvironment || item.execution_environment,
+    timeout: item.timeoutSeconds ? Math.ceil(item.timeoutSeconds / 60) : (item.timeout_seconds ? Math.ceil(item.timeout_seconds / 60) : 60),
+    concurrency: item.concurrency,
+    executionStrategy: item.executionStrategy || item.execution_strategy,
+    skipIfPreviousFailed: item.skipIfPreviousFailed ?? item.skip_if_previous_failed,
+    // 重试配置
+    retryEnabled: item.retryEnabled ?? item.retry_enabled,
+    maxRetryAttempts: item.maxRetryAttempts ?? item.max_retry_attempts,
+    retryDelayMs: item.retryDelayMs ?? item.retry_delay_ms,
+    // 通知配置
+    notifyOnSuccess: item.notifyOnSuccess ?? item.notify_on_success,
+    notifyOnFailure: item.notifyOnFailure ?? item.notify_on_failure,
+    notificationRecipients: item.notificationRecipients || item.notification_recipients,
+    // 执行统计 - 兼容驼峰和下划线
+    lastExecution: item.lastExecutionTime ? formatDateTime(item.lastExecutionTime) : (item.last_execution_time ? formatDateTime(item.last_execution_time) : '-'),
+    nextExecution: item.nextTriggerTime ? formatDateTime(item.nextTriggerTime) : (item.next_trigger_time ? formatDateTime(item.next_trigger_time) : '-'),
+    caseCount: (item.totalExecutions ?? item.total_executions) || 0,
+    creator: item.createdBy || item.created_by || '-',
+    status: (item.isEnabled ?? item.is_enabled) ? 'enabled' : 'disabled',
+    createTime: item.createdAt ? formatDateTime(item.createdAt) : (item.created_at ? formatDateTime(item.created_at) : '-'),
+    lastExecutionStatus: item.lastExecutionStatus || item.last_execution_status,
+    successRate: (item.successRate ?? item.success_rate) ?? 0,
+    totalExecutions: (item.totalExecutions ?? item.total_executions) || 0,
+    successfulExecutions: (item.successfulExecutions ?? item.successful_executions) || 0,
+    failedExecutions: (item.failedExecutions ?? item.failed_executions) || 0,
+    skippedExecutions: (item.skippedExecutions ?? item.skipped_executions) || 0,
+    isEnabled: item.isEnabled ?? item.is_enabled
   }
 }
 
