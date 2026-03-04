@@ -2442,7 +2442,71 @@ watch(formattedResponse, (val) => {
   }
 }, { immediate: true })
 
+// 监听执行结果变化，更新响应结果显示
+watch(executionResult, (result) => {
+  if (result) {
+    // 更新测试状态
+    testStatus.value = result.status || 'not_executed'
+    
+    // 更新时间信息
+    testTime.value = formatTime(result.startTime)
+    responseTime.value = formatDuration(result.durationSeconds)
+    
+    // 更新响应信息
+    actualResponse.statusCode = result.responseStatus || '-'
+    actualResponse.responseCode = result.responseStatus || '-'
+    
+    // 根据不同的执行类型处理响应体
+    if (result.executionScope === 'test_case') {
+      // 单个测试用例执行
+      actualResponse.body = result.responseBody || {}
+      formattedResponse.value = typeof result.responseBody === 'string' 
+        ? result.responseBody 
+        : JSON.stringify(result.responseBody || {}, null, 2)
+    } else if (result.executionScope === 'api') {
+      // 接口测试执行 - 显示所有用例的执行结果
+      if (result.caseResults && result.caseResults.length > 0) {
+        actualResponse.body = result.caseResults
+        formattedResponse.value = JSON.stringify(result.caseResults, null, 2)
+      } else {
+        actualResponse.body = {}
+        formattedResponse.value = '暂无响应数据'
+      }
+    } else {
+      actualResponse.body = {}
+      formattedResponse.value = '暂无响应数据'
+    }
+    
+    // 更新断言结果
+    if (result.executionScope === 'test_case') {
+      assertionResults.value = result.assertionDetails || []
+    } else if (result.executionScope === 'api') {
+      // 接口测试的断言结果 - 将每个用例的执行结果转换为断言结果
+      assertionResults.value = result.caseResults ? result.caseResults.map((caseResult, index) => ({
+        field: caseResult.caseName || `用例 ${index + 1}`,
+        expected: '通过',
+        actual: caseResult.status === 'passed' ? '通过' : '失败',
+        passed: caseResult.status === 'passed',
+        message: caseResult.failureMessage || caseResult.errorMessage || ''
+      })) : []
+    }
+    
+    // 更新响应头
+    responseHeaders.value = result.responseHeaders || []
+  }
+}, { deep: true })
+
 // 加载最新的执行结果
+const mapExecutionStatus = (status) => {
+  const statusMap = {
+    'completed': 'passed',
+    'passed': 'passed',
+    'failed': 'failed',
+    'broken': 'failed'
+  }
+  return statusMap[status] || 'not_executed'
+}
+
 const loadLatestExecutionResult = async () => {
   try {
     const params = {

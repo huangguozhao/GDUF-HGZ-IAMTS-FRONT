@@ -83,18 +83,24 @@ export function useExecution(props, emit, deps = {}) {
         const response = await executeApiTest(apiId, requestData)
         if (response.code === 1) {
           if (requestData.async) {
-            ElMessage.success(`接口测试任务已提交，任务ID: ${response.data.task_id || response.data.taskId}`)
+            ElMessage.success(`接口测试任务已提交，任务ID: ${response.data.taskId || response.data.task_id}`)
             executeDialogVisible.value = false
           } else {
             const totalCases = response.data.totalCases || response.data.total_cases || 0
             const passed = response.data.passed || 0
             const failed = response.data.failed || 0
-            const isPassed = failed === 0 && passed > 0
+            const broken = response.data.broken || 0
+            const skipped = response.data.skipped || 0
+            const isPassed = (failed + broken) === 0 && passed > 0
             
             // 使用后端返回的执行信息，如果没有则使用默认值
             const executionScope = response.data.executionScope || 'api'
             const executionType = response.data.executionType || 'manual'
             const environment = response.data.environment || requestData.environment || 'dev'
+            
+            // 从 caseResults 中提取响应数据
+            const caseResults = response.data.caseResults || response.data.case_results || []
+            const firstCaseResult = caseResults.length > 0 ? caseResults[0] : {}
             
             executionResult.value = {
               // 基本信息
@@ -114,21 +120,24 @@ export function useExecution(props, emit, deps = {}) {
               durationSeconds: (response.data.totalDuration || response.data.total_duration || 0) / 1000,
               // 测试统计
               totalCases,
-              executedCases: totalCases,
+              executedCases: totalCases - skipped,
               passedCases: passed,
-              failedCases: failed,
-              skippedCases: response.data.skipped || 0,
+              failedCases: failed + broken,
+              skippedCases: skipped,
               successRate: response.data.successRate || response.data.success_rate || (totalCases > 0 ? (passed / totalCases * 100) : 0),
+              // 响应数据（从 caseResults 中获取）
+              responseStatus: firstCaseResult.responseStatus || 200,
+              responseBody: caseResults,
+              responseHeaders: [],
               // 断言结果
-              responseStatus: 200,
               assertionsPassed: passed,
-              assertionsFailed: failed,
-              failureMessage: failed > 0 ? `${failed}个用例执行失败` : null,
-              failureType: response.data.failureType || response.data.failure_type,
+              assertionsFailed: failed + broken,
+              failureMessage: (failed + broken) > 0 ? `${failed + broken}个用例执行失败` : null,
+              failureType: firstCaseResult.failureType || firstCaseResult.failure_type,
               reportId: response.data.reportId || response.data.report_id,
               detailUrl: response.data.detailUrl || response.data.detail_url,
-              caseResults: response.data.caseResults || response.data.case_results || [],
-              assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
+              caseResults: caseResults,
+              assertionDetails: [],
               // 额外信息
               environment,
               executionType,
@@ -325,11 +334,17 @@ export function useExecution(props, emit, deps = {}) {
           const totalCases = response.data.totalCases || response.data.total_cases || 0
           const passed = response.data.passed || 0
           const failed = response.data.failed || 0
-          const isPassed = failed === 0 && passed > 0
+          const broken = response.data.broken || 0
+          const skipped = response.data.skipped || 0
+          const isPassed = (failed + broken) === 0 && passed > 0
           
           const executionScope = response.data.executionScope || 'api'
           const executionType = response.data.executionType || 'manual'
           const environment = response.data.environment || requestData.environment || 'dev'
+          
+          // 从 caseResults 中提取响应数据
+          const caseResults = response.data.caseResults || response.data.case_results || []
+          const firstCaseResult = caseResults.length > 0 ? caseResults[0] : {}
           
           executionResult.value = {
             executionId: response.data.executionId || response.data.execution_id,
@@ -346,14 +361,23 @@ export function useExecution(props, emit, deps = {}) {
             duration: response.data.totalDuration || response.data.total_duration || 0,
             durationSeconds: (response.data.totalDuration || response.data.total_duration || 0) / 1000,
             totalCases,
-            executedCases: totalCases,
+            executedCases: totalCases - skipped,
             passedCases: passed,
-            failedCases: failed,
-            skippedCases: response.data.skipped || 0,
+            failedCases: failed + broken,
+            skippedCases: skipped,
             successRate: response.data.successRate || response.data.success_rate || (totalCases > 0 ? (passed / totalCases * 100) : 0),
-            responseStatus: 200,
+            // 响应数据（从 caseResults 中获取）
+            responseStatus: firstCaseResult.responseStatus || 200,
+            responseBody: caseResults,
+            responseHeaders: [],
             assertionsPassed: passed,
-            assertionsFailed: failed,
+            assertionsFailed: failed + broken,
+            failureMessage: (failed + broken) > 0 ? `${failed + broken}个用例执行失败` : null,
+            failureType: firstCaseResult.failureType || firstCaseResult.failure_type,
+            reportId: response.data.reportId || response.data.report_id,
+            detailUrl: response.data.detailUrl || response.data.detail_url,
+            caseResults: caseResults,
+            assertionDetails: [],
             environment,
             executionType,
             executionScope

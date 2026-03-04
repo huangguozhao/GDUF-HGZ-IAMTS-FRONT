@@ -373,7 +373,7 @@
 import { computed, ref, watch } from 'vue'
 import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick, WarningFilled, InfoFilled, ArrowDown, ArrowUp, Loading } from '@element-plus/icons-vue'
 import { formatTime } from './apiDetail/formatters'
-import { diagnose } from '@/api/diagnosis'
+import { diagnose, getDiagnosisResult } from '@/api/diagnosis'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -418,11 +418,8 @@ const triggerAIDiagnosis = async () => {
   showAIDiagnosis.value = true
   
   try {
-    // 构建诊断参数
     const params = {
-      // 优先使用executionId（用于批量诊断）
       executionId: props.executionResult.executionId || props.executionResult.recordId || null,
-      // 单个用例信息
       failureMessage: props.executionResult.failureMessage || props.executionResult.errorMessage || '',
       failureType: props.executionResult.failureType || '',
       responseStatus: props.executionResult.responseStatus || props.executionResult.response_status || null,
@@ -436,17 +433,67 @@ const triggerAIDiagnosis = async () => {
     
     if (res.code === 1) {
       aiDiagnosisResult.value = res.data
+      
+      if (res.data.diagnosisId && res.data.aiStatus === 'processing') {
+        pollDiagnosisResult(res.data.diagnosisId)
+      } else {
+        aiDiagnosisLoading.value = false
+      }
     } else {
       ElMessage.error(res.msg || 'AI诊断失败')
       aiDiagnosisResult.value = null
+      aiDiagnosisLoading.value = false
     }
   } catch (error) {
     console.error('AI诊断失败:', error)
     ElMessage.error('AI诊断失败，请稍后重试')
     aiDiagnosisResult.value = null
-  } finally {
     aiDiagnosisLoading.value = false
   }
+}
+
+const pollDiagnosisResult = async (diagnosisId) => {
+  const maxAttempts = 30
+  const interval = 2000
+  let attempts = 0
+  
+  const poll = async () => {
+    try {
+      attempts++
+      console.log(`轮询诊断结果: diagnosisId=${diagnosisId}, attempt=${attempts}`)
+      const res = await getDiagnosisResult(diagnosisId)
+      console.log('轮询结果:', res)
+      
+      if (res.code === 1 && res.data) {
+        console.log('诊断数据:', JSON.stringify(res.data, null, 2))
+        aiDiagnosisResult.value = res.data
+        
+        if (res.data.aiCompleted || res.data.aiStatus === 'completed' || res.data.aiStatus === 'failed') {
+          aiDiagnosisLoading.value = false
+          if (res.data.aiStatus === 'completed') {
+            ElMessage.success('AI诊断完成')
+          }
+          return
+        }
+      }
+      
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        aiDiagnosisLoading.value = false
+        ElMessage.warning('AI诊断响应时间较长，结果将稍后更新')
+      }
+    } catch (error) {
+      console.error('轮询诊断结果失败:', error)
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        aiDiagnosisLoading.value = false
+      }
+    }
+  }
+  
+  poll()
 }
 
 // 获取失败类型文本

@@ -1806,7 +1806,7 @@ import {
   executeTestCase,
   getTestCaseHistory
 } from '../api/testCase'
-import { diagnose } from '../api/diagnosis'
+import { diagnose, getDiagnosisResult } from '../api/diagnosis'
 import {
   transformProject,
   transformModule,
@@ -1972,9 +1972,8 @@ const resultDialogVisible = ref(false)
 const showErrorDetail = ref(true)
 const showAIDiagnosis = ref(false)  // AI诊断展开状态
 const aiDiagnosisLoading = ref(false)  // AI诊断加载状态
-const aiDiagnosisResult = ref(null)  // AI诊断结果
+const aiDiagnosisResult = ref(null)
 
-// 触发AI诊断
 const triggerAIDiagnosis = async () => {
   if (!executeResult.value) return
   
@@ -1996,17 +1995,64 @@ const triggerAIDiagnosis = async () => {
     
     if (res.code === 1) {
       aiDiagnosisResult.value = res.data
+      
+      if (res.data.diagnosisId && res.data.aiStatus === 'processing') {
+        pollDiagnosisResult(res.data.diagnosisId)
+      } else {
+        aiDiagnosisLoading.value = false
+      }
     } else {
       ElMessage.error(res.msg || 'AI诊断失败')
       aiDiagnosisResult.value = null
+      aiDiagnosisLoading.value = false
     }
   } catch (error) {
     console.error('AI诊断失败:', error)
     ElMessage.error('AI诊断失败，请稍后重试')
     aiDiagnosisResult.value = null
-  } finally {
     aiDiagnosisLoading.value = false
   }
+}
+
+const pollDiagnosisResult = async (diagnosisId) => {
+  const maxAttempts = 30
+  const interval = 2000
+  let attempts = 0
+  
+  const poll = async () => {
+    try {
+      attempts++
+      const res = await getDiagnosisResult(diagnosisId)
+      
+      if (res.code === 1 && res.data) {
+        aiDiagnosisResult.value = res.data
+        
+        if (res.data.aiCompleted || res.data.aiStatus === 'completed' || res.data.aiStatus === 'failed') {
+          aiDiagnosisLoading.value = false
+          if (res.data.aiStatus === 'completed') {
+            ElMessage.success('AI诊断完成')
+          }
+          return
+        }
+      }
+      
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        aiDiagnosisLoading.value = false
+        ElMessage.warning('AI诊断响应时间较长，结果将稍后更新')
+      }
+    } catch (error) {
+      console.error('轮询诊断结果失败:', error)
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        aiDiagnosisLoading.value = false
+      }
+    }
+  }
+  
+  poll()
 }
 
 // 失败修复建议函数

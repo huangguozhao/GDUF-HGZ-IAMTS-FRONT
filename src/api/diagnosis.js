@@ -21,7 +21,20 @@ export const diagnose = (params) => {
     url: '/api/ai-diagnosis/execute',
     method: 'post',
     data: params,
-    timeout: 60000 // AI诊断需要较长时间，设置60秒超时
+    timeout: 30000
+  })
+}
+
+/**
+ * 获取诊断结果
+ * @param {string} diagnosisId - 诊断ID
+ * @returns {Promise}
+ */
+export const getDiagnosisResult = (diagnosisId) => {
+  return request({
+    url: `/api/ai-diagnosis/result/${diagnosisId}`,
+    method: 'get',
+    timeout: 5000
   })
 }
 
