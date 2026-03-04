@@ -102,15 +102,21 @@ const userStore = useUserStore()
 const searchText = ref('')
 const sidebarCollapsed = ref(false)
 
-// 菜单项配置
-const menuItems = [
-  { index: 'home', label: '首页', icon: '🏠' },
-  { index: 'cases', label: '用例管理', icon: '📋' },
-  { index: 'reports', label: '报告中心', icon: '📊' },
-  { index: 'tasks', label: '任务安排', icon: '📅' },
-  { index: 'personnel', label: '人员管理', icon: '👥' },
-  { index: 'settings', label: '系统设置', icon: '⚙️' }
-]
+// 根据用户角色获取菜单项
+const menuItems = computed(() => {
+  const items = [
+    { index: 'home', label: '首页', icon: '🏠' },
+    { index: 'cases', label: '用例管理', icon: '📋' },
+    { index: 'reports', label: '报告中心', icon: '📊' },
+    { index: 'tasks', label: '任务安排', icon: '📅' },
+    { index: 'personnel', label: '人员管理', icon: '👥' }
+  ]
+  // 只有管理员可以看到系统设置
+  if (userStore.isAdmin) {
+    items.push({ index: 'settings', label: '系统设置', icon: '⚙️' })
+  }
+  return items
+})
 
 // 根据当前路由设置活动菜单
 const activeMenu = computed(() => {

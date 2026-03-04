@@ -77,7 +77,9 @@
       <!-- 标签页 -->
       <div class="tabs-wrapper">
         <div class="tabs">
+          <!-- 用户管理标签页只对管理员显示 -->
           <button
+            v-if="userStore.isAdmin"
             class="tab-button"
             :class="{ active: activeTab === 'users' }"
             @click="switchTab('users')"
@@ -203,6 +205,9 @@ import { ref, reactive, onMounted, defineAsyncComponent, computed } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 import { getUserProjects, updateUserProjects } from '@/api/personnel';
 import { getProjects } from '@/api/project';
+import { useUserStore } from '@/stores/useUserStore';
+
+const userStore = useUserStore();
 
 // 懒加载人员管理组件
 const UserManagementTab = defineAsyncComponent(() =>

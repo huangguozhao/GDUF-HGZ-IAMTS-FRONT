@@ -266,6 +266,7 @@
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
 import { getEnvironmentConfigList } from '../../api/environment'
+import { transformEnvironmentConfig } from '../../utils/environmentTransform'
 
 const props = defineProps({
   visible: {
@@ -338,10 +339,12 @@ const fetchEnvironments = async () => {
     const res = await getEnvironmentConfigList({ status: 'active', pageSize: 100 })
     // 处理后端返回 code=1 表示成功的情况
     if ((res.code === 200 || res.code === 1) && res.data) {
-      environmentList.value = res.data.items || res.data.list || []
-      
+      // 使用 transformEnvironmentConfig 转换后端数据到前端格式
+      const rawList = res.data.items || res.data.list || []
+      environmentList.value = rawList.map(env => transformEnvironmentConfig(env))
+
       console.log('环境列表加载成功:', environmentList.value)
-      
+
       // 自动选择默认环境或第一个环境
       if (!config.value.environment && environmentList.value.length > 0) {
         // 优先选择默认环境
@@ -475,6 +478,23 @@ const formatVariables = () => {
     variablesError.value = 'JSON 格式错误：' + (e.message || '无法解析')
   }
 }
+
+// 监听环境选择变化，自动加载环境的变量
+watch(() => config.value.environment, (newEnvId) => {
+  if (newEnvId) {
+    const selectedEnv = getEnvironmentById(newEnvId)
+    if (selectedEnv) {
+      // 优先使用 envVariables（转换后的数组格式），其次使用 variables（原始对象格式）
+      const envVars = selectedEnv.envVariables || selectedEnv.variables
+      if (envVars && Object.keys(envVars).length > 0) {
+        // 将环境的变量加载到输入框中（仅当输入框为空时）
+        if (!variablesText.value || variablesText.value.trim() === '') {
+          variablesText.value = JSON.stringify(envVars, null, 2)
+        }
+      }
+    }
+  }
+})
 
 // 确认执行
 const handleConfirm = () => {

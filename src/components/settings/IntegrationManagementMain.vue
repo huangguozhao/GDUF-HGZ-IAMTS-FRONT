@@ -186,7 +186,7 @@ const fetchIntegrationLogs = async () => {
   logsLoading.value = true
   try {
     const response = await getIntegrationLogs({ limit: 50 })
-    logs.value = response.data || []
+    logs.value = response.data?.items || []
   } catch (error) {
     console.error('获取集成日志失败:', error)
     ElMessage.error('获取集成日志失败')

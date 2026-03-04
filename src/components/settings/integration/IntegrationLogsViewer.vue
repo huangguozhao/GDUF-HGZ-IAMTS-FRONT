@@ -291,7 +291,8 @@ const serviceOptions = ref([
 
 // 过滤后的日志
 const filteredLogs = computed(() => {
-  let filtered = [...props.logs]
+  const logs = Array.isArray(props.logs) ? props.logs : []
+  let filtered = [...logs]
 
   // 服务筛选
   if (filters.value.serviceId) {

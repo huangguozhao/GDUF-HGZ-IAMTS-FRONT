@@ -41,7 +41,7 @@ export function useHistoryExport(props, emit, deps = {}) {
     'testTime', 'executor', 'environment', 'executionType',
     'responseTime', 'status', 'totalCases', 'executedCases',
     'passedCases', 'failedCases', 'skippedCases', 'successRate',
-    'errorMessage', 'browser', 'appVersion', 'reportUrl', 'executionConfig'
+    'reportUrl', 'executionConfig'
   ]
 
   const getTimeRange = () => {
@@ -300,9 +300,6 @@ export function useHistoryExport(props, emit, deps = {}) {
         'failedCases': { label: '失败数', getValue: (r) => r.failedCases || 0 },
         'skippedCases': { label: '跳过数', getValue: (r) => r.skippedCases || 0 },
         'successRate': { label: '成功率', getValue: (r) => (r.successRate !== undefined && r.successRate !== null) ? `${(r.successRate * 100).toFixed(2)}%` : '-' },
-        'errorMessage': { label: '错误信息', getValue: (r) => r.errorMessage || '-' },
-        'browser': { label: '浏览器', getValue: (r) => r.browser || '-' },
-        'appVersion': { label: '应用版本', getValue: (r) => r.appVersion || '-' },
         'reportUrl': { label: '报告地址', getValue: (r) => r.reportUrl || '-' },
         'executionConfig': { label: '执行配置', getValue: (r) => {
           if (!r.executionConfig) return '-'

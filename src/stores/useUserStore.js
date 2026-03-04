@@ -16,6 +16,8 @@ export const useUserStore = defineStore('user', () => {
   const userDepartment = computed(() => userInfo.value?.department_id || null)
   const userPosition = computed(() => userInfo.value?.position || '')
   const userStatus = computed(() => userInfo.value?.status || 'inactive')
+  const userRole = computed(() => userInfo.value?.role || 'user')
+  const isAdmin = computed(() => userInfo.value?.role === 'admin')
 
   // Actions
   /**
@@ -156,6 +158,8 @@ export const useUserStore = defineStore('user', () => {
     userDepartment,
     userPosition,
     userStatus,
+    userRole,
+    isAdmin,
     
     // Actions
     login,

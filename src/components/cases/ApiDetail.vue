@@ -75,6 +75,10 @@
       </div>
       <div class="header-right">
         <div class="detail-actions">
+          <el-button size="small" type="success" @click="handleSave" :loading="saving">
+            <el-icon><Check /></el-icon>
+            保存修改
+          </el-button>
           <el-button size="small" type="primary" @click="handleTest">
             <el-icon><CaretRight /></el-icon>
             执行测试
@@ -317,7 +321,6 @@
         <!-- 底部操作按钮 -->
         <div class="result-actions">
           <el-button type="success" :icon="Refresh" @click="handleRetest">重新测试</el-button>
-          <el-button :icon="DocumentCopy" @click="handleSaveResult">保存结果</el-button>
           <el-button :icon="Share" @click="handleExportReport">导出报告</el-button>
         </div>
         </div>
@@ -388,13 +391,24 @@
             </template>
           </el-table-column>
 
-          <el-table-column label="响应状态码" width="120" align="center">
+          <el-table-column label="执行类型" width="100" align="center">
             <template #default="{ row }">
               <el-tag 
-                :type="row.statusCode === 200 ? 'success' : 'danger'" 
+                :type="row.executionType === 'manual' ? 'primary' : 'info'" 
                 size="small"
               >
-                {{ row.statusCode }}
+                {{ row.executionType === 'manual' ? '手动' : '自动' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="执行环境" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag 
+                :type="getEnvironmentTagType(row.environment)" 
+                size="small"
+              >
+                {{ getEnvironmentText(row.environment) }}
               </el-tag>
             </template>
           </el-table-column>
@@ -428,6 +442,27 @@
                   {{ getStatusText(row.status) }}
                 </span>
             </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="用例统计" width="200" align="center">
+            <template #default="{ row }">
+              <div class="cases-stats">
+                <span class="stat-item">总计: {{ row.totalCases }}</span>
+                <span class="stat-item success">通过: {{ row.passedCases }}</span>
+                <span class="stat-item failed">失败: {{ row.failedCases }}</span>
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="成功率" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag 
+                :type="row.successRate >= 90 ? 'success' : (row.successRate >= 60 ? 'warning' : 'danger')" 
+                size="small"
+              >
+                {{ (row.successRate * 100).toFixed(1) }}%
+              </el-tag>
             </template>
           </el-table-column>
 
@@ -1478,9 +1513,6 @@
               <el-checkbox label="failedCases">失败数</el-checkbox>
               <el-checkbox label="skippedCases">跳过数</el-checkbox>
               <el-checkbox label="successRate">成功率</el-checkbox>
-              <el-checkbox label="errorMessage">错误信息</el-checkbox>
-              <el-checkbox label="browser">浏览器</el-checkbox>
-              <el-checkbox label="appVersion">应用版本</el-checkbox>
               <el-checkbox label="reportUrl">报告地址</el-checkbox>
               <el-checkbox label="executionConfig">执行配置</el-checkbox>
             </div>
@@ -1539,7 +1571,8 @@ import {
   Share,
   View,
   Delete,
-  CaretRight
+  CaretRight,
+  Check
 } from '@element-plus/icons-vue'
 import { 
   createTestCase, 
@@ -1628,6 +1661,7 @@ onBeforeUnmount(() => {
 
 const activeTab = ref('basic')
 const deleteLoading = ref(false)
+const saving = ref(false)
 // 折叠控制
 const bodyCollapsed = ref(false)
 const responseCollapsed = ref(false)
@@ -2252,17 +2286,6 @@ const getPreviewUrl = () => {
   return baseUrl + apiPath
 }
 
-// 获取环境标签类型
-const getEnvironmentTagType = (env) => {
-  const types = {
-    dev: 'success',
-    test: 'warning',
-    staging: 'danger',
-    prod: 'info'
-  }
-  return types[env] || 'info'
-}
-
 // 获取变量数量
 const getVariableCount = () => {
   if (!executeVariables.value) return 0
@@ -2606,6 +2629,36 @@ const getStatusText = (status) => {
   return textMap[status] || status || '激活'
 }
 
+// 获取环境标签类型
+const getEnvironmentTagType = (environment) => {
+  const typeMap = {
+    'dev': 'info',
+    'development': 'info',
+    'test': 'warning',
+    'testing': 'warning',
+    'staging': 'warning',
+    'pre': 'warning',
+    'prod': 'danger',
+    'production': 'danger'
+  }
+  return typeMap[environment] || 'info'
+}
+
+// 获取环境文本
+const getEnvironmentText = (environment) => {
+  const textMap = {
+    'dev': '开发',
+    'development': '开发',
+    'test': '测试',
+    'testing': '测试',
+    'staging': '预发布',
+    'pre': '预发布',
+    'prod': '生产',
+    'production': '生产'
+  }
+  return textMap[environment] || environment || '未知'
+}
+
 // 获取认证类型文本
 const getAuthTypeText = (authType) => {
   const textMap = {
@@ -2684,6 +2737,8 @@ const handleSave = async () => {
     ElMessage.error('无法获取接口ID')
     return
   }
+  
+  saving.value = true
   
   try {
     // 如果用户选择了新的模块，需要找到对应的模块ID
@@ -2808,6 +2863,8 @@ const handleSave = async () => {
     } else {
       ElMessage.error('保存失败，请稍后重试')
     }
+  } finally {
+    saving.value = false
   }
 }
 
@@ -3855,6 +3912,25 @@ onMounted(() => {
 }
 
 .result-text.failed {
+  color: #f56c6c;
+}
+
+.cases-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.stat-item {
+  color: #606266;
+}
+
+.stat-item.success {
+  color: #67c23a;
+}
+
+.stat-item.failed {
   color: #f56c6c;
 }
 

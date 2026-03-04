@@ -147,7 +147,6 @@
       </div>
 
       <div class="params-actions">
-        <el-button type="primary" @click="$emit('save-params')">保存</el-button>
         <el-button @click="$emit('format-params')">格式化</el-button>
       </div>
     </div>
