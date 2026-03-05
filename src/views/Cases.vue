@@ -1422,6 +1422,39 @@
           </div>
         </div>
 
+        <!-- 报告名称编辑 -->
+        <div class="report-name-section" v-if="executeResult.reportId">
+          <div class="report-name-label">
+            <el-icon><Document /></el-icon>
+            <span>报告名称</span>
+          </div>
+          <div class="report-name-content">
+            <span v-if="!isEditingReportName" class="report-name-text">{{ executeResult.reportName || '未命名报告' }}</span>
+            <el-input
+              v-else
+              v-model="editingReportName"
+              size="small"
+              style="width: 300px;"
+              :maxlength="255"
+              show-word-limit
+              placeholder="请输入报告名称"
+            />
+            <el-button
+              v-if="!isEditingReportName"
+              type="primary"
+              size="small"
+              link
+              @click="startEditReportName"
+            >
+              <el-icon><Edit /></el-icon>
+            </el-button>
+            <template v-else>
+              <el-button type="primary" size="small" @click="saveReportName" :loading="savingReportName">保存</el-button>
+              <el-button size="small" @click="cancelEditReportName">取消</el-button>
+            </template>
+          </div>
+        </div>
+
         <!-- 执行信息 -->
         <div class="result-info-section">
           <div class="info-grid">
@@ -1771,7 +1804,8 @@ import {
   Connection,
   Checked,
   Right,
-  CircleCheck
+  CircleCheck,
+  Edit
 } from '@element-plus/icons-vue'
 import TreeNode from '../components/cases/TreeNode.vue'
 import CaseDetail from '../components/cases/CaseDetail.vue'
@@ -1807,6 +1841,7 @@ import {
   getTestCaseHistory
 } from '../api/testCase'
 import { diagnose, getDiagnosisResult } from '../api/diagnosis'
+import { updateReportName } from '../api/report'
 import {
   transformProject,
   transformModule,
@@ -1973,6 +2008,54 @@ const showErrorDetail = ref(true)
 const showAIDiagnosis = ref(false)  // AI诊断展开状态
 const aiDiagnosisLoading = ref(false)  // AI诊断加载状态
 const aiDiagnosisResult = ref(null)
+
+// 编辑报告名称相关
+const isEditingReportName = ref(false)
+const editingReportName = ref('')
+const savingReportName = ref(false)
+
+// 开始编辑报告名称
+const startEditReportName = () => {
+  editingReportName.value = executeResult.value?.reportName || ''
+  isEditingReportName.value = true
+}
+
+// 取消编辑报告名称
+const cancelEditReportName = () => {
+  isEditingReportName.value = false
+  editingReportName.value = ''
+}
+
+// 保存报告名称
+const saveReportName = async () => {
+  if (!editingReportName.value || editingReportName.value.trim() === '') {
+    ElMessage.warning('报告名称不能为空')
+    return
+  }
+  
+  if (editingReportName.value === executeResult.value.reportName) {
+    isEditingReportName.value = false
+    return
+  }
+  
+  savingReportName.value = true
+  try {
+    const response = await updateReportName(executeResult.value.reportId, editingReportName.value.trim())
+    
+    if (response.code === 1) {
+      executeResult.value.reportName = editingReportName.value.trim()
+      isEditingReportName.value = false
+      ElMessage.success('报告名称更新成功')
+    } else {
+      ElMessage.error(response.msg || '更新报告名称失败')
+    }
+  } catch (error) {
+    console.error('更新报告名称失败:', error)
+    ElMessage.error('更新报告名称失败')
+  } finally {
+    savingReportName.value = false
+  }
+}
 
 const triggerAIDiagnosis = async () => {
   if (!executeResult.value) return
@@ -4123,6 +4206,7 @@ const handleConfirmExecute = async () => {
           failureTrace: response.data.failureTrace || response.data.failure_trace,
           logsLink: response.data.logsLink || response.data.logs_link,
           reportId: response.data.reportId || response.data.report_id,
+          reportName: response.data.reportName || response.data.report_name,
           assertionDetails: response.data.assertionDetails || response.data.assertion_details || [],
           responseBody: response.data.responseBody || response.data.response_body,
           responseHeaders: response.data.responseHeaders || response.data.response_headers,
@@ -6357,6 +6441,41 @@ onMounted(async () => {
   0% { transform: scale(.5); opacity: 0; }
   60% { transform: scale(1.1); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
+}
+
+/* 报告名称编辑区域 */
+.report-name-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-name-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.report-name-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.report-name-text {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 500;
 }
 
 /* 执行信息卡片 */

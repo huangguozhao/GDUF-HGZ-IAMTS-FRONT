@@ -141,7 +141,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { MagicStick } from '@element-plus/icons-vue'
-import { diagnose } from '@/api/diagnosis'
+import { diagnose, getDiagnosisResult } from '@/api/diagnosis'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -392,12 +392,21 @@ const handleDiagnose = async () => {
 
     if (actualData) {
       result.value = actualData
-      emit('diagnose-complete', actualData)
+      
+      // 检查是否需要轮询
+      if (actualData.diagnosisId && actualData.aiStatus === 'processing') {
+        pollDiagnosisResult(actualData.diagnosisId)
+      } else {
+        loading.value = false
+        emit('diagnose-complete', actualData)
+      }
     } else {
+      loading.value = false
       ElMessage.error('诊断服务返回数据为空')
     }
   } catch (error) {
     console.error('AI诊断失败:', error)
+    loading.value = false
     // 提供更友好的错误提示
     if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
       ElMessage.error('AI诊断请求超时，请稍后重试或检查网络连接')
@@ -406,9 +415,53 @@ const handleDiagnose = async () => {
     } else {
       ElMessage.error('AI诊断失败: ' + (error.message || '未知错误'))
     }
-  } finally {
-    loading.value = false
   }
+}
+
+// 轮询诊断结果
+const pollDiagnosisResult = async (diagnosisId) => {
+  const maxAttempts = 30
+  const interval = 2000
+  let attempts = 0
+  
+  const poll = async () => {
+    try {
+      attempts++
+      console.log(`轮询诊断结果: diagnosisId=${diagnosisId}, attempt=${attempts}`)
+      const res = await getDiagnosisResult(diagnosisId)
+      console.log('轮询结果:', res)
+      
+      if (res.code === 1 && res.data) {
+        const actualData = transformDiagnosisData(res.data)
+        result.value = actualData
+        
+        if (res.data.aiCompleted || res.data.aiStatus === 'completed' || res.data.aiStatus === 'failed') {
+          loading.value = false
+          if (res.data.aiStatus === 'completed') {
+            ElMessage.success('AI诊断完成')
+          }
+          emit('diagnose-complete', actualData)
+          return
+        }
+      }
+      
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        loading.value = false
+        ElMessage.warning('AI诊断响应时间较长，结果将稍后更新')
+      }
+    } catch (error) {
+      console.error('轮询诊断结果失败:', error)
+      if (attempts < maxAttempts) {
+        setTimeout(poll, interval)
+      } else {
+        loading.value = false
+      }
+    }
+  }
+  
+  poll()
 }
 
 // 将后端 snake_case 数据转换为前端 camelCase
@@ -417,16 +470,22 @@ const transformDiagnosisData = (data) => {
   return {
     result: data.result,
     status: data.status,
-    diagnosisId: data.diagnosis_id,
-    executionId: data.execution_id,
-    diagnosisType: data.diagnosis_type,
-    rootCause: data.root_cause,
-    suggestedFix: data.suggested_fix,
-    possibleCauses: data.possible_causes || [],
-    improvementSuggestions: data.improvement_suggestions || [],
-    confidenceScore: data.confidence_score,
-    errorMessage: data.error_message,
-    errorLog: data.error_log
+    diagnosisId: data.diagnosis_id || data.diagnosisId,
+    executionId: data.execution_id || data.executionId,
+    diagnosisType: data.diagnosis_type || data.diagnosisType,
+    rootCause: data.root_cause || data.rootCause,
+    suggestedFix: data.suggested_fix || data.suggestedFix,
+    possibleCauses: data.possible_causes || data.possibleCauses || [],
+    improvementSuggestions: data.improvement_suggestions || data.improvementSuggestions || [],
+    confidenceScore: data.confidence_score || data.confidenceScore,
+    errorMessage: data.error_message || data.errorMessage,
+    errorLog: data.error_log || data.errorLog,
+    // 新增异步诊断相关字段
+    aiStatus: data.ai_status || data.aiStatus,
+    aiCompleted: data.ai_completed || data.aiCompleted,
+    severity: data.severity,
+    issues: data.issues || [],
+    suggestions: data.suggestions || []
   }
 }
 

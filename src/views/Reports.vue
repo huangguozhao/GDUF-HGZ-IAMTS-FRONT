@@ -393,7 +393,30 @@
                 <el-tag size="small">{{ currentReport.reportId }}</el-tag>
               </el-descriptions-item>
               <el-descriptions-item label="报告名称">
-                {{ currentReport.reportName }}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span v-if="!isEditingReportName">{{ currentReport.reportName }}</span>
+                  <el-input
+                    v-else
+                    v-model="editingReportName"
+                    size="small"
+                    style="width: 250px;"
+                    :maxlength="255"
+                    show-word-limit
+                  />
+                  <el-button
+                    v-if="!isEditingReportName"
+                    type="primary"
+                    size="small"
+                    link
+                    @click="startEditReportName"
+                  >
+                    <el-icon><Edit /></el-icon>
+                  </el-button>
+                  <template v-else>
+                    <el-button type="primary" size="small" @click="saveReportName">保存</el-button>
+                    <el-button size="small" @click="cancelEditReportName">取消</el-button>
+                  </template>
+                </div>
               </el-descriptions-item>
               <el-descriptions-item label="项目名称">
                 {{ currentReport.projectName }}
@@ -632,7 +655,8 @@ import {
   View, 
   Download,
   Delete,
-  MagicStick
+  MagicStick,
+  Edit
 } from '@element-plus/icons-vue'
 import StatsCard from '../components/ui/StatsCard.vue'
 import ChartCard from '../components/ui/ChartCard.vue'
@@ -642,7 +666,8 @@ import {
   getReportById,
   deleteReport,
   batchDeleteReports,
-  exportReport
+  exportReport,
+  updateReportName
 } from '../api/report'
 // 异步加载echarts库
 let echartsPromise = null
@@ -669,6 +694,10 @@ const activeDetailTab = ref('charts')
 const showAIDiagnosis = ref(false)
 const diagnosisPanelRef = ref(null)
 const diagnosisExecutionData = ref(null)
+
+// 编辑报告名称相关
+const isEditingReportName = ref(false)
+const editingReportName = ref('')
 
 // 图表ref
 const pieChartRef = ref(null)
@@ -909,6 +938,47 @@ const handleAIDiagnosis = () => {
   console.log('AI诊断数据:', diagnosisExecutionData.value)
   
   showAIDiagnosis.value = true
+}
+
+// 开始编辑报告名称
+const startEditReportName = () => {
+  editingReportName.value = currentReport.value.reportName
+  isEditingReportName.value = true
+}
+
+// 取消编辑报告名称
+const cancelEditReportName = () => {
+  isEditingReportName.value = false
+  editingReportName.value = ''
+}
+
+// 保存报告名称
+const saveReportName = async () => {
+  if (!editingReportName.value || editingReportName.value.trim() === '') {
+    ElMessage.warning('报告名称不能为空')
+    return
+  }
+  
+  if (editingReportName.value === currentReport.value.reportName) {
+    isEditingReportName.value = false
+    return
+  }
+  
+  try {
+    const response = await updateReportName(currentReport.value.reportId, editingReportName.value.trim())
+    
+    if (response.code === 1) {
+      currentReport.value.reportName = editingReportName.value.trim()
+      isEditingReportName.value = false
+      ElMessage.success('报告名称更新成功')
+      handleSearch()
+    } else {
+      ElMessage.error(response.msg || '更新报告名称失败')
+    }
+  } catch (error) {
+    console.error('更新报告名称失败:', error)
+    ElMessage.error('更新报告名称失败')
+  }
 }
 
 // 导出

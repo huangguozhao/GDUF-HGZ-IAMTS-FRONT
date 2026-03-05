@@ -276,17 +276,17 @@ const transformBackendData = (item) => {
     // 执行统计 - 兼容驼峰和下划线
     lastExecution: item.lastExecutionTime ? formatDateTime(item.lastExecutionTime) : (item.last_execution_time ? formatDateTime(item.last_execution_time) : '-'),
     nextExecution: item.nextTriggerTime ? formatDateTime(item.nextTriggerTime) : (item.next_trigger_time ? formatDateTime(item.next_trigger_time) : '-'),
-    caseCount: item.totalExecutions ?? item.total_executions || 0,
+    caseCount: item.totalExecutions ?? (item.total_executions || 0),
     creator: item.createdBy || item.created_by || '-',
     createTime: item.createdAt ? formatDateTime(item.createdAt) : (item.created_at ? formatDateTime(item.created_at) : '-'),
     status: (item.isEnabled ?? item.is_enabled) ? 'enabled' : 'disabled',
     isEnabled: item.isEnabled ?? item.is_enabled,
     lastExecutionStatus: item.lastExecutionStatus || item.last_execution_status,
-    successRate: item.successRate ?? item.success_rate ?? 0,
-    totalExecutions: item.totalExecutions ?? item.total_executions || 0,
-    successfulExecutions: item.successfulExecutions ?? item.successful_executions || 0,
-    failedExecutions: item.failedExecutions ?? item.failed_executions || 0,
-    skippedExecutions: item.skippedExecutions ?? item.skipped_executions || 0,
+    successRate: item.successRate ?? (item.success_rate ?? 0),
+    totalExecutions: item.totalExecutions ?? (item.total_executions || 0),
+    successfulExecutions: item.successfulExecutions ?? (item.successful_executions || 0),
+    failedExecutions: item.failedExecutions ?? (item.failed_executions || 0),
+    skippedExecutions: item.skippedExecutions ?? (item.skipped_executions || 0),
     maxDurationSeconds: item.maxDurationSeconds || item.max_duration_seconds
   }
 }

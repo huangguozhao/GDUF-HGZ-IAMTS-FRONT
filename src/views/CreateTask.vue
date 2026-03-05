@@ -551,12 +551,32 @@ const handleSubmit = async () => {
       triggerType = 'simple'
     }
 
+    // 根据选择的用例数量决定任务类型
+    let taskType = 'single_case'
+    let targetId = null
+    let targetName = ''
+    
+    if (selectedCases.value.length === 1) {
+      // 单个用例
+      taskType = 'single_case'
+      targetId = selectedCases.value[0]?.id || null
+      targetName = selectedCases.value[0]?.name || '未命名用例'
+    } else if (selectedCases.value.length > 1) {
+      // 多个用例 - 使用 test_suite 类型
+      taskType = 'test_suite'
+      // 对于测试套件，targetId 可以是项目ID或模块ID
+      targetId = formData.projectId
+      targetName = `${formData.name} - 测试套件 (${selectedCases.value.length}个用例)`
+    }
+
     const submitData = {
       taskName: formData.name,
       description: formData.description,
-      taskType: 'single_case', // 单个用例类型
-      targetId: selectedCases.value[0]?.id || null, // 用例ID
-      targetName: selectedCases.value[0]?.name || '未命名用例', // 用例名称
+      taskType: taskType,
+      targetId: targetId,
+      targetName: targetName,
+      // 传递所有选中的用例ID列表
+      caseIds: selectedCases.value.map(c => c.id),
       triggerType: triggerType,
       cronExpression: cronExpression,
       dailyHour: formData.frequency !== 'once' && formData.frequency !== 'simple' ? dailyHour : null,

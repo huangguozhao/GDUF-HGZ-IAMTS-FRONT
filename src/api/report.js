@@ -161,6 +161,23 @@ export function updateReportStatus(reportId, reportStatus) {
 }
 
 /**
+ * 更新报告名称
+ */
+export function updateReportName(reportId, reportName) {
+  console.log('=== 更新报告名称 API ===')
+  console.log('报告ID:', reportId)
+  console.log('报告名称:', reportName)
+  
+  return request({
+    url: `/reports/${reportId}/name`,
+    method: 'patch',
+    params: {
+      report_name: reportName
+    }
+  })
+}
+
+/**
  * 更新报告文件信息
  */
 export function updateReportFileInfo(reportId, fileInfo) {

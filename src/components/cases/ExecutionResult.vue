@@ -36,6 +36,39 @@
         </el-button>
       </div>
 
+      <!-- 报告名称编辑 -->
+      <div class="report-name-section" v-if="effectiveReportId">
+        <div class="report-name-label">
+          <el-icon><Document /></el-icon>
+          <span>报告名称</span>
+        </div>
+        <div class="report-name-content">
+          <span v-if="!isEditingReportName" class="report-name-text">{{ executionResult.reportName || '未命名报告' }}</span>
+          <el-input
+            v-else
+            v-model="editingReportName"
+            size="small"
+            style="width: 300px;"
+            :maxlength="255"
+            show-word-limit
+            placeholder="请输入报告名称"
+          />
+          <el-button
+            v-if="!isEditingReportName"
+            type="primary"
+            size="small"
+            link
+            @click="startEditReportName"
+          >
+            <el-icon><Edit /></el-icon>
+          </el-button>
+          <template v-else>
+            <el-button type="primary" size="small" @click="saveReportName" :loading="savingReportName">保存</el-button>
+            <el-button size="small" @click="cancelEditReportName">取消</el-button>
+          </template>
+        </div>
+      </div>
+
       <!-- 执行信息 -->
       <div class="result-info-section">
         <div class="info-grid" :class="{ 'info-grid-api': executionResult.totalCases }">
@@ -371,9 +404,10 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick, WarningFilled, InfoFilled, ArrowDown, ArrowUp, Loading } from '@element-plus/icons-vue'
+import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick, WarningFilled, InfoFilled, ArrowDown, ArrowUp, Loading, Edit } from '@element-plus/icons-vue'
 import { formatTime } from './apiDetail/formatters'
 import { diagnose, getDiagnosisResult } from '@/api/diagnosis'
+import { updateReportName } from '@/api/report'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -409,6 +443,63 @@ const aiDiagnosisResult = ref(null)
 
 // 错误详情展开状态
 const showErrorDetail = ref(true)
+
+// 编辑报告名称相关
+const isEditingReportName = ref(false)
+const editingReportName = ref('')
+const savingReportName = ref(false)
+
+// 开始编辑报告名称
+const startEditReportName = () => {
+  editingReportName.value = props.executionResult?.reportName || ''
+  isEditingReportName.value = true
+}
+
+// 取消编辑报告名称
+const cancelEditReportName = () => {
+  isEditingReportName.value = false
+  editingReportName.value = ''
+}
+
+// 保存报告名称
+const saveReportName = async () => {
+  if (!editingReportName.value || editingReportName.value.trim() === '') {
+    ElMessage.warning('报告名称不能为空')
+    return
+  }
+  
+  const currentReportName = props.executionResult?.reportName || ''
+  if (editingReportName.value === currentReportName) {
+    isEditingReportName.value = false
+    return
+  }
+  
+  const reportId = effectiveReportId.value
+  if (!reportId) {
+    ElMessage.warning('报告ID不存在')
+    return
+  }
+  
+  savingReportName.value = true
+  try {
+    const response = await updateReportName(reportId, editingReportName.value.trim())
+    
+    if (response.code === 1) {
+      if (props.executionResult) {
+        props.executionResult.reportName = editingReportName.value.trim()
+      }
+      isEditingReportName.value = false
+      ElMessage.success('报告名称更新成功')
+    } else {
+      ElMessage.error(response.msg || '更新报告名称失败')
+    }
+  } catch (error) {
+    console.error('更新报告名称失败:', error)
+    ElMessage.error('更新报告名称失败')
+  } finally {
+    savingReportName.value = false
+  }
+}
 
 // 触发AI诊断
 const triggerAIDiagnosis = async () => {
@@ -731,6 +822,41 @@ const handleVisibleChange = (value) => {
 .result-banner .ai-diagnosis-btn {
   position: relative;
   z-index: 1;
+}
+
+/* 报告名称编辑区域 */
+.report-name-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.report-name-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.report-name-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.report-name-text {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 500;
 }
 
 .result-info-section {
