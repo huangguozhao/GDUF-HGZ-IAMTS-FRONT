@@ -678,6 +678,10 @@
             <el-button type="primary" size="small" @click="handleAddTestCase">
               + 添加测试用例
             </el-button>
+            <el-button type="success" size="small" @click="handleAIGenerateCases">
+              <el-icon><MagicStick /></el-icon>
+              AI生成
+            </el-button>
             <el-input 
               v-model="casesSearchText" 
               placeholder="搜索测试用例..." 
@@ -948,13 +952,31 @@
           <!-- 前置条件与请求参数 -->
           <el-tab-pane label="请求参数" name="request">
             <el-form-item label="前置条件">
-              <el-input
-                v-model="caseFormData.preConditionsStr"
-                type="textarea"
-                :rows="6"
-                placeholder='JSON格式的前置条件，例如：&#10;{&#10;  "token": "xxxx",&#10;  "userId": 123&#10;}'
-              />
-              <span class="form-tip">用于设置环境变量、登录状态等</span>
+              <div class="preconditions-config">
+                <el-radio-group v-model="caseFormData.preConditionsMode" size="small" class="mode-switch">
+                  <el-radio-button label="simple">简单模式</el-radio-button>
+                  <el-radio-button label="advanced">可视化配置</el-radio-button>
+                </el-radio-group>
+                
+                <div v-if="caseFormData.preConditionsMode === 'simple'" class="simple-mode">
+                  <el-input
+                    v-model="caseFormData.preConditionsStr"
+                    type="textarea"
+                    :rows="6"
+                    placeholder='JSON格式的前置条件，例如：&#10;{&#10;  "description": "需要登录token",&#10;  "requiredVariables": [{"name": "token", "sourceType": "api", "extractPath": "$.data.token"}],&#10;  "executionOrder": 1&#10;}'
+                  />
+                  <span class="form-tip">用于设置环境变量、登录状态等。使用 {{变量名}} 引用变量</span>
+                </div>
+                
+                <div v-else class="advanced-mode">
+                  <VariableDependencyConfig 
+                    v-model="caseFormData.preConditionsObj"
+                    :projectId="api?.project_id || api?.projectId"
+                    :caseList="casesList"
+                    :apiList="projectApiList"
+                  />
+                </div>
+              </div>
             </el-form-item>
 
             <el-form-item label="请求参数覆盖">
@@ -962,9 +984,9 @@
                 v-model="caseFormData.requestOverrideStr"
                 type="textarea"
                 :rows="8"
-                placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
+                placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "headers": {"Authorization": "Bearer {{token}}"},&#10;  "body": {"username": "testuser"}&#10;}'
               />
-              <span class="form-tip">将覆盖接口的默认请求参数</span>
+              <span class="form-tip">将覆盖接口的默认请求参数。使用 {{变量名}} 引用前置条件中定义的变量</span>
             </el-form-item>
           </el-tab-pane>
 
@@ -1475,6 +1497,22 @@
       @retest="handleRetestFromResult"
     />
 
+    <!-- AI生成测试用例对话框 -->
+    <AITestCaseGenerateDialog
+      v-model="aiGenerateDialogVisible"
+      :apiInfo="api"
+      @generated="handleAIGenerated"
+    />
+
+    <!-- AI生成用例预览对话框 -->
+    <AITestCasePreviewDialog
+      v-model="aiPreviewDialogVisible"
+      :generatedCases="aiGeneratedCases"
+      :generationId="aiGenerationId"
+      :apiId="api?.api_id || api?.id"
+      @saved="handleAICasesSaved"
+    />
+
     <!-- 导出测试历史对话框 -->
     <el-dialog
       v-model="exportHistoryDialogVisible"
@@ -1572,7 +1610,8 @@ import {
   View,
   Delete,
   CaretRight,
-  Check
+  Check,
+  MagicStick
 } from '@element-plus/icons-vue'
 import { 
   createTestCase, 
@@ -1589,6 +1628,9 @@ import JsonViewer from '@/components/common/JsonViewer.vue'
 import ExecutionResult from './ExecutionResult.vue'
 import ApiBasicForm from './ApiBasicForm.vue'
 import ApiParamsEditor from './ApiParamsEditor.vue'
+import AITestCaseGenerateDialog from './AITestCaseGenerateDialog.vue'
+import AITestCasePreviewDialog from './AITestCasePreviewDialog.vue'
+import VariableDependencyConfig from './VariableDependencyConfig.vue'
 import useProjectsModules from './apiDetail/useProjectsModules'
 import { exportToExcel, exportToJson, exportToCsv } from './apiDetail/exportUtils'
 import {
@@ -1916,6 +1958,9 @@ const casesPagination = reactive({
 
 const casesTotal = ref(12)
 
+// 项目接口列表（用于变量依赖配置）
+const projectApiList = ref([])
+
 // 模拟测试用例数据
 const testCasesList = ref([
   {
@@ -1993,6 +2038,8 @@ const caseFormData = reactive({
   // 前置条件和请求参数
   preConditions: '',
   preConditionsStr: '',
+  preConditionsMode: 'simple',
+  preConditionsObj: { description: '', requiredVariables: [], executionOrder: 0 },
   requestOverrideStr: '',
   // 预期响应
   expectedHttpStatus: 200,
@@ -2030,6 +2077,8 @@ const resetCaseForm = () => {
     testSteps: [],
     preConditions: '',
     preConditionsStr: '',
+    preConditionsMode: 'simple',
+    preConditionsObj: { description: '', requiredVariables: [], executionOrder: 0 },
     requestOverrideStr: '',
     expectedHttpStatus: 200,
     expectedResponseBody: '',
@@ -2093,6 +2142,17 @@ const handleRemoveExtractor = (index) => {
 const handleAddTestCase = () => {
   resetCaseForm()
   addCaseDialogVisible.value = true
+}
+
+// 获取前置条件的值（根据模式选择）
+const getPreConditionsValue = () => {
+  if (caseFormData.preConditionsMode === 'simple') {
+    return caseFormData.preConditionsStr ? JSON.parse(caseFormData.preConditionsStr) : null
+  } else {
+    return caseFormData.preConditionsObj && Object.keys(caseFormData.preConditionsObj).length > 0 
+      ? caseFormData.preConditionsObj 
+      : null
+  }
 }
 
 // 保存测试用例
@@ -2182,7 +2242,7 @@ const handleSaveTestCase = async () => {
       tags: caseFormData.tags,
       version: caseFormData.version,
       test_steps: caseFormData.testSteps,
-      pre_conditions: caseFormData.preConditionsStr ? JSON.parse(caseFormData.preConditionsStr) : null,
+      pre_conditions: getPreConditionsValue(),
       request_override: caseFormData.requestOverrideStr ? JSON.parse(caseFormData.requestOverrideStr) : null,
       expected_http_status: caseFormData.expectedHttpStatus,
       expected_response_body: caseFormData.expectedResponseBody,
@@ -2267,6 +2327,28 @@ const {
   handleOpenExportHistoryDialog,
   handleConfirmExportHistory
 } = useHistoryExport(props, emit, { resultDialogVisible, executionResult })
+
+// ========== AI生成测试用例相关 ==========
+const aiGenerateDialogVisible = ref(false)
+const aiPreviewDialogVisible = ref(false)
+const aiGeneratedCases = ref([])
+const aiGenerationId = ref(null)
+
+const handleAIGenerateCases = () => {
+  aiGenerateDialogVisible.value = true
+}
+
+const handleAIGenerated = (result) => {
+  if (result && result.cases) {
+    aiGeneratedCases.value = result.cases
+    aiGenerationId.value = result.generationId
+    aiPreviewDialogVisible.value = true
+  }
+}
+
+const handleAICasesSaved = (caseIds) => {
+  emit('refresh-cases')
+}
 
 // ========== 执行配置对话框辅助方法 ==========
 
@@ -4445,6 +4527,19 @@ onMounted(() => {
   margin-left: 8px;
   font-size: 12px;
   color: #909399;
+}
+
+.preconditions-config {
+  width: 100%;
+}
+
+.mode-switch {
+  margin-bottom: 12px;
+}
+
+.simple-mode,
+.advanced-mode {
+  margin-top: 8px;
 }
 
 /* 测试步骤编辑 */

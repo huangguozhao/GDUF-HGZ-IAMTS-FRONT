@@ -5,6 +5,18 @@ import { API_PATHS } from '@/utils/constants'
  * 项目管理相关API接口
  */
 
+// 获取环境配置列表
+export function getEnvironmentList(params = {}) {
+  return request({
+    url: '/api/environments',
+    method: 'get',
+    params: {
+      status: 'active',
+      ...params
+    }
+  })
+}
+
 // 获取项目列表（包含完整的树形结构）
 export function getProjectTree() {
   return request({

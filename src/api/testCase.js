@@ -543,6 +543,98 @@ export function executeApiTestAsync(apiId, executeData = {}) {
   })
 }
 
+// ==================== 模块测试执行相关接口 ====================
+
+/**
+ * 执行模块测试
+ * @param {Number} moduleId - 模块ID
+ * @param {Object} executeData - 执行配置
+ */
+export function executeModuleTest(moduleId, executeData = {}) {
+  const requestTimeout = executeData.async ? 10000 : 300000
+  
+  return request({
+    url: `/test-executions/modules/${moduleId}/execute`,
+    method: 'post',
+    timeout: requestTimeout,
+    data: {
+      environment: executeData.environment || 'test',
+      executionType: executeData.executionType || 'manual',
+      executionStrategy: executeData.executionStrategy || 'dependency',
+      priorityFilter: executeData.priorityFilter,
+      tagFilter: executeData.tagFilter,
+      async: executeData.async || false
+    }
+  })
+}
+
+/**
+ * 异步执行模块测试
+ * @param {Number} moduleId - 模块ID
+ * @param {Object} executeData - 执行配置
+ */
+export function executeModuleTestAsync(moduleId, executeData = {}) {
+  return request({
+    url: `/test-executions/modules/${moduleId}/execute-async`,
+    method: 'post',
+    timeout: 10000,
+    data: {
+      environment: executeData.environment || 'test',
+      executionType: executeData.executionType || 'manual',
+      executionStrategy: executeData.executionStrategy || 'dependency',
+      priorityFilter: executeData.priorityFilter,
+      tagFilter: executeData.tagFilter
+    }
+  })
+}
+
+// ==================== 项目测试执行相关接口 ====================
+
+/**
+ * 执行项目测试
+ * @param {Number} projectId - 项目ID
+ * @param {Object} executeData - 执行配置
+ */
+export function executeProjectTest(projectId, executeData = {}) {
+  const requestTimeout = executeData.async ? 10000 : 600000  // 项目级别可能更久
+  
+  return request({
+    url: `/test-executions/projects/${projectId}/execute`,
+    method: 'post',
+    timeout: requestTimeout,
+    data: {
+      environment: executeData.environment || 'test',
+      executionType: executeData.executionType || 'manual',
+      executionStrategy: executeData.executionStrategy || 'dependency',
+      priorityFilter: executeData.priorityFilter,
+      tagFilter: executeData.tagFilter,
+      moduleIds: executeData.moduleIds,
+      async: executeData.async || false
+    }
+  })
+}
+
+/**
+ * 异步执行项目测试
+ * @param {Number} projectId - 项目ID
+ * @param {Object} executeData - 执行配置
+ */
+export function executeProjectTestAsync(projectId, executeData = {}) {
+  return request({
+    url: `/test-executions/projects/${projectId}/execute-async`,
+    method: 'post',
+    timeout: 10000,
+    data: {
+      environment: executeData.environment || 'test',
+      executionType: executeData.executionType || 'manual',
+      executionStrategy: executeData.executionStrategy || 'dependency',
+      priorityFilter: executeData.priorityFilter,
+      tagFilter: executeData.tagFilter,
+      moduleIds: executeData.moduleIds
+    }
+  })
+}
+
 // ==================== 测试用例导出相关接口 ====================
 
 /**

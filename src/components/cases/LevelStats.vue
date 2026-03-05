@@ -8,6 +8,15 @@
       </div>
       <div class="header-right">
         <el-button 
+          type="success" 
+          size="small" 
+          :icon="VideoPlay"
+          @click="handleExecuteTest"
+          :loading="executing"
+        >
+          执行测试
+        </el-button>
+        <el-button 
           v-if="level === 'project'" 
           size="small" 
           :icon="Setting"
@@ -146,6 +155,17 @@
     </div>
       </div>
     </div>
+
+    <!-- 执行配置对话框 -->
+    <ExecuteConfigDialog
+      v-model="executeDialogVisible"
+      :targetType="level"
+      :targetId="node?.project_id || node?.projectId || node?.module_id || node?.moduleId || node?.id"
+      :targetName="node?.name || node?.project_name || node?.module_name || ''"
+      :caseCount="statistics?.caseCount || 0"
+      :projectId="level === 'project' ? (node?.project_id || node?.projectId || node?.id) : (node?.project_id || node?.projectId)"
+      @execute="handleConfirmExecute"
+    />
   </div>
 </template>
 
@@ -154,9 +174,11 @@ import { computed, ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import { RecycleScroller } from 'vue-virtual-scroller'
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css'
-import { Setting, Edit, Delete } from '@element-plus/icons-vue'
+import { Setting, Edit, Delete, VideoPlay } from '@element-plus/icons-vue'
 import { getProjectStatistics, getModuleStatistics } from '@/api/project'
+import { executeModuleTest, executeProjectTest } from '@/api/testCase'
 import { ElMessage } from 'element-plus'
+import ExecuteConfigDialog from './ExecuteConfigDialog.vue'
 import { donutOption, sparklineOption } from '@/utils/chartTheme'
 
 const props = defineProps({
@@ -170,7 +192,62 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['edit', 'delete', 'add', 'edit-child', 'delete-child', 'select-child', 'config-environment'])
+const emit = defineEmits(['edit', 'delete', 'add', 'edit-child', 'delete-child', 'select-child', 'config-environment', 'execute-test'])
+
+// 执行配置对话框
+const executeDialogVisible = ref(false)
+const executing = ref(false)
+
+// 打开执行配置对话框
+const handleExecuteTest = () => {
+  executeDialogVisible.value = true
+}
+
+// 执行测试
+const handleConfirmExecute = async (config) => {
+  executing.value = true
+  try {
+    let response
+    if (config.targetType === 'project') {
+      response = await executeProjectTest(config.targetId, {
+        environment: config.environment,
+        executionType: config.executionType,
+        executionStrategy: config.executionStrategy,
+        priorityFilter: config.priorityFilter,
+        tagFilter: config.tagFilter,
+        async: config.async
+      })
+    } else if (config.targetType === 'module') {
+      response = await executeModuleTest(config.targetId, {
+        environment: config.environment,
+        executionType: config.executionType,
+        executionStrategy: config.executionStrategy,
+        priorityFilter: config.priorityFilter,
+        tagFilter: config.tagFilter,
+        async: config.async
+      })
+    }
+    
+    if (response && response.code === 1) {
+      ElMessage.success('测试执行完成')
+      executeDialogVisible.value = false
+      emit('execute-test', response.data)
+      // 刷新统计数据
+      if (props.level === 'project') {
+        loadProjectStatistics()
+      } else {
+        loadModuleStatistics()
+      }
+    } else {
+      ElMessage.error(response?.msg || '测试执行失败')
+    }
+  } catch (error) {
+    console.error('执行测试失败:', error)
+    ElMessage.error(error.message || '执行测试失败')
+  } finally {
+    executing.value = false
+  }
+}
 
 // 环境配置对话框
 const envDialogVisible = ref(false)
