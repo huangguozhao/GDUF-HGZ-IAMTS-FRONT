@@ -2098,7 +2098,7 @@ const triggerAIDiagnosis = async () => {
 }
 
 const pollDiagnosisResult = async (diagnosisId) => {
-  const maxAttempts = 30
+  const maxAttempts = 60  // 增加轮询次数，因为AI诊断可能需要更长时间
   const interval = 2000
   let attempts = 0
   
@@ -2106,6 +2106,8 @@ const pollDiagnosisResult = async (diagnosisId) => {
     try {
       attempts++
       const res = await getDiagnosisResult(diagnosisId)
+      console.log('Cases轮询结果:', res)
+      console.log('Cases轮询结果详情 - code:', res.code, 'data:', res.data, 'severity:', res.data?.severity, 'aiStatus:', res.data?.aiStatus)
       
       if (res.code === 1 && res.data) {
         aiDiagnosisResult.value = res.data
@@ -3866,9 +3868,11 @@ const handleCopyCase = (testCase) => {
 
 // 执行测试用例
 const handleExecuteCase = (testCase) => {
+  // 设置选中的节点为当前测试用例
+  selectedNode.value = testCase
+  selectedLevel.value = 'case'
   // 打开执行测试对话框
   executeDialogVisible.value = true
-  // 可以在这里设置一些默认值或预处理
 }
 
 // 刷新测试用例（执行测试后）

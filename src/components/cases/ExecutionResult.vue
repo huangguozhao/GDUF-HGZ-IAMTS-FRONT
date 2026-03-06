@@ -509,6 +509,10 @@ const triggerAIDiagnosis = async () => {
   showAIDiagnosis.value = true
   
   try {
+    // 检查是否是批量测试（接口/模块/项目测试）
+    const caseResults = props.executionResult.caseResults || props.executionResult.case_results || []
+    const isBatchTest = caseResults.length > 0
+    
     const params = {
       executionId: props.executionResult.executionId || props.executionResult.recordId || null,
       failureMessage: props.executionResult.failureMessage || props.executionResult.errorMessage || '',
@@ -517,8 +521,13 @@ const triggerAIDiagnosis = async () => {
       responseBody: props.executionResult.responseBody || props.executionResult.response_body || '',
       apiPath: props.executionResult.apiPath || props.executionResult.api_path || '',
       apiMethod: props.executionResult.apiMethod || props.executionResult.api_method || '',
-      caseName: props.executionResult.caseName || props.executionResult.case_name || props.executionResult.scopeName || ''
+      caseName: props.executionResult.caseName || props.executionResult.case_name || props.executionResult.scopeName || '',
+      // 批量测试时传递所有用例结果
+      caseResults: isBatchTest ? caseResults : null
     }
+    
+    console.log('AI诊断参数:', params)
+    console.log('是否为批量测试:', isBatchTest, '用例数:', caseResults.length)
     
     const res = await diagnose(params)
     
@@ -544,7 +553,7 @@ const triggerAIDiagnosis = async () => {
 }
 
 const pollDiagnosisResult = async (diagnosisId) => {
-  const maxAttempts = 30
+  const maxAttempts = 60  // 增加轮询次数，因为AI诊断可能需要更长时间
   const interval = 2000
   let attempts = 0
   
@@ -554,6 +563,7 @@ const pollDiagnosisResult = async (diagnosisId) => {
       console.log(`轮询诊断结果: diagnosisId=${diagnosisId}, attempt=${attempts}`)
       const res = await getDiagnosisResult(diagnosisId)
       console.log('轮询结果:', res)
+      console.log('轮询结果详情 - code:', res.code, 'data:', res.data, 'severity:', res.data?.severity, 'aiStatus:', res.data?.aiStatus)
       
       if (res.code === 1 && res.data) {
         console.log('诊断数据:', JSON.stringify(res.data, null, 2))

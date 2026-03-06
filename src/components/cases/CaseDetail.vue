@@ -32,13 +32,13 @@
 
     <!-- 执行测试配置对话框 -->
     <ExecuteConfigDialog
-      v-model:visible="executeDialogVisible"
-      title="测试用例执行"
-      :target-info="executeTargetInfo"
-      :initial-config="executeFormData"
-      :initial-variables="executeVariables"
-      :loading="executing"
-      @confirm="handleExecuteFromDialog"
+      v-model="executeDialogVisible"
+      target-type="case"
+      :target-id="testCase?.caseId"
+      :target-name="testCase?.name"
+      :case-count="1"
+      :project-id="testCase?.projectId"
+      @execute="handleExecuteFromDialog"
     />
 
     <!-- 执行结果对话框 -->
@@ -1216,7 +1216,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['close', 'edit', 'delete', 'refresh'])
+const emit = defineEmits(['close', 'edit', 'delete', 'refresh', 'execute'])
 
 // 显示标签
 const displayTags = computed(() => {
@@ -1821,11 +1821,13 @@ const executeTargetInfo = computed(() => {
 })
 
 // 处理执行配置对话框的确认
-const handleExecuteFromDialog = (config) => {
+const handleExecuteFromDialog = async (config) => {
   // 更新执行表单数据
   Object.assign(executeFormData, config)
+  // 关闭配置对话框
+  executeDialogVisible.value = false
   // 调用原来的执行方法
-  handleConfirmExecute()
+  await handleConfirmExecute()
 }
 
 // 执行结果对话框
@@ -1877,7 +1879,7 @@ const triggerAIDiagnosis = async () => {
 }
 
 const pollDiagnosisResult = async (diagnosisId) => {
-  const maxAttempts = 30
+  const maxAttempts = 60  // 增加轮询次数，因为AI诊断可能需要更长时间
   const interval = 2000
   let attempts = 0
   
@@ -1885,6 +1887,8 @@ const pollDiagnosisResult = async (diagnosisId) => {
     try {
       attempts++
       const res = await getDiagnosisResult(diagnosisId)
+      console.log('CaseDetail轮询结果:', res)
+      console.log('CaseDetail轮询结果详情 - code:', res.code, 'data:', res.data, 'severity:', res.data?.severity, 'aiStatus:', res.data?.aiStatus)
       
       if (res.code === 1 && res.data) {
         aiDiagnosisResult.value = res.data
@@ -2128,7 +2132,8 @@ const exportFormRules = {
 
 // 执行测试
 const handleExecute = () => {
-  emit('execute', props.testCase)
+  // 直接打开执行配置对话框
+  executeDialogVisible.value = true
 }
 
 // 确认执行测试
