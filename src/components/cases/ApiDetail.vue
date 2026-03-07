@@ -983,12 +983,96 @@
             </el-form-item>
 
             <el-form-item label="请求参数覆盖">
-              <el-input
-                v-model="caseFormData.requestOverrideStr"
-                type="textarea"
-                :rows="8"
-                placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "headers": {"Authorization": "Bearer {{token}}"},&#10;  "body": {"username": "testuser"}&#10;}'
-              />
+              <!-- 查询参数覆盖 -->
+              <div class="override-section">
+                <div class="override-section-title">查询参数 (Query Params)</div>
+                <el-table :data="caseFormData.overrideQueryParams" border size="small">
+                  <el-table-column label="参数名" width="150">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.name" placeholder="参数名" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="参数值" width="150">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.value" placeholder="参数值" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="描述">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.description" placeholder="描述" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="80" align="center">
+                    <template #default="{ row, $index }">
+                      <el-button size="small" text type="danger" @click="caseFormData.overrideQueryParams.splice($index, 1)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-button size="small" @click="caseFormData.overrideQueryParams.push({ name: '', value: '', description: '' })">+ 添加查询参数</el-button>
+              </div>
+              
+              <!-- 路径参数覆盖 -->
+              <div class="override-section">
+                <div class="override-section-title">路径参数 (Path Params)</div>
+                <el-table :data="caseFormData.overridePathParams" border size="small">
+                  <el-table-column label="参数名" width="150">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.name" placeholder="如: id" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="参数值" width="150">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.value" placeholder="参数值" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="描述">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.description" placeholder="描述" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="80" align="center">
+                    <template #default="{ row, $index }">
+                      <el-button size="small" text type="danger" @click="caseFormData.overridePathParams.splice($index, 1)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-button size="small" @click="caseFormData.overridePathParams.push({ name: '', value: '', description: '' })">+ 添加路径参数</el-button>
+              </div>
+              
+              <!-- 请求头覆盖 -->
+              <div class="override-section">
+                <div class="override-section-title">请求头 (Headers)</div>
+                <el-table :data="caseFormData.overrideHeaders" border size="small">
+                  <el-table-column label="Header名" width="150">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.name" placeholder="如: Authorization" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="Header值" width="200">
+                    <template #default="{ row, $index }">
+                      <el-input v-model="row.value" placeholder="值" size="small" />
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="80" align="center">
+                    <template #default="{ row, $index }">
+                      <el-button size="small" text type="danger" @click="caseFormData.overrideHeaders.splice($index, 1)">删除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-button size="small" @click="caseFormData.overrideHeaders.push({ name: '', value: '' })">+ 添加请求头</el-button>
+              </div>
+              
+              <!-- 请求体覆盖 -->
+              <div class="override-section">
+                <div class="override-section-title">请求体 (Body)</div>
+                <el-input
+                  v-model="caseFormData.overrideBody"
+                  type="textarea"
+                  :rows="6"
+                  placeholder='JSON格式请求体，例如：{"username": "test", "password": "123"}'
+                />
+              </div>
+              
               <span class="form-tip">将覆盖接口的默认请求参数。使用 {{变量名}} 引用前置条件中定义的变量</span>
             </el-form-item>
           </el-tab-pane>
@@ -1806,9 +1890,29 @@ watch(
       const pathParams = newApi.path_parameters || newApi.pathParameters
       apiData.pathParameters = Array.isArray(pathParams) ? pathParams : []
       
-      // requestHeaders: 确保是数组
+      // requestHeaders: 确保是数组，如果是Map数组则转换为[{name, value}]格式
       const reqHeaders = newApi.request_headers || newApi.requestHeaders
-      apiData.requestHeaders = Array.isArray(reqHeaders) ? reqHeaders : []
+      if (Array.isArray(reqHeaders)) {
+        // 检查是否是Map数组（如[{name: "Content-Type", value: "application/json"}]）
+        const formattedHeaders = reqHeaders.map(header => {
+          if (header && typeof header === 'object') {
+            // 如果是Map对象，提取name和value
+            if (header.name !== undefined) {
+              return { name: header.name, value: header.value || '' }
+            }
+            // 如果是其他对象格式，取第一个键值对
+            const keys = Object.keys(header)
+            if (keys.length > 0) {
+              return { name: keys[0], value: header[keys[0]] }
+            }
+          }
+          // 如果是字符串，直接返回
+          return header
+        })
+        apiData.requestHeaders = formattedHeaders
+      } else {
+        apiData.requestHeaders = []
+      }
       
       // requestBody: 可以是字符串、对象或null
       apiData.requestBody = newApi.request_body || newApi.requestBody
@@ -1884,14 +1988,29 @@ const rawBody = ref('')
 // 从API数据初始化请求参数
 const initRequestParams = () => {
   // 初始化Body类型
-  bodyType.value = props.api.request_body_type || 'json'
+  bodyType.value = props.api.request_body_type || props.api.requestBodyType || 'json'
   
-  // 初始化Headers
-  if (props.api.request_headers) {
-    if (Array.isArray(props.api.request_headers)) {
-      headerParams.value = props.api.request_headers
-    } else if (typeof props.api.request_headers === 'object') {
-      headerParams.value = Object.entries(props.api.request_headers).map(([name, value]) => ({
+  // 初始化Headers - 支持两种命名方式
+  const headers = props.api.request_headers || props.api.requestHeaders
+  if (headers) {
+    if (Array.isArray(headers)) {
+      // 检查是否是Map数组（如[{name: "Content-Type", value: "application/json"}]）
+      headerParams.value = headers.map(header => {
+        if (header && typeof header === 'object' && header.name !== undefined) {
+          return {
+            name: header.name,
+            value: header.value || '',
+            description: header.description || ''
+          }
+        }
+        // 如果是字符串或没有name属性
+        if (typeof header === 'string') {
+          return { name: header, value: '', description: '' }
+        }
+        return header
+      })
+    } else if (typeof headers === 'object') {
+      headerParams.value = Object.entries(headers).map(([name, value]) => ({
         name,
         value: typeof value === 'string' ? value : JSON.stringify(value),
         description: ''
@@ -1899,12 +2018,26 @@ const initRequestParams = () => {
     }
   }
   
-  // 初始化Query参数
-  if (props.api.request_parameters) {
-    if (Array.isArray(props.api.request_parameters)) {
-      queryParams.value = props.api.request_parameters
-    } else if (typeof props.api.request_parameters === 'object') {
-      queryParams.value = Object.entries(props.api.request_parameters).map(([name, value]) => ({
+  // 初始化Query参数 - 支持两种命名方式
+  const reqParams = props.api.request_parameters || props.api.requestParameters
+  if (reqParams) {
+    if (Array.isArray(reqParams)) {
+      queryParams.value = reqParams.map(param => {
+        if (param && typeof param === 'object' && param.name !== undefined) {
+          return {
+            name: param.name,
+            value: param.value || '',
+            description: param.description || '',
+            required: param.required || false
+          }
+        }
+        if (typeof param === 'string') {
+          return { name: param, value: '', description: '', required: false }
+        }
+        return param
+      })
+    } else if (typeof reqParams === 'object') {
+      queryParams.value = Object.entries(reqParams).map(([name, value]) => ({
         name,
         value: typeof value === 'string' ? value : JSON.stringify(value),
         description: ''
@@ -1912,21 +2045,55 @@ const initRequestParams = () => {
     }
   }
   
-  // 初始化Body参数
-  if (props.api.request_body) {
-    if (Array.isArray(props.api.request_body)) {
-      bodyParams.value = props.api.request_body
-    } else if (typeof props.api.request_body === 'object') {
-      bodyParams.value = Object.entries(props.api.request_body).map(([name, value]) => ({
+  // 初始化Path参数 - 支持两种命名方式
+  const pathParams = props.api.path_parameters || props.api.pathParameters
+  if (pathParams) {
+    if (Array.isArray(pathParams)) {
+      apiData.pathParameters = pathParams.map(param => {
+        if (param && typeof param === 'object' && param.name !== undefined) {
+          return {
+            name: param.name,
+            value: param.value || '',
+            description: param.description || ''
+          }
+        }
+        if (typeof param === 'string') {
+          return { name: param, value: '', description: '' }
+        }
+        return param
+      })
+    }
+  }
+  
+  // 初始化Body参数 - 支持两种命名方式
+  const reqBody = props.api.request_body || props.api.requestBody
+  if (reqBody) {
+    if (Array.isArray(reqBody)) {
+      bodyParams.value = reqBody.map(param => {
+        if (param && typeof param === 'object' && param.name !== undefined) {
+          return {
+            name: param.name,
+            value: param.value || '',
+            description: param.description || '',
+            required: param.required || false
+          }
+        }
+        if (typeof param === 'string') {
+          return { name: param, value: '', description: '', required: false }
+        }
+        return param
+      })
+    } else if (typeof reqBody === 'object') {
+      bodyParams.value = Object.entries(reqBody).map(([name, value]) => ({
         name,
         value: typeof value === 'string' ? value : JSON.stringify(value),
         description: ''
       }))
     }
     
-    // 初始化rawBody
-    if (typeof props.api.request_body === 'string') {
-      rawBody.value = props.api.request_body
+    // 初始化rawBody - 如果是字符串
+    if (typeof reqBody === 'string') {
+      rawBody.value = reqBody
     } else if (typeof props.api.request_body === 'object') {
       rawBody.value = JSON.stringify(props.api.request_body, null, 2)
     }
@@ -1995,6 +2162,11 @@ const caseFormData = reactive({
   preConditionsMode: 'simple',
   preConditionsObj: { description: '', requiredVariables: [], executionOrder: 0 },
   requestOverrideStr: '',
+  // 请求参数覆盖 - 可视化编辑器用
+  overrideQueryParams: [],
+  overridePathParams: [],
+  overrideHeaders: [],
+  overrideBody: '',
   // 预期响应
   expectedHttpStatus: 200,
   expectedResponseBody: '',
@@ -2034,6 +2206,10 @@ const resetCaseForm = () => {
     preConditionsMode: 'simple',
     preConditionsObj: { description: '', requiredVariables: [], executionOrder: 0 },
     requestOverrideStr: '',
+    overrideQueryParams: [],
+    overridePathParams: [],
+    overrideHeaders: [],
+    overrideBody: '',
     expectedHttpStatus: 200,
     expectedResponseBody: '',
     expectedResponseSchemaStr: '',
@@ -2096,6 +2272,63 @@ const handleRemoveExtractor = (index) => {
 const handleAddTestCase = () => {
   resetCaseForm()
   addCaseDialogVisible.value = true
+}
+
+// 构建请求参数覆盖对象
+const buildRequestOverride = () => {
+  const override = {}
+  
+  // 添加查询参数覆盖
+  if (caseFormData.overrideQueryParams && caseFormData.overrideQueryParams.length > 0) {
+    const validParams = caseFormData.overrideQueryParams.filter(p => p.name && p.name.trim())
+    if (validParams.length > 0) {
+      override.queryParams = validParams.map(p => ({
+        name: p.name,
+        value: p.value || '',
+        description: p.description || ''
+      }))
+    }
+  }
+  
+  // 添加路径参数覆盖
+  if (caseFormData.overridePathParams && caseFormData.overridePathParams.length > 0) {
+    const validParams = caseFormData.overridePathParams.filter(p => p.name && p.name.trim())
+    if (validParams.length > 0) {
+      override.pathParams = validParams.map(p => ({
+        name: p.name,
+        value: p.value || '',
+        description: p.description || ''
+      }))
+    }
+  }
+  
+  // 添加请求头覆盖
+  if (caseFormData.overrideHeaders && caseFormData.overrideHeaders.length > 0) {
+    const headers = {}
+    caseFormData.overrideHeaders.forEach(h => {
+      if (h.name && h.name.trim()) {
+        headers[h.name] = h.value || ''
+      }
+    })
+    if (Object.keys(headers).length > 0) {
+      override.headers = headers
+    }
+  }
+  
+  // 添加请求体覆盖
+  if (caseFormData.overrideBody && caseFormData.overrideBody.trim()) {
+    try {
+      // 清理输入内容，移除不可见字符（如零宽空格等）
+      const cleanedBody = caseFormData.overrideBody.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+      override.body = JSON.parse(cleanedBody)
+    } catch (e) {
+      // 如果不是JSON，直接作为字符串
+      override.body = caseFormData.overrideBody
+    }
+  }
+  
+  // 如果没有覆盖内容，返回 null
+  return Object.keys(override).length > 0 ? override : null
 }
 
 // 获取前置条件的值（根据模式选择）
@@ -2197,7 +2430,7 @@ const handleSaveTestCase = async () => {
       version: caseFormData.version,
       test_steps: caseFormData.testSteps,
       pre_conditions: getPreConditionsValue(),
-      request_override: caseFormData.requestOverrideStr ? JSON.parse(caseFormData.requestOverrideStr) : null,
+      request_override: buildRequestOverride(),
       expected_http_status: caseFormData.expectedHttpStatus,
       expected_response_body: caseFormData.expectedResponseBody,
       expected_response_schema: caseFormData.expectedResponseSchemaStr ? JSON.parse(caseFormData.expectedResponseSchemaStr) : null,
@@ -3132,6 +3365,18 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.override-section {
+  margin-bottom: 16px;
+}
+.override-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+
 .api-detail-panel {
   display: flex;
   flex-direction: column;

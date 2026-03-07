@@ -4,6 +4,62 @@
  */
 
 /**
+ * 清理 request_override 中的 body 字段，移除不可见字符
+ */
+function cleanRequestOverride(requestOverride) {
+  if (!requestOverride || typeof requestOverride !== 'object') {
+    return requestOverride
+  }
+  
+  // 深拷贝，避免修改原始对象
+  const cleaned = JSON.parse(JSON.stringify(requestOverride))
+  
+  // 清理 body 字段
+  if (cleaned.body) {
+    if (typeof cleaned.body === 'string') {
+      // 如果是字符串，清理后尝试重新解析为 JSON 对象
+      const cleanedStr = cleaned.body.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+      try {
+        cleaned.body = JSON.parse(cleanedStr)
+      } catch (e) {
+        // 如果不是有效 JSON，保持原样
+        cleaned.body = cleanedStr
+      }
+    } else if (typeof cleaned.body === 'object') {
+      // 如果是对象，递归清理其中的字符串值
+      cleaned.body = cleanObjectStrings(cleaned.body)
+    }
+  }
+  
+  return cleaned
+}
+
+/**
+ * 递归清理对象中的所有字符串值
+ */
+function cleanObjectStrings(obj) {
+  if (!obj || typeof obj !== 'object') {
+    return obj
+  }
+  
+  const cleaned = Array.isArray(obj) ? [] : {}
+  
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      if (typeof obj[key] === 'string') {
+        cleaned[key] = obj[key].replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        cleaned[key] = cleanObjectStrings(obj[key])
+      } else {
+        cleaned[key] = obj[key]
+      }
+    }
+  }
+  
+  return cleaned
+}
+
+/**
  * 转换项目数据
  */
 export function transformProject(project) {
@@ -263,16 +319,36 @@ export function transformTestCaseToBackend(testCase) {
   }
   
   // 处理请求参数 - 支持新旧两种方式
-  if (testCase.request_override_str) {
+  // 优先使用可视化编辑器字段：override_query_params, override_path_params, override_headers, override_body
+  if (testCase.override_query_params || testCase.override_path_params || testCase.override_headers || testCase.override_body) {
+    const override = buildRequestOverrideFromForm(testCase)
+    if (override) {
+      data.request_override = override
+    }
+  } else if (testCase.request_override_str) {
     try {
-      data.request_override = JSON.parse(testCase.request_override_str)
+      // 如果是字符串，解析为对象
+      if (typeof testCase.request_override_str === 'string') {
+        data.request_override = JSON.parse(testCase.request_override_str)
+      } else {
+        // 如果是对象（已被错误设置），直接使用
+        data.request_override = testCase.request_override_str
+      }
     } catch (e) {
       console.error('解析请求参数覆盖失败:', e)
     }
   } else if (testCase.request_override) {
-    data.request_override = testCase.request_override
+    // 清理 request_override 中的 body 字段，移除不可见字符
+    const cleanedOverride = cleanRequestOverride(testCase.request_override)
+    if (cleanedOverride) {
+      data.request_override = cleanedOverride
+    }
   } else if (testCase.requestOverride) {
-    data.request_override = testCase.requestOverride
+    // 清理 request_override 中的 body 字段
+    const cleanedOverride = cleanRequestOverride(testCase.requestOverride)
+    if (cleanedOverride) {
+      data.request_override = cleanedOverride
+    }
   }
   
   // 处理前置条件
@@ -444,5 +520,64 @@ export function buildProjectTree(projects, modules, apis, testCases) {
     })
     return transformedProject
   })
+}
+
+/**
+ * 从表单数据构建请求参数覆盖对象（可视化编辑器用）
+ */
+export function buildRequestOverrideFromForm(formData) {
+  const override = {}
+  
+  // 添加查询参数覆盖
+  if (formData.override_query_params && formData.override_query_params.length > 0) {
+    const validParams = formData.override_query_params.filter(p => p.name && p.name.trim())
+    if (validParams.length > 0) {
+      override.queryParams = validParams.map(p => ({
+        name: p.name,
+        value: p.value || '',
+        description: p.description || ''
+      }))
+    }
+  }
+  
+  // 添加路径参数覆盖
+  if (formData.override_path_params && formData.override_path_params.length > 0) {
+    const validParams = formData.override_path_params.filter(p => p.name && p.name.trim())
+    if (validParams.length > 0) {
+      override.pathParams = validParams.map(p => ({
+        name: p.name,
+        value: p.value || '',
+        description: p.description || ''
+      }))
+    }
+  }
+  
+  // 添加请求头覆盖
+  if (formData.override_headers && formData.override_headers.length > 0) {
+    const headers = {}
+    formData.override_headers.forEach(h => {
+      if (h.name && h.name.trim()) {
+        headers[h.name] = h.value || ''
+      }
+    })
+    if (Object.keys(headers).length > 0) {
+      override.headers = headers
+    }
+  }
+  
+  // 添加请求体覆盖
+  if (formData.override_body && formData.override_body.trim()) {
+    try {
+      // 清理输入内容，移除不可见字符
+      const cleanedBody = formData.override_body.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+      override.body = JSON.parse(cleanedBody)
+    } catch (e) {
+      // 如果不是JSON，直接作为字符串
+      override.body = formData.override_body
+    }
+  }
+  
+  // 如果没有覆盖内容，返回 null
+  return Object.keys(override).length > 0 ? override : null
 }
 

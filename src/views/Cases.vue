@@ -1197,12 +1197,96 @@
               </el-form-item>
 
               <el-form-item label="请求参数覆盖">
-                <el-input
-                  v-model="formData.request_override_str"
-                  type="textarea"
-                  :rows="8"
-                  placeholder='JSON格式的请求参数，例如：&#10;{&#10;  "username": "testuser",&#10;  "password": "Test@123"&#10;}'
-                />
+                <!-- 查询参数覆盖 -->
+                <div class="override-section">
+                  <div class="override-section-title">查询参数 (Query Params)</div>
+                  <el-table :data="formData.override_query_params" border size="small">
+                    <el-table-column label="参数名" width="150">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.name" placeholder="参数名" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="参数值" width="150">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.value" placeholder="参数值" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="描述">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.description" placeholder="描述" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80" align="center">
+                      <template #default="{ row, $index }">
+                        <el-button size="small" text type="danger" @click="formData.override_query_params.splice($index, 1)">删除</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                  <el-button size="small" @click="formData.override_query_params.push({ name: '', value: '', description: '' })">+ 添加查询参数</el-button>
+                </div>
+                
+                <!-- 路径参数覆盖 -->
+                <div class="override-section">
+                  <div class="override-section-title">路径参数 (Path Params)</div>
+                  <el-table :data="formData.override_path_params" border size="small">
+                    <el-table-column label="参数名" width="150">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.name" placeholder="如: id" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="参数值" width="150">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.value" placeholder="参数值" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="描述">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.description" placeholder="描述" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80" align="center">
+                      <template #default="{ row, $index }">
+                        <el-button size="small" text type="danger" @click="formData.override_path_params.splice($index, 1)">删除</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                  <el-button size="small" @click="formData.override_path_params.push({ name: '', value: '', description: '' })">+ 添加路径参数</el-button>
+                </div>
+                
+                <!-- 请求头覆盖 -->
+                <div class="override-section">
+                  <div class="override-section-title">请求头 (Headers)</div>
+                  <el-table :data="formData.override_headers" border size="small">
+                    <el-table-column label="Header名" width="150">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.name" placeholder="如: Authorization" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="Header值" width="200">
+                      <template #default="{ row, $index }">
+                        <el-input v-model="row.value" placeholder="值" size="small" />
+                      </template>
+                    </el-table-column>
+                    <el-table-column label="操作" width="80" align="center">
+                      <template #default="{ row, $index }">
+                        <el-button size="small" text type="danger" @click="formData.override_headers.splice($index, 1)">删除</el-button>
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                  <el-button size="small" @click="formData.override_headers.push({ name: '', value: '' })">+ 添加请求头</el-button>
+                </div>
+                
+                <!-- 请求体覆盖 -->
+                <div class="override-section">
+                  <div class="override-section-title">请求体 (Body)</div>
+                  <el-input
+                    v-model="formData.override_body"
+                    type="textarea"
+                    :rows="6"
+                    placeholder='JSON格式请求体，例如：{"username": "test", "password": "123"}'
+                  />
+                </div>
+                
                 <span class="form-tip">将覆盖接口的默认请求参数</span>
               </el-form-item>
               </div>
@@ -2266,6 +2350,11 @@ const formData = reactive({
   // 前置条件和请求参数
   pre_conditions_str: '',
   request_override_str: '',
+  // 请求参数覆盖 - 可视化编辑器用
+  override_query_params: [],
+  override_path_params: [],
+  override_headers: [],
+  override_body: '',
   // 预期响应
   expected_http_status: 200,
   expected_response_body: '',
@@ -3648,11 +3737,57 @@ const handleEditCase = (testCase) => {
   
   // 处理请求参数覆盖（JSON对象转字符串）
   let requestOverrideStr = ''
+  let overrideQueryParams = []
+  let overridePathParams = []
+  let overrideHeaders = []
+  let overrideBody = ''
+  
   if (testCase.request_override || testCase.requestOverride) {
     const requestOverride = testCase.request_override || testCase.requestOverride
-    requestOverrideStr = typeof requestOverride === 'string' 
-      ? requestOverride 
-      : JSON.stringify(requestOverride, null, 2)
+    if (typeof requestOverride === 'string') {
+      requestOverrideStr = requestOverride
+      // 尝试解析为对象以便填充可视化字段
+      try {
+        const parsed = JSON.parse(requestOverride)
+        if (parsed.queryParams) overrideQueryParams = parsed.queryParams
+        if (parsed.pathParams) overridePathParams = parsed.pathParams
+        if (parsed.headers) {
+          overrideHeaders = Object.entries(parsed.headers).map(([name, value]) => ({ name, value }))
+        }
+        if (parsed.body) {
+          // 清理 body 中的不可见字符
+          const bodyStr = typeof parsed.body === 'string' ? parsed.body : JSON.stringify(parsed.body, null, 2)
+          overrideBody = bodyStr.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+          // 尝试重新解析，确保 JSON 格式正确
+          try {
+            JSON.parse(overrideBody)
+          } catch (e) {
+            // 如果清理后不是有效 JSON，保持原样
+            overrideBody = bodyStr
+          }
+        }
+      } catch (e) {
+        console.error('解析request_override失败:', e)
+      }
+    } else if (typeof requestOverride === 'object') {
+      // 对象形式
+      if (requestOverride.queryParams) overrideQueryParams = requestOverride.queryParams
+      if (requestOverride.pathParams) overridePathParams = requestOverride.pathParams
+      if (requestOverride.headers) {
+        overrideHeaders = Object.entries(requestOverride.headers).map(([name, value]) => ({ name, value }))
+      }
+      if (requestOverride.body) {
+        // 清理 body 中的不可见字符
+        const bodyStr = typeof requestOverride.body === 'string' ? requestOverride.body : JSON.stringify(requestOverride.body, null, 2)
+        overrideBody = bodyStr.replace(/[\u200B-\u200D\uFEFF]/g, '').trim()
+        try {
+          JSON.parse(overrideBody)
+        } catch (e) {
+          overrideBody = bodyStr
+        }
+      }
+      requestOverrideStr = JSON.stringify(requestOverride, null, 2)
+    }
   }
   
   // 处理预期响应体（JSON对象转字符串）
@@ -3703,6 +3838,11 @@ const handleEditCase = (testCase) => {
     // 前置条件和请求参数（转换为字符串）
     pre_conditions_str: preConditionsStr,
     request_override_str: requestOverrideStr,
+    // 请求参数覆盖 - 可视化编辑器字段
+    override_query_params: overrideQueryParams,
+    override_path_params: overridePathParams,
+    override_headers: overrideHeaders,
+    override_body: overrideBody,
     
     // 预期响应
     expected_http_status: testCase.expected_http_status || testCase.expectedHttpStatus || 200,
@@ -4293,6 +4433,11 @@ const resetForm = () => {
     // 前置条件和请求参数
     pre_conditions_str: '',
     request_override_str: '',
+    // 请求参数覆盖 - 可视化编辑器用
+    override_query_params: [],
+    override_path_params: [],
+    override_headers: [],
+    override_body: '',
     // 预期响应
     expected_http_status: 200,
     expected_response_body: '',
@@ -4577,6 +4722,19 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 请求参数覆盖样式 */
+.override-section {
+  margin-bottom: 16px;
+}
+.override-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 8px;
+  padding-left: 8px;
+  border-left: 3px solid #409eff;
+}
+
 /* 错开动画样式 */
 .stagger-item-sidebar {
   transform-origin: left center;

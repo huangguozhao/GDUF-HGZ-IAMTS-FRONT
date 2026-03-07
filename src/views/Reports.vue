@@ -252,11 +252,11 @@
           <template #default="{ row }">
             <div style="padding: 0 10px">
             <el-progress 
-                :percentage="parseFloat((row.successRate || 0) * 100)"
-                :color="getSuccessRateColor(row.successRate * 100)"
+                :percentage="parseFloat(row.successRate || 0)"
+                :color="getSuccessRateColor(row.successRate)"
                 :stroke-width="6"
                 :show-text="true"
-                :format="() => `${((row.successRate || 0) * 100).toFixed(1)}%`"
+                :format="() => `${(row.successRate || 0).toFixed(1)}%`"
               />
           </div>
         </template>
@@ -357,7 +357,7 @@
           <StatsCard flat label="失败用例" :value="currentReport.failedCases || 0" icon="❌" variant="danger" />
           <StatsCard flat label="跳过用例" :value="currentReport.skippedCases || 0" icon="⚠️" variant="warning" />
           <StatsCard flat label="总用例数" :value="currentReport.totalCases || 0" icon="📊" variant="info" />
-          <StatsCard flat label="成功率" :value="`${((currentReport.successRate || 0) * 100).toFixed(1)}%`" icon="🎯" variant="primary" />
+          <StatsCard flat label="成功率" :value="`${(currentReport.successRate || 0).toFixed(1)}%`" icon="🎯" variant="primary" />
           <StatsCard flat label="执行耗时" :value="formatDuration(currentReport.duration)" icon="⏱️" />
         </div>
 
@@ -541,13 +541,13 @@
                 <el-descriptions-item label="成功率" :span="3">
                   <div style="display: flex; align-items: center; gap: 16px;">
                     <el-progress
-                      :percentage="parseFloat((currentReport.successRate || 0) * 100)"
-                      :color="getSuccessRateColor((currentReport.successRate || 0) * 100)"
+                      :percentage="parseFloat(currentReport.successRate || 0)"
+                      :color="getSuccessRateColor(currentReport.successRate || 0)"
                       :stroke-width="20"
                       style="flex: 1"
                     />
-                    <el-tag size="large" :type="((currentReport.successRate || 0) * 100) >= 80 ? 'success' : 'danger'">
-                      {{ ((currentReport.successRate || 0) * 100).toFixed(1) }}%
+                    <el-tag size="large" :type="(currentReport.successRate || 0) >= 80 ? 'success' : 'danger'">
+                      {{ (currentReport.successRate || 0).toFixed(1) }}%
                     </el-tag>
                   </div>
                 </el-descriptions-item>
@@ -1276,7 +1276,7 @@ const initGaugeChart = async () => {
   const echarts = await loadEcharts()
   gaugeChartInstance = echarts.init(gaugeChartRef.value)
   
-  const successRate = parseFloat((currentReport.value.successRate || 0) * 100)
+  const successRate = parseFloat(currentReport.value.successRate || 0)
   
   const option = {
     series: [
