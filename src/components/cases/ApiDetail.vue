@@ -702,6 +702,9 @@
           class="cases-table"
           @row-click="handleCaseRowClick"
         >
+          <template #empty>
+            <el-empty description="暂无相关用例" />
+          </template>
           <el-table-column label="用例名称" min-width="200">
             <template #default="{ row }">
               <div class="case-name-cell" @click="$emit('select-case', row)">
@@ -1961,57 +1964,8 @@ const casesTotal = ref(12)
 // 项目接口列表（用于变量依赖配置）
 const projectApiList = ref([])
 
-// 模拟测试用例数据
-const testCasesList = ref([
-  {
-    id: 1,
-    name: '正常用户信息更新',
-    caseType: 'functional',
-    priority: 'P1', // 高优先级
-    testData: '有效的用户ID和完整更新信息（50字符以内的姓名、符合规则的电子邮箱和手机号码）',
-    expectedResult: '状态码 200，更新成功'
-  },
-  {
-    id: 2,
-    name: '字段长度边界测试',
-    caseType: 'boundary',
-    priority: 'P2', // 中等优先级
-    testData: '用户名长度为最大允许值（…）',
-    expectedResult: '响应包含验证错误信息'
-  },
-  {
-    id: 3,
-    name: '缺少必填字段测试',
-    caseType: 'exception',
-    priority: 'P0', // 最高优先级
-    testData: '缺少email、phone等关键字段',
-    expectedResult: '状态码 400，参数错误'
-  },
-  {
-    id: 4,
-    name: '无权限用户操作测试',
-    caseType: 'security',
-    priority: 'P0', // 最高优先级
-    testData: '使用无权限用户的Token访问',
-    expectedResult: '状态码 403，权限拒绝'
-  },
-  {
-    id: 5,
-    name: 'XSS注入测试',
-    caseType: 'security',
-    priority: 'P2', // 中等优先级
-    testData: '在各个字段中注入XSS代码',
-    expectedResult: '状态码 400，参数错误'
-  },
-  {
-    id: 6,
-    name: '大数据量测试',
-    caseType: 'boundary',
-    priority: 'P3', // 低优先级
-    testData: '提交包含大量数据的请求',
-    expectedResult: '响应时间 < 2秒'
-  }
-])
+// 模拟测试用例数据（已移除，使用实际数据）
+const testCasesList = ref([])
 
 
 

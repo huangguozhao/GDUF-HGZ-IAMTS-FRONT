@@ -690,3 +690,14 @@ export function exportTestCase(caseId, format = 'json', options = {}) {
     }
   })
 }
+
+/**
+ * 根据报告ID获取用例结果列表
+ * @param {Number} reportId - 报告ID
+ */
+export function getTestCaseResultsByReportId(reportId) {
+  return request({
+    url: `/test-results/by-report/${reportId}`,
+    method: 'get'
+  })
+}

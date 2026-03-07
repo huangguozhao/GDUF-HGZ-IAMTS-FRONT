@@ -669,6 +669,7 @@ import {
   exportReport,
   updateReportName
 } from '../api/report'
+import { getTestCaseResultsByReportId } from '../api/testCase'
 // 异步加载echarts库
 let echartsPromise = null
 const loadEcharts = async () => {
@@ -905,10 +906,36 @@ const handleViewDetail = async (report) => {
 }
 
 // AI智能诊断
-const handleAIDiagnosis = () => {
+const handleAIDiagnosis = async () => {
   if (!currentReport.value) {
     ElMessage.warning('请先选择报告')
     return
+  }
+  
+  // 先获取测试用例结果详情
+  let caseResults = []
+  try {
+    const reportId = currentReport.value.reportId
+    if (reportId) {
+      const res = await getTestCaseResultsByReportId(reportId)
+      if (res && res.data) {
+        // 转换后端数据为前端需要的格式
+        caseResults = res.data.map(item => ({
+          caseId: item.caseId || item.case_id,
+          caseCode: item.caseCode || item.case_code,
+          caseName: item.caseName || item.case_name,
+          status: item.status,
+          duration: item.duration,
+          responseStatus: item.responseStatus || item.response_status,
+          failureMessage: item.failureMessage || item.failure_message,
+          logsLink: item.logsLink || item.logs_link
+        }))
+        console.log('获取到测试用例结果:', caseResults.length, '条')
+      }
+    }
+  } catch (error) {
+    console.error('获取测试用例结果失败:', error)
+    // 继续执行，只是没有详细用例数据
   }
   
   // 注意：transformBackendData 已经将 snake_case 转换为 camelCase
@@ -932,7 +959,9 @@ const handleAIDiagnosis = () => {
     successRate: currentReport.value.successRate,
     // 判断失败状态：failed_cases > 0 则为 failed
     status: (currentReport.value.failedCases && currentReport.value.failedCases > 0) ? 'failed' : 'passed',
-    duration: currentReport.value.duration
+    duration: currentReport.value.duration,
+    // 传递详细的测试用例结果（用于批量AI诊断）
+    caseResults: caseResults
   }
   
   console.log('AI诊断数据:', diagnosisExecutionData.value)

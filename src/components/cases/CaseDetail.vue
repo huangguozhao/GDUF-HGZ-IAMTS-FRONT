@@ -1879,7 +1879,7 @@ const triggerAIDiagnosis = async () => {
 }
 
 const pollDiagnosisResult = async (diagnosisId) => {
-  const maxAttempts = 60  // 增加轮询次数，因为AI诊断可能需要更长时间
+  const maxAttempts = 30
   const interval = 2000
   let attempts = 0
   
@@ -1887,8 +1887,6 @@ const pollDiagnosisResult = async (diagnosisId) => {
     try {
       attempts++
       const res = await getDiagnosisResult(diagnosisId)
-      console.log('CaseDetail轮询结果:', res)
-      console.log('CaseDetail轮询结果详情 - code:', res.code, 'data:', res.data, 'severity:', res.data?.severity, 'aiStatus:', res.data?.aiStatus)
       
       if (res.code === 1 && res.data) {
         aiDiagnosisResult.value = res.data
