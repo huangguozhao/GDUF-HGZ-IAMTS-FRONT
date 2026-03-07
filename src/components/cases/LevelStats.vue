@@ -229,7 +229,31 @@ const handleConfirmExecute = async (config) => {
     }
     
     if (response && response.code === 1) {
-      ElMessage.success('测试执行完成')
+      // 根据执行模式显示不同的提示
+      if (config.async) {
+        // 异步执行
+        const taskId = response.data?.taskId
+        const reportId = response.data?.reportId
+        const status = response.data?.status
+        
+        ElMessage.success({
+          message: `任务已提交执行！任务ID: ${taskId || '未知'}`,
+          duration: 5000,
+          type: 'success'
+        })
+        
+        // 显示任务状态提示
+        if (status === 'submitted' || status === 'pending' || status === 'running') {
+          ElMessage.info({
+            message: '任务正在后台执行中，您可以在报告中心查看执行进度',
+            duration: 5000
+          })
+        }
+      } else {
+        // 同步执行
+        ElMessage.success('测试执行完成')
+      }
+      
       executeDialogVisible.value = false
       emit('execute-test', response.data)
       // 刷新统计数据

@@ -554,6 +554,199 @@
               </el-descriptions>
             </div>
           </el-tab-pane>
+
+          <!-- 测试用例详情 -->
+          <el-tab-pane label="🧪 用例详情" name="caseDetails">
+            <div class="case-details-container" v-if="reportCaseResults.length > 0">
+              <!-- 筛选功能 -->
+              <div class="case-filter-bar">
+                <el-input
+                  v-model="caseFilterText"
+                  placeholder="搜索用例名称或编码"
+                  size="small"
+                  clearable
+                  style="width: 250px;"
+                >
+                  <template #prefix>
+                    <el-icon><Search /></el-icon>
+                  </template>
+                </el-input>
+                <el-select
+                  v-model="caseFilterStatus"
+                  placeholder="筛选状态"
+                  size="small"
+                  clearable
+                  style="width: 120px; margin-left: 10px;"
+                >
+                  <el-option label="全部" value="" />
+                  <el-option label="通过" value="passed" />
+                  <el-option label="失败" value="failed" />
+                  <el-option label="跳过" value="skipped" />
+                  <el-option label="错误" value="broken" />
+                </el-select>
+              </div>
+              
+              <!-- 用例列表 -->
+              <div class="case-list">
+                <div
+                  v-for="(caseItem, index) in filteredReportCaseResults"
+                  :key="caseItem.resultId || index"
+                  class="case-item"
+                  :class="'case-status-' + caseItem.status"
+                >
+                  <!-- 用例基本信息 -->
+                  <div class="case-item-header" @click="toggleReportCaseDetail(index)">
+                    <div class="case-status-icon">
+                      <el-icon v-if="caseItem.status === 'passed'" color="#67c23a"><CircleCheckFilled /></el-icon>
+                      <el-icon v-else-if="caseItem.status === 'failed'" color="#f56c6c"><CircleCloseFilled /></el-icon>
+                      <el-icon v-else-if="caseItem.status === 'skipped'" color="#e6a23c"><WarningFilled /></el-icon>
+                      <el-icon v-else color="#909399"><WarningFilled /></el-icon>
+                    </div>
+                    <div class="case-item-info">
+                      <div class="case-item-name">{{ caseItem.caseName || caseItem.caseCode || '未知用例' }}</div>
+                      <div class="case-item-code">
+                        <span v-if="caseItem.caseCode">{{ caseItem.caseCode }}</span>
+                        <span v-if="caseItem.moduleName" class="case-tag">{{ caseItem.moduleName }}</span>
+                        <span v-if="caseItem.apiName" class="case-tag">{{ caseItem.apiName }}</span>
+                      </div>
+                    </div>
+                    <div class="case-item-meta">
+                      <el-tag size="small" :type="getCaseStatusTagType(caseItem.status)">
+                        {{ getCaseStatusText(caseItem.status) }}
+                      </el-tag>
+                      <span class="case-duration" v-if="caseItem.duration">
+                        {{ formatCaseDuration(caseItem.duration) }}
+                      </span>
+                      <span class="case-response-status" v-if="caseItem.responseStatus">
+                        HTTP {{ caseItem.responseStatus }}
+                      </span>
+                    </div>
+                    <div class="case-item-toggle">
+                      <el-icon>
+                        <ArrowDown v-if="expandedReportCaseIndex !== index" />
+                        <ArrowUp v-else />
+                      </el-icon>
+                    </div>
+                  </div>
+                  
+                  <!-- 用例详情（可展开） -->
+                  <el-collapse-transition>
+                    <div class="case-item-detail" v-show="expandedReportCaseIndex === index">
+                      <!-- 基本信息 -->
+                      <div class="case-basic-info" v-if="caseItem.moduleName || caseItem.apiName || caseItem.environment || caseItem.browser || caseItem.testType">
+                        <div class="detail-label">
+                          <el-icon><InfoFilled /></el-icon>
+                          基本信息
+                        </div>
+                        <div class="case-info-grid">
+                          <div class="info-item" v-if="caseItem.moduleName">
+                            <span class="info-label">模块：</span>
+                            <span class="info-value">{{ caseItem.moduleName }}</span>
+                          </div>
+                          <div class="info-item" v-if="caseItem.apiName">
+                            <span class="info-label">接口：</span>
+                            <span class="info-value">{{ caseItem.apiName }}</span>
+                          </div>
+                          <div class="info-item" v-if="caseItem.environment">
+                            <span class="info-label">环境：</span>
+                            <el-tag size="small" type="info">{{ caseItem.environment }}</el-tag>
+                          </div>
+                          <div class="info-item" v-if="caseItem.browser">
+                            <span class="info-label">浏览器：</span>
+                            <span class="info-value">{{ caseItem.browser }}</span>
+                          </div>
+                          <div class="info-item" v-if="caseItem.testType">
+                            <span class="info-label">测试类型：</span>
+                            <el-tag size="small">{{ caseItem.testType }}</el-tag>
+                          </div>
+                          <div class="info-item" v-if="caseItem.testLayer">
+                            <span class="info-label">测试层级：</span>
+                            <el-tag size="small" type="success">{{ caseItem.testLayer }}</el-tag>
+                          </div>
+                          <div class="info-item" v-if="caseItem.severity">
+                            <span class="info-label">严重程度：</span>
+                            <el-tag size="small" :type="caseItem.severity === 'high' ? 'danger' : caseItem.severity === 'medium' ? 'warning' : 'info'">{{ caseItem.severity }}</el-tag>
+                          </div>
+                          <div class="info-item" v-if="caseItem.priority">
+                            <span class="info-label">优先级：</span>
+                            <el-tag size="small" type="warning">{{ caseItem.priority }}</el-tag>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <!-- 失败信息 -->
+                      <div class="case-failure-info" v-if="caseItem.status === 'failed' && caseItem.failureMessage">
+                        <div class="detail-label">
+                          <el-icon><WarningFilled /></el-icon>
+                          失败原因
+                        </div>
+                        <pre class="failure-message">{{ caseItem.failureMessage }}</pre>
+                      </div>
+                      
+                      <!-- 失败类型 -->
+                      <div class="case-failure-type" v-if="caseItem.failureType">
+                        <div class="detail-label">
+                          <el-icon><InfoFilled /></el-icon>
+                          失败类型
+                        </div>
+                        <el-tag type="danger" size="small">{{ caseItem.failureType }}</el-tag>
+                        <span v-if="caseItem.errorCode" class="error-code">错误代码: {{ caseItem.errorCode }}</span>
+                      </div>
+                      
+                      <!-- 失败堆栈 -->
+                      <div class="case-failure-trace" v-if="caseItem.failureTrace">
+                        <div class="detail-label">
+                          <el-icon><WarningFilled /></el-icon>
+                          失败堆栈
+                        </div>
+                        <pre class="failure-trace">{{ caseItem.failureTrace }}</pre>
+                      </div>
+                      
+                      <!-- 参数信息 -->
+                      <div class="case-parameters" v-if="caseItem.parametersJson">
+                        <div class="detail-label">
+                          <el-icon><Document /></el-icon>
+                          测试参数
+                        </div>
+                        <pre class="case-json-content">{{ formatCaseJson(caseItem.parametersJson) }}</pre>
+                      </div>
+                      
+                      <!-- 步骤信息 -->
+                      <div class="case-steps" v-if="caseItem.stepsJson">
+                        <div class="detail-label">
+                          <el-icon><List /></el-icon>
+                          执行步骤
+                        </div>
+                        <pre class="case-json-content">{{ formatCaseJson(caseItem.stepsJson) }}</pre>
+                      </div>
+                      
+                      <!-- 附件链接 -->
+                      <div class="case-attachments" v-if="caseItem.screenshotLink || caseItem.logsLink">
+                        <div class="detail-label">
+                          <el-icon><Link /></el-icon>
+                          附件
+                        </div>
+                        <div class="attachment-links">
+                          <el-button v-if="caseItem.logsLink" type="primary" link size="small">
+                            <el-icon><Document /></el-icon>
+                            查看日志
+                          </el-button>
+                          <el-button v-if="caseItem.screenshotLink" type="success" link size="small">
+                            <el-icon><Picture /></el-icon>
+                            查看截图
+                          </el-button>
+                        </div>
+                      </div>
+                    </div>
+                  </el-collapse-transition>
+                </div>
+              </div>
+              
+              <!-- 无结果提示 -->
+              <el-empty v-if="filteredReportCaseResults.length === 0" description="没有匹配的用例结果" />
+            </div>
+            <el-empty v-else description="暂无用例详情数据" />
+          </el-tab-pane>
         </el-tabs>
       </div>
       </transition>
@@ -656,7 +849,17 @@ import {
   Download,
   Delete,
   MagicStick,
-  Edit
+  Edit,
+  CircleCheckFilled,
+  CircleCloseFilled,
+  WarningFilled,
+  InfoFilled,
+  ArrowDown,
+  ArrowUp,
+  List,
+  Link,
+  Picture,
+  Document
 } from '@element-plus/icons-vue'
 import StatsCard from '../components/ui/StatsCard.vue'
 import ChartCard from '../components/ui/ChartCard.vue'
@@ -695,6 +898,13 @@ const activeDetailTab = ref('charts')
 const showAIDiagnosis = ref(false)
 const diagnosisPanelRef = ref(null)
 const diagnosisExecutionData = ref(null)
+
+// 测试用例详情相关
+const reportCaseResults = ref([])
+const caseFilterText = ref('')
+const caseFilterStatus = ref('')
+const expandedReportCaseIndex = ref(-1)
+const loadingCaseResults = ref(false)
 
 // 编辑报告名称相关
 const isEditingReportName = ref(false)
@@ -748,6 +958,28 @@ const totalReports = computed(() => pagination.total)
 const monthlyReports = computed(() => {
   // 这里可以添加逻辑统计本月新增报告数
   return reportList.value.length
+})
+
+// 筛选后的用例结果
+const filteredReportCaseResults = computed(() => {
+  let results = reportCaseResults.value
+  
+  // 按状态筛选
+  if (caseFilterStatus.value) {
+    results = results.filter(item => item.status === caseFilterStatus.value)
+  }
+  
+  // 按关键字搜索
+  if (caseFilterText.value) {
+    const keyword = caseFilterText.value.toLowerCase()
+    results = results.filter(item => {
+      const caseName = (item.caseName || '').toLowerCase()
+      const caseCode = (item.caseCode || '').toLowerCase()
+      return caseName.includes(keyword) || caseCode.includes(keyword)
+    })
+  }
+  
+  return results
 })
 
 // 转换后端数据为前端格式（兼容驼峰和下划线两种格式）
@@ -886,6 +1118,12 @@ const handleSelectionChange = (selection) => {
 // 查看详情
 const handleViewDetail = async (report) => {
   loading.value = true
+  // 重置测试用例详情数据
+  reportCaseResults.value = []
+  caseFilterText.value = ''
+  caseFilterStatus.value = ''
+  expandedReportCaseIndex.value = -1
+  
   try {
     const response = await getReportById(report.reportId)
     console.log('=== 报告详情 API 返回 ===', response.data)
@@ -894,6 +1132,9 @@ const handleViewDetail = async (report) => {
       currentReport.value = transformBackendData(response.data)
       console.log('=== 转换后的报告详情 ===', currentReport.value)
       detailDialogVisible.value = true
+      
+      // 加载测试用例结果详情
+      await loadReportCaseResults(report.reportId)
     } else {
       ElMessage.error(response.msg || '加载报告详情失败')
     }
@@ -902,6 +1143,101 @@ const handleViewDetail = async (report) => {
     ElMessage.error('加载报告详情失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 加载报告的测试用例结果
+const loadReportCaseResults = async (reportId) => {
+  if (!reportId) return
+  
+  loadingCaseResults.value = true
+  try {
+    const res = await getTestCaseResultsByReportId(reportId)
+    if (res && res.data) {
+      // 转换后端数据为前端格式
+      reportCaseResults.value = res.data.map(item => ({
+        resultId: item.resultId || item.result_id,
+        caseId: item.caseId || item.case_id,
+        caseCode: item.caseCode || item.case_code,
+        caseName: item.caseName || item.case_name,
+        status: item.status,
+        duration: item.duration,
+        responseStatus: item.responseStatus || item.response_status,
+        failureMessage: item.failureMessage || item.failure_message,
+        failureType: item.failureType || item.failure_type,
+        failureTrace: item.failureTrace || item.failure_trace,
+        errorCode: item.errorCode || item.error_code,
+        logsLink: item.logsLink || item.logs_link,
+        screenshotLink: item.screenshotLink || item.screenshot_link,
+        stepsJson: item.stepsJson || item.steps_json,
+        parametersJson: item.parametersJson || item.parameters_json,
+        moduleName: item.moduleName || item.module_name,
+        apiName: item.apiName || item.api_name,
+        environment: item.environment,
+        browser: item.browser,
+        startTime: item.startTime || item.start_time,
+        endTime: item.endTime || item.end_time,
+        severity: item.severity,
+        priority: item.priority,
+        testType: item.testType || item.test_type,
+        testLayer: item.testLayer || item.test_layer
+      }))
+      console.log('加载测试用例结果:', reportCaseResults.value.length, '条')
+    }
+  } catch (error) {
+    console.error('加载测试用例结果失败:', error)
+  } finally {
+    loadingCaseResults.value = false
+  }
+}
+
+// 切换用例详情展开状态
+const toggleReportCaseDetail = (index) => {
+  expandedReportCaseIndex.value = expandedReportCaseIndex.value === index ? -1 : index
+}
+
+// 获取状态标签类型
+const getCaseStatusTagType = (status) => {
+  const typeMap = {
+    'passed': 'success',
+    'failed': 'danger',
+    'skipped': 'warning',
+    'broken': 'info'
+  }
+  return typeMap[status] || 'info'
+}
+
+// 获取状态文本
+const getCaseStatusText = (status) => {
+  const textMap = {
+    'passed': '通过',
+    'failed': '失败',
+    'skipped': '跳过',
+    'broken': '错误'
+  }
+  return textMap[status] || status
+}
+
+// 格式化用例执行时长
+const formatCaseDuration = (ms) => {
+  if (!ms) return '-'
+  if (ms < 1000) {
+    return `${ms}ms`
+  }
+  return `${(ms / 1000).toFixed(2)}s`
+}
+
+// 格式化JSON
+const formatCaseJson = (jsonStr) => {
+  if (!jsonStr) return ''
+  try {
+    if (typeof jsonStr === 'object') {
+      return JSON.stringify(jsonStr, null, 2)
+    }
+    const parsed = JSON.parse(jsonStr)
+    return JSON.stringify(parsed, null, 2)
+  } catch (e) {
+    return jsonStr
   }
 }
 
@@ -941,8 +1277,10 @@ const handleAIDiagnosis = async () => {
   // 注意：transformBackendData 已经将 snake_case 转换为 camelCase
   // 所以这里应该使用 camelCase 字段名
   diagnosisExecutionData.value = {
-    // 传递 executionId（转换后的驼峰命名）
-    executionId: currentReport.value.executionId,
+    // 传递 executionId（转换后的驼峰命名）- 优先使用 executionId，没有则用 recordId
+    executionId: currentReport.value.executionId || currentReport.value.recordId || null,
+    // 传递 reportId 作为后备查询方案
+    reportId: currentReport.value.reportId || null,
     diagnosisType: 'test_failure',
     // 项目名
     scopeName: currentReport.value.reportName,
@@ -961,7 +1299,16 @@ const handleAIDiagnosis = async () => {
     status: (currentReport.value.failedCases && currentReport.value.failedCases > 0) ? 'failed' : 'passed',
     duration: currentReport.value.duration,
     // 传递详细的测试用例结果（用于批量AI诊断）
-    caseResults: caseResults
+    caseResults: caseResults,
+    // 添加AI诊断需要的其他字段（与接口详情页的ExecutionResult.vue保持一致）
+    failureMessage: caseResults.length > 0 ? `${caseResults.length}个测试用例执行失败` : '测试执行失败',
+    failureType: 'TEST_FAILURE',
+    // 尝试从第一个失败的用例中获取更多信息
+    responseStatus: caseResults.length > 0 ? caseResults[0].responseStatus : null,
+    responseBody: '',
+    apiPath: '',
+    apiMethod: '',
+    caseName: currentReport.value.reportName
   }
   
   console.log('AI诊断数据:', diagnosisExecutionData.value)
@@ -2131,5 +2478,274 @@ onMounted(() => {
   .chart-content {
     height: 250px;
   }
+}
+
+/* 测试用例详情样式 */
+.case-details-container {
+  padding: 16px 0;
+}
+
+.case-filter-bar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.case-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+.case-item {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.case-item:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.case-item.case-status-passed {
+  border-left: 3px solid #67c23a;
+}
+
+.case-item.case-status-failed {
+  border-left: 3px solid #f56c6c;
+}
+
+.case-item.case-status-skipped {
+  border-left: 3px solid #e6a23c;
+}
+
+.case-item.case-status-broken {
+  border-left: 3px solid #909399;
+}
+
+.case-item-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: #fff;
+}
+
+.case-item-header:hover {
+  background: #f5f7fa;
+}
+
+.case-status-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.case-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.case-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #303133;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.case-item-code {
+  font-size: 12px;
+  color: #909399;
+  font-family: 'Monaco', 'Menlo', monospace;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.case-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 6px;
+  font-size: 11px;
+  color: #909399;
+  background: #e4e7ed;
+  border-radius: 3px;
+}
+
+.case-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.case-duration {
+  font-size: 13px;
+  color: #606266;
+  font-weight: 500;
+}
+
+.case-response-status {
+  font-size: 12px;
+  color: #909399;
+  padding: 2px 8px;
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.case-item-toggle {
+  color: #c0c4cc;
+  transition: transform 0.3s ease;
+}
+
+.case-item-detail {
+  padding: 16px;
+  background: #fafafa;
+  border-top: 1px solid #ebeef5;
+}
+
+.case-basic-info {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 8px;
+}
+
+.case-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.case-info-grid .info-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.case-info-grid .info-label {
+  color: #909399;
+  flex-shrink: 0;
+}
+
+.case-info-grid .info-value {
+  color: #303133;
+  font-weight: 500;
+}
+
+.case-failure-info,
+.case-failure-type,
+.case-parameters,
+.case-steps {
+  margin-bottom: 16px;
+}
+
+.case-failure-info .detail-label,
+.case-failure-type .detail-label,
+.case-parameters .detail-label,
+.case-steps .detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.case-failure-info .detail-label .el-icon {
+  color: #f56c6c;
+}
+
+.case-failure-type .detail-label .el-icon {
+  color: #f56c6c;
+}
+
+.failure-message {
+  margin: 8px 0 0 0;
+  padding: 12px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
+  font-size: 13px;
+  color: #e6a23c;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.error-code {
+  margin-left: 12px;
+  font-size: 12px;
+  color: #909399;
+}
+
+.failure-trace {
+  margin: 8px 0 0 0;
+  padding: 12px;
+  background: #1e1e1e;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
+  font-size: 12px;
+  color: #f56c6c;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.case-json-content {
+  margin: 8px 0 0 0;
+  padding: 12px;
+  background: #f5f7fa;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
+  font-size: 12px;
+  color: #606266;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.case-attachments {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #ebeef5;
+}
+
+.attachment-links {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.detail-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #606266;
+  margin-bottom: 8px;
+}
+
+.detail-label .el-icon {
+  color: #409eff;
 }
 </style>

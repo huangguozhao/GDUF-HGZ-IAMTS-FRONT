@@ -697,7 +697,7 @@ export function exportTestCase(caseId, format = 'json', options = {}) {
  */
 export function getTestCaseResultsByReportId(reportId) {
   return request({
-    url: `/test-results/by-report/${reportId}`,
+    url: `/test-executions/test-results/by-report/${reportId}`,
     method: 'get'
   })
 }

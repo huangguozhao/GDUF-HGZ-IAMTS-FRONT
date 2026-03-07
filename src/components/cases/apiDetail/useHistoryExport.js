@@ -173,7 +173,9 @@ export function useHistoryExport(props, emit, deps = {}) {
           reportUrl: data.reportUrl || data.report_url,
           errorMessage: data.errorMessage || data.error_message,
           browser: data.browser,
-          appVersion: data.appVersion || data.app_version
+          appVersion: data.appVersion || data.app_version,
+          // 添加用例执行结果详情
+          caseResults: data.caseResults || data.case_results || []
         }
         resultDialogVisible.value = true
       } else {

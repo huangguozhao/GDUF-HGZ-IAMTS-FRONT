@@ -204,11 +204,13 @@ export function exportReport(reportId, options = {}) {
   console.log('报告ID:', reportId)
   console.log('导出选项:', options)
   
+  const exportFormat = options.exportFormat || 'html'
+  
   return request({
-    url: `/reports/${reportId}/export/allure`,
+    url: `/reports/${reportId}/export`,
     method: 'get',
     params: {
-      export_format: options.exportFormat || 'html',
+      export_format: exportFormat,
       include_details: options.includeDetails !== undefined ? options.includeDetails : true,
       include_attachments: options.includeAttachments !== undefined ? options.includeAttachments : false,
       include_failure_details: options.includeFailureDetails !== undefined ? options.includeFailureDetails : true,

@@ -362,9 +362,9 @@ const handleDiagnose = async () => {
     }
 
     // 如果有executionData，传递executionId给后端
-    // 后端DTO使用 @JsonProperty("execution_id")，所以发送 execution_id
+    // 后端DTO使用 executionId，所以发送 executionId
     if (props.executionData && props.executionData.executionId) {
-      requestData.execution_id = props.executionData.executionId
+      requestData.executionId = props.executionData.executionId
     }
 
     // 添加错误信息和错误日志
@@ -373,6 +373,47 @@ const handleDiagnose = async () => {
     }
     if (errorLog.value.trim()) {
       requestData.error_log = errorLog.value
+    }
+
+    // 如果有executionData，提取更多诊断相关字段（与ExecutionResult.vue保持一致）
+    if (props.executionData) {
+      const data = props.executionData
+      // 失败消息
+      if (data.failureMessage || data.errorMessage) {
+        requestData.failureMessage = data.failureMessage || data.errorMessage
+      }
+      // 失败类型
+      if (data.failureType) {
+        requestData.failureType = data.failureType
+      }
+      // HTTP响应状态码
+      if (data.responseStatus || data.response_status) {
+        requestData.responseStatus = data.responseStatus || data.response_status
+      }
+      // 响应体
+      if (data.responseBody || data.response_body) {
+        requestData.responseBody = data.responseBody || data.response_body
+      }
+      // API路径
+      if (data.apiPath || data.api_path) {
+        requestData.apiPath = data.apiPath || data.api_path
+      }
+      // API方法
+      if (data.apiMethod || data.api_method) {
+        requestData.apiMethod = data.apiMethod || data.api_method
+      }
+      // 用例名称
+      if (data.caseName || data.case_name || data.scopeName) {
+        requestData.caseName = data.caseName || data.case_name || data.scopeName
+      }
+      // 批量测试用例结果
+      if (data.caseResults && data.caseResults.length > 0) {
+        requestData.caseResults = data.caseResults
+      }
+      // 报告ID（作为后备查询方案）
+      if (data.reportId) {
+        requestData.reportId = data.reportId
+      }
     }
 
     // 如果是性能诊断，添加性能数据
