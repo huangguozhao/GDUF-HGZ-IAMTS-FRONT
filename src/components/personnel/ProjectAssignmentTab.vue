@@ -43,6 +43,8 @@
             :role-changing-ids="roleChangingIds"
             :deleting-ids="deletingIds"
             :can-modify-role="canModifyRole"
+            :can-delete-member="canDeleteMember"
+            :current-user-project-role="currentUserProjectRole"
             @role-change="handleRoleChange"
             @remove-member="handleRemoveMember"
           />
@@ -180,6 +182,18 @@ const canModifyRole = computed(() => {
   // owner 和 manager 可以修改
   if (currentUserProjectRole.value === 'owner' || currentUserProjectRole.value === 'manager') return true;
   // 其他角色（developer, tester, viewer）不能修改
+  return false;
+});
+
+// 判断当前用户是否可以删除成员
+const canDeleteMember = computed(() => {
+  // admin 用户可以删除
+  if (userStore.isAdmin) return true;
+  // owner 可以删除任何成员
+  if (currentUserProjectRole.value === 'owner') return true;
+  // manager 可以删除 developer/tester/viewer，但不能删除 owner
+  if (currentUserProjectRole.value === 'manager') return true;
+  // 其他角色（developer, tester, viewer）不能删除
   return false;
 });
 

@@ -41,10 +41,10 @@
           <td class="col-date">{{ user.createTime }}</td>
           <td class="col-action">
             <button 
-              class="btn-delete" 
+              class="btn-delete"
               @click="handleDelete(user)"
-              :disabled="isDeletingId(user.id)"
-              title="删除"
+              :disabled="isDeletingId(user.id) || !canDeleteSpecificMember(user.projectRole)"
+              :title="!canDeleteSpecificMember(user.projectRole) ? '您无权删除此成员' : '删除'"
             >
               <svg class="icon-delete" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                 <path fill="currentColor" d="M360 184h-8c4.4 0 8-3.6 8-8v8h304v-8c0 4.4 3.6 8 8 8h-8v72h72v-80c0-17.7-14.3-32-32-32H360c-17.7 0-32 14.3-32 32v80h72v-72zm504 72H160v60h60v506c0 35.3 28.7 64 64 64h529.2c35.3 0 64-28.7 64-64V316h60v-60zM166 316h652v506c0 17.7-14.3 32-32 32H198c-17.7 0-32-14.3-32-32V316zm192 88c0-4.4-3.6-8-8-8h-16c-4.4 0-8 3.6-8 8v250c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8V404zm96 0c0-4.4-3.6-8-8-8h-16c-4.4 0-8 3.6-8 8v250c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8V404zm96 0c0-4.4-3.6-8-8-8h-16c-4.4 0-8 3.6-8 8v250c0 4.4 3.6 8 8 8h16c4.4 0 8-3.6 8-8V404z"></path>
@@ -78,12 +78,36 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // 当前用户是否可以删除成员（admin/owner 为 true，manager 为 true 但有限制）
+  canDeleteMember: {
+    type: Boolean,
+    default: false,
+  },
+  // 当前用户在项目中的角色
+  currentUserProjectRole: {
+    type: String,
+    default: null,
+  },
 });
 
 const emit = defineEmits(['role-change', 'remove-member']);
 
 import { ref } from 'vue'
+import { useUserStore } from '@/stores/useUserStore'
+const userStore = useUserStore()
 const activeRoleDropdownId = ref(null)
+
+// 判断当前用户是否可以删除某个特定成员
+const canDeleteSpecificMember = (targetUserRole) => {
+  // 如果当前用户没有删除权限，直接返回 false
+  if (!props.canDeleteMember) return false;
+  // 如果当前用户是 admin 或 owner，可以删除任何成员
+  if (userStore.isAdmin || props.currentUserProjectRole === 'owner') return true;
+  // 如果当前用户是 manager，不能删除 owner
+  if (props.currentUserProjectRole === 'manager' && targetUserRole === 'owner') return false;
+  // manager 可以删除 developer/tester/viewer
+  return true;
+};
 
 const isRoleChanging = (userId) => {
   return props.roleChangingIds.has(userId);
