@@ -4704,7 +4704,7 @@ const loadProjectTree = async () => {
       }
     } else {
       // 管理员可以看到所有项目
-      const projectsRes = await getProjects({ pageSize: 100 })
+    const projectsRes = await getProjects({ pageSize: 100 })
       if (projectsRes.code === 1 && projectsRes.data?.items) {
         projectList = projectsRes.data.items
       }
