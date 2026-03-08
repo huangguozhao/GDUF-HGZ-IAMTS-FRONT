@@ -2216,7 +2216,7 @@ onMounted(() => {
 /* 报告详情对话框 */
 .report-detail-dialog :deep(.el-dialog__body) {
   padding: 24px;
-  max-height: 80vh;
+  max-height: 85vh;
   overflow-y: auto;
 }
 
@@ -2354,6 +2354,10 @@ onMounted(() => {
 /* 标签页样式 */
 .detail-tabs {
   margin-top: 24px;
+}
+
+.detail-tabs :deep(.el-tab-pane) {
+  min-height: 400px;
 }
 
 .detail-tabs :deep(.el-tabs__header) {
@@ -2532,34 +2536,59 @@ onMounted(() => {
 
 /* 测试用例详情样式 */
 .case-details-container {
-  padding: 16px 0;
+  padding: 12px 0;
+  min-height: 300px;
 }
 
 .case-filter-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
   border-bottom: 1px solid #ebeef5;
 }
 
 .case-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 600px;
-  overflow-y: auto;
+  gap: 8px;
+  max-height: none;
+  overflow-y: visible;
+  scrollbar-width: thin;
+  scrollbar-color: #c0c4cc #f5f7fa;
+}
+
+.case-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.case-list::-webkit-scrollbar-track {
+  background: #f5f7fa;
+  border-radius: 4px;
+}
+
+.case-list::-webkit-scrollbar-thumb {
+  background: #c0c4cc;
+  border-radius: 4px;
+}
+
+.case-list::-webkit-scrollbar-thumb:hover {
+  background: #909399;
 }
 
 .case-item {
   border: 1px solid #e4e7ed;
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: hidden;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
 }
 
 .case-item:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .case-item.case-status-passed {
@@ -2580,11 +2609,13 @@ onMounted(() => {
 
 .case-item-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
   cursor: pointer;
   background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+  min-height: 50px;
 }
 
 .case-item-header:hover {
@@ -2593,8 +2624,8 @@ onMounted(() => {
 
 .case-status-icon {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2606,22 +2637,23 @@ onMounted(() => {
 }
 
 .case-item-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   color: #303133;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.4;
 }
 
 .case-item-code {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
   font-family: 'Monaco', 'Menlo', monospace;
-  margin-top: 2px;
+  margin-top: 4px;
   display: flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .case-tag {
@@ -2636,21 +2668,22 @@ onMounted(() => {
 
 .case-item-meta {
   display: flex;
-  align-items: center;
-  gap: 12px;
+  align-items: flex-start;
+  gap: 8px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .case-duration {
-  font-size: 13px;
+  font-size: 12px;
   color: #606266;
   font-weight: 500;
 }
 
 .case-response-status {
-  font-size: 12px;
+  font-size: 11px;
   color: #909399;
-  padding: 2px 8px;
+  padding: 1px 6px;
   background: #f5f7fa;
   border-radius: 4px;
 }
@@ -2658,33 +2691,34 @@ onMounted(() => {
 .case-item-toggle {
   color: #c0c4cc;
   transition: transform 0.3s ease;
+  font-size: 14px;
 }
 
 .case-item-detail {
-  padding: 16px;
+  padding: 12px;
   background: #fafafa;
   border-top: 1px solid #ebeef5;
 }
 
 .case-basic-info {
-  margin-bottom: 16px;
-  padding: 12px;
+  margin-bottom: 8px;
+  padding: 6px;
   background: #f5f7fa;
-  border-radius: 8px;
+  border-radius: 4px;
 }
 
 .case-info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 8px;
-  margin-top: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+  margin-top: 6px;
 }
 
 .case-info-grid .info-item {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: 12px;
 }
 
 .case-info-grid .info-label {
@@ -2695,13 +2729,14 @@ onMounted(() => {
 .case-info-grid .info-value {
   color: #303133;
   font-weight: 500;
+  font-size: 11px;
 }
 
 .case-failure-info,
 .case-failure-type,
 .case-parameters,
 .case-steps {
-  margin-bottom: 16px;
+  margin-bottom: 6px;
 }
 
 .case-failure-info .detail-label,
@@ -2710,11 +2745,11 @@ onMounted(() => {
 .case-steps .detail-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 4px;
+  font-size: 12px;
   font-weight: 500;
   color: #606266;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .case-failure-info .detail-label .el-icon {
@@ -2726,21 +2761,23 @@ onMounted(() => {
 }
 
 .failure-message {
-  margin: 8px 0 0 0;
-  padding: 12px;
+  margin: 6px 0 0 0;
+  padding: 8px;
   background: #1e1e1e;
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
-  font-size: 13px;
+  font-size: 12px;
   color: #e6a23c;
   white-space: pre-wrap;
   word-break: break-all;
-  line-height: 1.5;
+  line-height: 1.4;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .error-code {
-  margin-left: 12px;
-  font-size: 12px;
+  margin-left: 8px;
+  font-size: 11px;
   color: #909399;
 }
 
@@ -2754,28 +2791,28 @@ onMounted(() => {
   color: #f56c6c;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 200px;
+  max-height: 500px;
   overflow-y: auto;
   line-height: 1.5;
 }
 
 .case-json-content {
-  margin: 8px 0 0 0;
-  padding: 12px;
+  margin: 6px 0 0 0;
+  padding: 8px;
   background: #f5f7fa;
-  border-radius: 6px;
+  border-radius: 4px;
   font-family: 'Monaco', 'Menlo', 'Ubuntu', monospace;
-  font-size: 12px;
+  font-size: 11px;
   color: #606266;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 200px;
+  max-height: 400px;
   overflow-y: auto;
 }
 
 .case-attachments {
-  margin-top: 12px;
-  padding-top: 12px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px dashed #ebeef5;
 }
 
@@ -2788,14 +2825,15 @@ onMounted(() => {
 .detail-label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 500;
   color: #606266;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .detail-label .el-icon {
   color: #409eff;
+  font-size: 12px;
 }
 </style>
