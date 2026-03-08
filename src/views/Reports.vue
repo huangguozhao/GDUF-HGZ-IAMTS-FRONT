@@ -289,6 +289,17 @@
           </template>
         </el-table-column>
 
+        <el-table-column label="测试人员" width="120" align="center">
+          <template #default="{ row }">
+            <div v-if="row.executorName" class="executor-cell">
+              <span class="executor-name">{{ row.executorName }}</span>
+              <span v-if="row.executorEmail" class="executor-email">{{ row.executorEmail }}</span>
+            </div>
+            <span v-else-if="row.executorId" class="text-gray">ID:{{ row.executorId }}</span>
+            <span v-else class="text-gray">-</span>
+          </template>
+        </el-table-column>
+
         <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="{ row }">
             <div class="action-buttons">
@@ -444,6 +455,14 @@
               </el-descriptions-item>
               <el-descriptions-item label="执行耗时">
                 <el-tag type="info" size="small">{{ formatDuration(currentReport.duration) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="测试人员">
+                <div v-if="currentReport.executorName">
+                  <div>{{ currentReport.executorName }}</div>
+                  <div v-if="currentReport.executorEmail" class="text-gray" style="font-size: 12px;">{{ currentReport.executorEmail }}</div>
+                </div>
+                <span v-else-if="currentReport.executorId">用户ID: {{ currentReport.executorId }}</span>
+                <span v-else>-</span>
               </el-descriptions-item>
               <el-descriptions-item label="文件格式">
                 {{ currentReport.fileFormat || '-' }}
@@ -1000,6 +1019,10 @@ const transformBackendData = (item) => {
     startTime: item.startTime || item.start_time,
     endTime: item.endTime || item.end_time,
     duration: item.duration,
+    // 执行人信息
+    executorId: item.executorId || item.executor_id,
+    executorName: item.executorName || item.executor_name,
+    executorEmail: item.executorEmail || item.executor_email,
     // 用例统计 - 兼容驼峰和下划线
     totalCases: item.totalCases ?? item.total_cases,
     executedCases: item.executedCases ?? item.executed_cases,
@@ -1878,6 +1901,12 @@ const formatDateTime = (dateTime) => {
 
 const formatDuration = (duration) => {
   if (!duration) return '-'
+  
+  // 如果小于1秒，显示毫秒
+  if (duration < 1000) {
+    return `${duration}ms`
+  }
+  
   const seconds = Math.floor(duration / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
@@ -1948,6 +1977,27 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.text-gray {
+  color: #909399;
+  font-size: 12px;
+}
+
+.executor-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.4;
+}
+
+.executor-cell .executor-name {
+  font-weight: 500;
+}
+
+.executor-cell .executor-email {
+  font-size: 11px;
+  color: #909399;
+}
+
 .reports-container {
   padding: 20px;
   background: #f5f7fa;
