@@ -190,7 +190,7 @@ export function createApi(moduleId, data) {
     requestHeaders: data.request_headers || data.requestHeaders,
     requestBody: data.request_body || data.requestBody,
     requestBodyType: data.request_body_type || data.requestBodyType || 'json',
-    responseBodyType: data.response_body_type || data.responseBodyType || '',
+    responseBodyType: data.response_body_type || data.responseBodyType || 'json',
     description: data.description || '',
     status: data.status || 'active',  // 显式设置为 active（数据库只支持 active/inactive/deprecated）
     version: data.version || '',
@@ -235,7 +235,7 @@ export function updateApi(apiId, data) {
     requestHeaders: data.request_headers || data.requestHeaders,
     requestBody: data.request_body || data.requestBody,
     requestBodyType: data.request_body_type || data.requestBodyType || 'json',
-    responseBodyType: data.response_body_type || data.responseBodyType || '',
+    responseBodyType: data.response_body_type || data.responseBodyType || 'json',
     description: data.description || '',
     status: data.status || 'active',  // 默认为 active（数据库只支持 active/inactive/deprecated）
     version: data.version || '',
