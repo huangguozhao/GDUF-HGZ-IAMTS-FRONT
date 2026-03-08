@@ -338,14 +338,14 @@ export function addProjectMember(projectId, data) {
  * @param {number} projectId - 项目ID
  * @param {number} userId - 用户ID
  * @param {object} data - 更新数据
- * @param {string} data.role - 新角色
+ * @param {string} data.role - 新角色 (owner, manager, developer, tester, viewer)
  */
 export function updateProjectMemberRole(projectId, userId, data) {
   return request({
     url: `/projects/${projectId}/members/${userId}`,
     method: 'put',
     data: {
-      role: data.role
+      projectRole: data.role
     }
   })
 }

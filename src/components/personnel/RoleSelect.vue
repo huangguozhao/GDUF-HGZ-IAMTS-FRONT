@@ -12,38 +12,40 @@
       <svg class="arrow" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z" /></svg>
     </button>
 
-    <div v-if="open" class="dropdown" role="dialog" @click.stop>
-      <div class="dropdown-search" v-if="showSearch">
-        <input v-model="query" type="text" placeholder="搜索角色..." autofocus />
+    <Teleport to="body">
+      <div v-if="open" class="dropdown" role="dialog" :style="dropdownStyle" @click.stop>
+        <div class="dropdown-search" v-if="showSearch">
+          <input v-model="query" type="text" placeholder="搜索角色..." autofocus />
+        </div>
+
+        <ul class="options" role="listbox" :aria-activedescendant="activeId">
+          <template v-for="(opt, idx) in filteredOptions">
+            <li
+              v-if="opt.group"
+              :key="'group-' + opt.group"
+              class="group-label"
+            >{{ opt.group }}</li>
+
+            <li
+              v-else
+              :key="opt.value"
+              class="option-item"
+              :class="{ selected: opt.value === value }"
+              role="option"
+              @click="select(opt.value)"
+            >
+              <div class="option-label">{{ opt.label }}</div>
+              <div class="option-desc" v-if="opt.desc">{{ opt.desc }}</div>
+            </li>
+          </template>
+        </ul>
       </div>
-
-      <ul class="options" role="listbox" :aria-activedescendant="activeId">
-        <template v-for="(opt, idx) in filteredOptions">
-          <li
-            v-if="opt.group"
-            :key="'group-' + opt.group"
-            class="group-label"
-          >{{ opt.group }}</li>
-
-          <li
-            v-else
-            :key="opt.value"
-            class="option-item"
-            :class="{ selected: opt.value === value }"
-            role="option"
-            @click="select(opt.value)"
-          >
-            <div class="option-label">{{ opt.label }}</div>
-            <div class="option-desc" v-if="opt.desc">{{ opt.desc }}</div>
-          </li>
-        </template>
-      </ul>
-    </div>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 
 const props = defineProps({
   value: { type: [String, Number], default: '' },
@@ -66,6 +68,19 @@ const filteredOptions = computed(() => {
   const q = query.value.trim().toLowerCase()
   if (!q) return props.options
   return props.options.filter(o => (o.label || '').toLowerCase().includes(q) || (o.desc||'').toLowerCase().includes(q) || (o.group||'').toLowerCase().includes(q))
+})
+
+// 计算下拉框位置
+const dropdownStyle = computed(() => {
+  if (!root.value) return {}
+  const rect = root.value.getBoundingClientRect()
+  return {
+    position: 'fixed',
+    top: `${rect.bottom + 8}px`,
+    left: `${rect.left}px`,
+    minWidth: `${rect.width}px`,
+    zIndex: 99999
+  }
 })
 
 function toggle() {
@@ -103,7 +118,7 @@ watch(() => props.options, () => {
 </script>
 
 <style scoped>
-.role-select-root { position: relative; display: inline-block; min-width: 140px; }
+.role-select-root { position: relative; display: inline-block; min-width: 140px; z-index: 10000; }
 .role-toggle {
   display: inline-flex;
   align-items: center;
@@ -128,7 +143,7 @@ watch(() => props.options, () => {
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 14px 40px rgba(15,23,42,0.08);
-  z-index: 60;
+  z-index: 9999;
   max-height: 280px;
   overflow: auto;
   padding: 8px;

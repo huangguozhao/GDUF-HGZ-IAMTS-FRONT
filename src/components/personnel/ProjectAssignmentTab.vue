@@ -69,8 +69,8 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue';
-import { getProjectMembers, addProjectMember } from '@/api/project';
-import { removeUserFromProject, updateUserProject } from '@/api/personnel';
+import { getProjectMembers, addProjectMember, updateProjectMemberRole } from '@/api/project';
+import { removeUserFromProject } from '@/api/personnel';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
@@ -343,8 +343,8 @@ const handleRoleChange = async (user, newRole) => {
   roleChangingIds.value.add(user.id);
 
   try {
-    await updateUserProject(user.id, selectedProjectId.value, {
-      projectRole: newProjectRole,
+    await updateProjectMemberRole(selectedProjectId.value, user.id, {
+      role: newProjectRole,
     });
     
     // 更新成功后重新加载项目成员列表以确保数据同步

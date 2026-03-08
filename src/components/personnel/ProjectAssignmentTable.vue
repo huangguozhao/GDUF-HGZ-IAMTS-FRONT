@@ -172,6 +172,7 @@ const roleOptions = [
   padding: 12px 16px;
   border-bottom: 1px solid #e8e8e8;
   color: #262626;
+  overflow: visible;
 }
 
 .user-row {
@@ -179,6 +180,7 @@ const roleOptions = [
   border-radius: 8px;
   position: relative;
   z-index: 1;
+  overflow: visible !important;
 }
 .user-row:hover {
   transform: translateY(-6px);
@@ -234,6 +236,8 @@ const roleOptions = [
   position: relative;
   display: inline-block;
   width: 100%;
+  overflow: visible;
+  z-index: 100;
 }
 
 .role-select {

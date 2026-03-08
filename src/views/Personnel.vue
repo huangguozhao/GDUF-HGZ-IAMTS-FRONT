@@ -201,7 +201,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, defineAsyncComponent, computed } from 'vue';
+import { ref, reactive, onMounted, defineAsyncComponent, computed, watch } from 'vue';
 import { getUserList, createUser, updateUser, updateUserStatus, deleteUser } from '@/api/user';
 import { getUserProjects, updateUserProjects } from '@/api/personnel';
 import { getProjects } from '@/api/project';
@@ -222,7 +222,8 @@ import AssignProjectModal from '@/components/personnel/AssignProjectModal.vue';
 import FilterModal from '@/components/personnel/FilterModal.vue';
 
 const searchKeyword = ref('');
-const activeTab = ref('users');
+// 非管理员默认显示项目分配标签页
+const activeTab = ref(userStore.isAdmin ? 'users' : 'projects');
 const pagination = reactive({ currentPage: 1, pageSize: 6, total: 0 });
 const userList = ref([]);
 const loading = ref(false);
@@ -283,17 +284,44 @@ const normalizeProjectList = (payload = {}) => {
     .filter(item => item.id);
 };
 
+// 规范化用户项目列表（从用户项目接口返回）
+const normalizeUserProjectList = (payload = {}) => {
+  const items = (payload && Array.isArray(payload.items) && payload.items) || [];
+  return items
+    .map((p) => ({
+      id: p.projectId,
+      // 后端返回的项目信息在 projectInfo 对象中
+      name: p.projectInfo?.name || p.projectName || '',
+      description: p.projectInfo?.description || p.projectDescription || '',
+    }))
+    .filter(item => item.id);
+};
+
+// 获取当前用户ID（后端返回的是 userId 驼峰格式）
+const currentUserId = computed(() => userStore.userInfo?.userId);
+
 const fetchProjectOptions = async () => {
   projectOptionsLoading.value = true;
   try {
-    const resp = await getProjects({
-      page: 1,
-      pageSize: 20,
-      includeDeleted: false,
-      sortBy: 'created_at',
-      sortOrder: 'desc',
-    });
-    projectOptions.value = normalizeProjectList(resp?.data);
+    // 非管理员用户只能看到自己所属的项目
+    if (!userStore.isAdmin && currentUserId.value) {
+      const resp = await getUserProjects(currentUserId.value, {
+        page: 1,
+        pageSize: 100,
+        status: 'active'
+      });
+      projectOptions.value = normalizeUserProjectList(resp?.data);
+    } else {
+      // 管理员可以看到所有项目
+      const resp = await getProjects({
+        page: 1,
+        pageSize: 20,
+        includeDeleted: false,
+        sortBy: 'created_at',
+        sortOrder: 'desc',
+      });
+      projectOptions.value = normalizeProjectList(resp?.data);
+    }
   } catch (e) {
     console.error('获取项目列表失败:', e);
     projectOptions.value = [];
@@ -576,7 +604,17 @@ const handleRemoveMember = async ({ user, projectId, success, error }) => {
   }
 };
 
-onMounted(fetchUsers);
+onMounted(() => {
+  fetchUsers();
+  fetchProjectOptions();
+});
+
+// 监听管理员权限变化，管理员切换到用户管理标签页
+watch(() => userStore.isAdmin, (newIsAdmin) => {
+  if (newIsAdmin && activeTab.value === 'projects') {
+    activeTab.value = 'users';
+  }
+});
 </script>
 
 <style scoped>
