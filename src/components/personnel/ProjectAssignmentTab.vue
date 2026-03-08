@@ -84,7 +84,11 @@ import AddProjectMemberModal from './AddProjectMemberModal.vue';
 import { TableSkeleton } from '@/components/ui/skeletons';
 
 const userStore = useUserStore();
-const currentUserId = computed(() => userStore.userInfo?.user_id || userStore.userInfo?.id);
+// 确保 userId 字段名称正确（后端返回 camelCase: userId）
+const currentUserId = computed(() => {
+  const uid = userStore.userInfo?.userId || userStore.userInfo?.id || userStore.userInfo?.user_id;
+  return uid ? Number(uid) : null;
+});
 
 const props = defineProps({
   // 保留原有 props 以兼容父组件，项目成员列表由本组件通过项目成员分页接口加载
@@ -278,9 +282,10 @@ const loadProjectMembers = async () => {
     members.value = list;
     membersTotal.value = total;
 
-    // 查找当前用户在项目中的角色
-    const currentUserMember = list.find(m => m.userId === currentUserId.value);
+    // 查找当前用户在项目中的角色（确保类型一致）
+    const currentUserMember = list.find(m => Number(m.userId) === currentUserId.value);
     currentUserProjectRole.value = currentUserMember?.projectRole || null;
+    console.log('[ProjectAssignmentTab] 当前用户ID:', currentUserId.value, '项目角色:', currentUserProjectRole.value);
 
     membersCountMap.value = {
       ...(membersCountMap.value || {}),
