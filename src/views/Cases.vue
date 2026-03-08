@@ -1864,6 +1864,10 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 
 // 组件卸载标志，用于防止组件卸载后异步更新
 const isMounted = ref(true)
+
+// 用户 store
+const userStore = useUserStore()
+const currentUserId = computed(() => userStore.userInfo?.userId)
 import {
   CircleCheckFilled,
   CircleCloseFilled,
@@ -1926,6 +1930,8 @@ import {
 } from '../api/testCase'
 import { diagnose, getDiagnosisResult } from '../api/diagnosis'
 import { updateReportName } from '../api/report'
+import { getUserProjects } from '../api/personnel'
+import { useUserStore } from '@/stores/useUserStore'
 import {
   transformProject,
   transformModule,
@@ -4674,18 +4680,38 @@ const loadProjectTree = async () => {
   
   loading.value = true
   try {
-    // 只获取项目列表，不预加载模块、接口和测试用例
-    const projectsRes = await getProjects({ pageSize: 100 })
+    let projectList = []
+    
+    // 非管理员用户只能看到自己所属的项目
+    if (!userStore.isAdmin && currentUserId.value) {
+      const userProjectsRes = await getUserProjects(currentUserId.value, { 
+        page: 1, 
+        pageSize: 100,
+        status: 'active'
+      })
+      if (userProjectsRes.code === 1 && userProjectsRes.data?.items) {
+        // 从返回数据中提取项目信息
+        projectList = userProjectsRes.data.items.map(item => ({
+          projectId: item.projectId,
+          name: item.projectInfo?.name || item.projectName,
+          description: item.projectInfo?.description || item.projectDescription,
+          projectType: item.projectInfo?.projectType || item.projectType,
+          status: item.projectInfo?.status || item.status,
+          creatorId: item.projectInfo?.creatorId || item.creatorId,
+          createdAt: item.projectInfo?.createdAt || item.createdAt,
+          updatedAt: item.projectInfo?.updatedAt || item.updatedAt
+        }))
+      }
+    } else {
+      // 管理员可以看到所有项目
+      const projectsRes = await getProjects({ pageSize: 100 })
+      if (projectsRes.code === 1 && projectsRes.data?.items) {
+        projectList = projectsRes.data.items
+      }
+    }
     
     // 检查组件是否仍然挂载
     if (!isMounted.value) return
-    
-    if (projectsRes.code !== 1) {
-      ElMessage.error(projectsRes.msg || '加载项目失败')
-      return
-    }
-    
-    const projectList = projectsRes.data.items || []
     
     // 转换项目数据，但不加载子级数据
     projects.value = projectList.map(project => ({
