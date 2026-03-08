@@ -16,7 +16,7 @@
         <p class="page-subtitle">管理系统用户和项目成员分配</p>
       </div>
       <div class="header-right">
-        <button class="btn btn-primary btn-lg" @click="openCreateUserModal">
+        <button v-if="userStore.isAdmin" class="btn btn-primary btn-lg" @click="openCreateUserModal">
           <svg class="btn-icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
             <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm192 408c0 4.4-3.6 8-8 8H328c-4.4 0-8-3.6-8-8v-48c0-4.4 3.6-8 8-8h168c1.3 0 2.5-.3 3.7-.9 1.1-.5 2.1-1.2 3-2.1 1.6-1.6 3.1-3.5 4.3-5.5.6-1 .6-2.3 0-3.3-.6-1-1.5-1.9-2.5-2.6-1.8-1.3-3.9-2-6.1-2H328c-17.7 0-32 14.3-32 32v48c0 17.7 14.3 32 32 32h368c17.7 0 32-14.3 32-32v-48z"/>
           </svg>

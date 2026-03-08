@@ -4,7 +4,7 @@
       <h2 class="header-title">{{ title }}</h2>
       <p class="header-subtitle">{{ memberCount }}名团队成员</p>
     </div>
-    <button class="btn-add-member" @click="handleAddMember">
+    <button v-if="canAddMember" class="btn-add-member" @click="handleAddMember">
       <svg class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
         <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm192 472H520v184h-16V536H312v-16h192V328h16v192h184v16z"></path>
       </svg>
@@ -19,6 +19,11 @@ const props = defineProps({
   memberCount: {
     type: Number,
     default: 0,
+  },
+  // 当前用户是否可以添加成员（admin/owner/manager 为 true）
+  canAddMember: {
+    type: Boolean,
+    default: false,
   },
 });
 

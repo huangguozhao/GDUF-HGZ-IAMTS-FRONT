@@ -13,6 +13,7 @@
         <ProjectAssignmentHeader 
           :title="currentProjectName"
           :member-count="membersTotal"
+          :can-add-member="canAddMember"
           @add-member="handleAddMember"
         />
 
@@ -28,8 +29,8 @@
               <path fill="currentColor" d="M512 544c141.4 0 256-114.6 256-256S653.4 32 512 32 256 146.6 256 288s114.6 256 256 256zm0 64C353.1 608 64 688.5 64 848v96h896v-96c0-159.5-289.1-240-448-240z"/>
             </svg>
             <p class="empty-title">该项目暂无成员</p>
-            <p class="empty-description">点击右上角"添加成员"按钮，为项目添加团队成员</p>
-            <button class="empty-action-btn" @click="handleAddMember">
+            <p class="empty-description" v-if="canAddMember">点击右上角"添加成员"按钮，为项目添加团队成员</p>
+            <button v-if="canAddMember" class="empty-action-btn" @click="handleAddMember">
               <svg class="icon" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
                 <path fill="currentColor" d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm192 472H520v184h-16V536H312v-16h192V328h16v192h184v16z"></path>
               </svg>
@@ -195,6 +196,11 @@ const canDeleteMember = computed(() => {
   if (currentUserProjectRole.value === 'manager') return true;
   // 其他角色（developer, tester, viewer）不能删除
   return false;
+});
+
+// 判断当前用户是否可以添加成员（与修改角色权限相同：admin/owner/manager）
+const canAddMember = computed(() => {
+  return canModifyRole.value;
 });
 
 // 将后端返回的英文项目角色转换为中文显示
