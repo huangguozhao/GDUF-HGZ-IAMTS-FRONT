@@ -42,6 +42,7 @@
             :user-list="members"
             :role-changing-ids="roleChangingIds"
             :deleting-ids="deletingIds"
+            :can-modify-role="canModifyRole"
             @role-change="handleRoleChange"
             @remove-member="handleRemoveMember"
           />
@@ -71,12 +72,16 @@
 import { ref, computed, watch } from 'vue';
 import { getProjectMembers, addProjectMember, updateProjectMemberRole } from '@/api/project';
 import { removeUserFromProject } from '@/api/personnel';
+import { useUserStore } from '@/stores/useUserStore';
 import ProjectAssignmentHeader from './ProjectAssignmentHeader.vue';
 import ProjectAssignmentTable from './ProjectAssignmentTable.vue';
 import ProjectAssignmentPagination from './ProjectAssignmentPagination.vue';
 import ProjectList from './ProjectList.vue';
 import AddProjectMemberModal from './AddProjectMemberModal.vue';
 import { TableSkeleton } from '@/components/ui/skeletons';
+
+const userStore = useUserStore();
+const currentUserId = computed(() => userStore.userInfo?.user_id || userStore.userInfo?.id);
 
 const props = defineProps({
   // 保留原有 props 以兼容父组件，项目成员列表由本组件通过项目成员分页接口加载
@@ -165,6 +170,18 @@ const membersTotal = ref(0);
 const membersLoading = ref(false);
 // 记录每个项目的成员数量，用于左侧项目卡片展示
 const membersCountMap = ref({});
+// 当前用户在当前项目中的角色（用于判断是否可以修改其他成员角色）
+const currentUserProjectRole = ref(null);
+
+// 判断当前用户是否可以修改其他成员角色
+const canModifyRole = computed(() => {
+  // admin 用户可以修改
+  if (userStore.isAdmin) return true;
+  // owner 和 manager 可以修改
+  if (currentUserProjectRole.value === 'owner' || currentUserProjectRole.value === 'manager') return true;
+  // 其他角色（developer, tester, viewer）不能修改
+  return false;
+});
 
 // 将后端返回的英文项目角色转换为中文显示
 const translateProjectRole = (projectRole) => {
@@ -210,11 +227,13 @@ const normalizeProjectMembers = (payload = {}) => {
     const user = item.userInfo || {};
     return {
       id: item.userId ?? item.memberId ?? item.id,
+      userId: item.userId, // 保留 userId 用于匹配当前用户
       name: user.name || item.userName || item.name || '未知用户',
       email: user.email || item.email || '',
       avatar: user.avatarUrl || item.avatarUrl || item.avatar || '',
       // 优先使用项目角色（projectRole），并转换为中文显示
       role: translateProjectRole(item.projectRole) || user.position || item.role || '成员',
+      projectRole: item.projectRole, // 保留英文角色名
       createTime: item.joinTime ? new Date(item.joinTime).toLocaleDateString() : '',
       avatarError: false,
     };
@@ -238,6 +257,11 @@ const loadProjectMembers = async () => {
     const { list, total } = normalizeProjectMembers(resp?.data);
     members.value = list;
     membersTotal.value = total;
+
+    // 查找当前用户在项目中的角色
+    const currentUserMember = list.find(m => m.userId === currentUserId.value);
+    currentUserProjectRole.value = currentUserMember?.projectRole || null;
+
     membersCountMap.value = {
       ...(membersCountMap.value || {}),
       [selectedProjectId.value]: total,
@@ -246,6 +270,7 @@ const loadProjectMembers = async () => {
     console.error('获取项目成员失败:', e);
     members.value = [];
     membersTotal.value = 0;
+    currentUserProjectRole.value = null;
   } finally {
     membersLoading.value = false;
   }

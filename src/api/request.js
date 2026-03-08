@@ -159,6 +159,13 @@ request.interceptors.response.use(
       return Promise.reject(data)
     }
 
+    // 检测业务层错误（code: 0 表示业务逻辑失败，如权限不足）
+    if (data.code === 0) {
+      console.warn('[request.js] 检测到业务错误:', data.msg)
+      ElMessage.error(data.msg || '操作失败')
+      return Promise.reject(data)
+    }
+
     return data
   },
   error => {

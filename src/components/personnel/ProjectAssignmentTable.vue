@@ -31,7 +31,7 @@
               <RoleSelect
                 :value="user.role"
                 :options="roleOptions"
-                :disabled="isRoleChanging(user.id)"
+                :disabled="!canModifyRole || isRoleChanging(user.id)"
                 @change="val => handleRoleChange(user, val)"
                 @open="() => activeRoleDropdownId = user.id"
                 @close="() => { if (activeRoleDropdownId === user.id) activeRoleDropdownId = null }"
@@ -72,6 +72,11 @@ const props = defineProps({
   deletingIds: {
     type: Set,
     default: () => new Set(),
+  },
+  // 当前用户是否可以修改角色（admin/owner/manager 为 true）
+  canModifyRole: {
+    type: Boolean,
+    default: false,
   },
 });
 
