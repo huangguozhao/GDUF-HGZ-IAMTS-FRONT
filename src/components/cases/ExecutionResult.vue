@@ -109,10 +109,10 @@
               <div class="info-label">通过率</div>
               <div class="info-value highlight">
                 <span :style="{
-                  color: executionResult.successRate >= 90 ? '#67c23a' :
-                         executionResult.successRate >= 70 ? '#e6a23c' : '#f56c6c'
+                  color: (executionResult.successRate ?? 0) >= 90 ? '#67c23a' :
+                         (executionResult.successRate ?? 0) >= 70 ? '#e6a23c' : '#f56c6c'
                 }">
-                  {{ executionResult.successRate.toFixed(1) }}%
+                  {{ (executionResult.successRate ?? 0).toFixed(1) }}%
                 </span>
               </div>
             </div>
@@ -355,11 +355,11 @@
           <div class="stat-item">
             <div class="stat-label">成功率</div>
             <div class="stat-value rate" :class="{
-              'rate-high': executionResult.successRate >= 90,
-              'rate-medium': executionResult.successRate >= 70 && executionResult.successRate < 90,
-              'rate-low': executionResult.successRate < 70
+              'rate-high': (executionResult.successRate ?? 0) >= 90,
+              'rate-medium': (executionResult.successRate ?? 0) >= 70 && (executionResult.successRate ?? 0) < 90,
+              'rate-low': (executionResult.successRate ?? 0) < 70
             }">
-              {{ executionResult.successRate.toFixed(1) }}%
+              {{ (executionResult.successRate ?? 0).toFixed(1) }}%
             </div>
           </div>
         </div>

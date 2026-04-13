@@ -284,8 +284,8 @@
                 </div>
                 <div class="stats-row">
                   <span class="stats-item">总计: {{ row.totalCases }}</span>
-                  <span class="stats-item" :class="getSuccessRateClass(row.successRate)">
-                    {{ row.successRate.toFixed(1) }}%
+                  <span class="stats-item" :class="getSuccessRateClass(row.successRate ?? 0)">
+                    {{ (row.successRate ?? 0).toFixed(1) }}%
                   </span>
                 </div>
               </div>
@@ -546,7 +546,7 @@ const loadExecutionHistory = async () => {
           passedCases: item.passed_cases || item.passedCases,
           failedCases: item.failed_cases || item.failedCases,
           skippedCases: item.skipped_cases || item.skippedCases,
-          successRate: item.success_rate || item.successRate,
+          successRate: item.success_rate ?? item.successRate ?? 0,
           errorMessage: item.error_message || item.errorMessage,
           reportUrl: item.report_url || item.reportUrl
         }))

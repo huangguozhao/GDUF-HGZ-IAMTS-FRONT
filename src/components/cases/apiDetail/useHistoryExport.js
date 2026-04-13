@@ -1,4 +1,4 @@
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { getExecutionRecords, getExecutionRecordById, deleteExecutionRecord, executeTestCase } from '@/api/testCase'
 import { exportToExcel, exportToJson, exportToCsv } from './exportUtils'
@@ -65,9 +65,43 @@ export function useHistoryExport(props, emit, deps = {}) {
     return { start, end }
   }
 
+  // 缓存 API 下的用例 ID 列表
+  let cachedCaseIds = null
+  
+  // 监听 relatedCases 变化，清除缓存
+  watch(() => props.relatedCases, () => {
+    cachedCaseIds = null
+  })
+  
   const loadHistoryRecords = async () => {
     try {
       historyLoading.value = true
+      console.log('=== loadHistoryRecords 被调用 ===')
+      console.log('props.api:', props.api)
+      console.log('props.relatedCases:', props.relatedCases)
+      
+      // 获取当前 API 的 ID
+      const apiId = props.api?.api_id || props.api?.id
+      console.log('apiId:', apiId)
+      
+      // 如果有 relatedCases（来自 props），获取用例 ID 列表
+      if (props.relatedCases && props.relatedCases.length > 0) {
+        console.log('relatedCases 长度:', props.relatedCases.length)
+        cachedCaseIds = props.relatedCases.map(c => c.case_id || c.id).filter(id => id)
+        console.log('cachedCaseIds:', cachedCaseIds)
+      } else {
+        console.log('relatedCases 为空')
+      }
+      
+      // 如果仍然没有用例 ID，尝试从 props 获取
+      if (!cachedCaseIds || cachedCaseIds.length === 0) {
+        console.log('cachedCaseIds 为空，设置空结果')
+        // 如果没有用例，则没有执行历史
+        historyRecords.value = []
+        historyTotal.value = 0
+        return
+      }
+      
       const timeRange = getTimeRange()
       // 转换前端状态值为后端期望的值
       let apiStatus = undefined
@@ -78,10 +112,15 @@ export function useHistoryExport(props, emit, deps = {}) {
           apiStatus = historyFilter.status
         }
       }
-
+      
+      // 如果只有一个用例，直接查询
+      // 如果有多个用例，使用第一个用例 ID（因为执行记录是按用例存储的）
+      const caseId = cachedCaseIds[0]
+      console.log('使用 caseId 查询:', caseId)
+      
       const params = {
-        execution_scope: 'api',
-        ref_id: props.api?.api_id || props.api?.id,
+        execution_scope: 'test_case',
+        ref_id: caseId,
         status: apiStatus,
         start_time_begin: timeRange.start,
         start_time_end: timeRange.end,
@@ -91,9 +130,19 @@ export function useHistoryExport(props, emit, deps = {}) {
         sort_by: 'start_time',
         sort_order: 'desc'
       }
+      console.log('=== loadHistoryRecords 查询参数 ===')
+      console.log('params:', params)
+      console.log('relatedCases:', props.relatedCases)
+      
       const response = await getExecutionRecords(params)
+      console.log('=== loadHistoryRecords 响应 ===')
+      console.log('response:', response)
+      
       if (response.code === 1 && response.data) {
         const { items, total } = response.data
+        console.log('=== items 和 total ===')
+        console.log('items:', items)
+        console.log('total:', total)
         historyRecords.value = items.map(item => ({
           // 处理字段命名兼容（下划线和驼峰）
           id: item.recordId || item.record_id,
@@ -115,7 +164,7 @@ export function useHistoryExport(props, emit, deps = {}) {
           passedCases: item.passedCases || item.passed_cases,
           failedCases: item.failedCases || item.failed_cases,
           skippedCases: item.skippedCases || item.skipped_cases,
-          successRate: item.successRate || item.success_rate,
+          successRate: item.successRate ?? item.success_rate ?? 0,
           errorMessage: item.errorMessage || item.error_message,
           reportUrl: item.reportUrl || item.report_url,
           scopeName: item.scopeName || item.scope_name,
@@ -129,7 +178,6 @@ export function useHistoryExport(props, emit, deps = {}) {
         }))
         historyTotal.value = total
       } else {
-        ElMessage.error(response.msg || '加载执行历史失败')
         historyRecords.value = []
         historyTotal.value = 0
       }
@@ -146,8 +194,12 @@ export function useHistoryExport(props, emit, deps = {}) {
   const filteredHistoryRecords = computed(() => historyRecords.value)
 
   const handleViewHistoryDetail = async (record) => {
+    console.log('=== handleViewHistoryDetail called ===')
+    console.log('record:', record)
     try {
       const response = await getExecutionRecordById(record.recordId)
+      console.log('=== getExecutionRecordById response ===')
+      console.log('response:', response)
       if (response.code === 1 && response.data) {
         const data = response.data
         // 处理字段命名兼容（下划线和驼峰）
@@ -169,7 +221,7 @@ export function useHistoryExport(props, emit, deps = {}) {
           passedCases: data.passedCases || data.passed_cases,
           failedCases: data.failedCases || data.failed_cases,
           skippedCases: data.skippedCases || data.skipped_cases,
-          successRate: data.successRate || data.success_rate,
+          successRate: data.successRate ?? data.success_rate ?? 0,
           reportUrl: data.reportUrl || data.report_url,
           errorMessage: data.errorMessage || data.error_message,
           browser: data.browser,

@@ -2817,9 +2817,14 @@ const loadModuleApis = async (module, forceRefresh = false) => {
         transformedApi.moduleName = module.name
         
         // 转换测试用例
+        console.log('=== loadModuleApis 处理接口 ===')
+        console.log('api.name:', api.name)
+        console.log('api.testCases:', api.testCases)
         if (api.testCases && Array.isArray(api.testCases)) {
+          console.log('testCases 数组长度:', api.testCases.length)
           transformedApi.cases = api.testCases.map(tc => transformTestCase(tc))
         } else {
+          console.log('testCases 为空或不是数组，设为空数组')
           transformedApi.cases = []
         }
         
