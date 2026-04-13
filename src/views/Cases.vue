@@ -1907,9 +1907,11 @@ import StaggeredReveal from '../components/ui/StaggeredReveal.vue'
 import { ProjectListSkeleton } from '../components/ui/skeletons'
 import {
   getProjects,
+  getProjectStructure,
   getModulesByProject,
   getApisByModule,
   getApiById,
+  getModuleFullData,
   createProject,
   updateProject,
   deleteProject,
@@ -2706,13 +2708,16 @@ const loadModuleApis = async (module, forceRefresh = false) => {
     module._loadingApis = true
     loading.value = true
     
-    const response = await getApisByModule(module.module_id)
+    // 使用新的 getModuleFullData 接口，一次获取接口和用例
+    const response = await getModuleFullData(module.module_id)
     
     // 检查组件是否仍然挂载
     if (!isMounted.value) return
     
     if (response.code === 1) {
-      const apis = response.data.items || []
+      const moduleData = response.data || {}
+      const apis = moduleData.apis || []
+      
       // 转换接口数据并添加到模块中
       module.apis = apis.map(api => {
         const transformedApi = transformApi(api)
@@ -2725,6 +2730,14 @@ const loadModuleApis = async (module, forceRefresh = false) => {
         transformedApi.moduleId = module.module_id
         transformedApi.module_name = module.name
         transformedApi.moduleName = module.name
+        
+        // 转换测试用例
+        if (api.testCases && Array.isArray(api.testCases)) {
+          transformedApi.cases = api.testCases.map(tc => transformTestCase(tc))
+        } else {
+          transformedApi.cases = []
+        }
+        
         return transformedApi
       })
       
@@ -4682,43 +4695,29 @@ const loadProjectTree = async () => {
   try {
     let projectList = []
     
-    // 非管理员用户只能看到自己所属的项目
-    if (!userStore.isAdmin && currentUserId.value) {
-      const userProjectsRes = await getUserProjects(currentUserId.value, { 
-        page: 1, 
-        pageSize: 100,
-        status: 'active'
-      })
-      if (userProjectsRes.code === 1 && userProjectsRes.data?.items) {
-        // 从返回数据中提取项目信息
-        projectList = userProjectsRes.data.items.map(item => ({
-          projectId: item.projectId,
-          name: item.projectInfo?.name || item.projectName,
-          description: item.projectInfo?.description || item.projectDescription,
-          projectType: item.projectInfo?.projectType || item.projectType,
-          status: item.projectInfo?.status || item.status,
-          creatorId: item.projectInfo?.creatorId || item.creatorId,
-          createdAt: item.projectInfo?.createdAt || item.createdAt,
-          updatedAt: item.projectInfo?.updatedAt || item.updatedAt
-        }))
-      }
-    } else {
-      // 管理员可以看到所有项目
-    const projectsRes = await getProjects({ pageSize: 100 })
-      if (projectsRes.code === 1 && projectsRes.data?.items) {
-        projectList = projectsRes.data.items
-      }
+    // 调用新的项目结构接口
+    const response = await getProjectStructure({ page: 1, pageSize: 50 })
+    if (response.code === 1 && response.data?.items) {
+      projectList = response.data.items
     }
     
     // 检查组件是否仍然挂载
     if (!isMounted.value) return
     
-    // 转换项目数据，但不加载子级数据
-    projects.value = projectList.map(project => ({
-      ...transformProject(project),
-      project_id: project.projectId || project.project_id,
-      modules: [] // 初始为空，按需加载
-    }))
+    // 转换项目数据，模块数据也从后端获取（已包含模块树）
+    projects.value = projectList.map(project => {
+      const transformed = transformProject(project)
+      // 如果后端返回了 modules，直接使用 transformModule 转换
+      if (project.modules && Array.isArray(project.modules)) {
+        transformed.modules = project.modules.map(m => transformModule(m, project.name))
+      } else {
+        transformed.modules = []
+      }
+      return {
+        ...transformed,
+        project_id: project.projectId || project.project_id
+      }
+    })
     
     ElMessage.success(`加载了 ${projectList.length} 个项目`)
   } catch (error) {

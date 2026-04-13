@@ -66,10 +66,21 @@ export function transformProject(project) {
   return {
     id: project.projectId || project.project_id, // 兼容两种命名方式
     project_id: project.projectId || project.project_id,
-    name: project.name,
+    name: project.name || project.projectName,
     description: project.description,
+    projectCode: project.projectCode || project.project_code,
+    status: project.status,
     created_time: project.createdAt || project.created_at,
     updated_time: project.updatedAt || project.updated_at,
+    // 统计信息
+    statistics: project.statistics || {
+      moduleCount: project.moduleCount || 0,
+      apiCount: project.apiCount || 0,
+      testCaseCount: project.testCaseCount || 0,
+      passedCount: project.passedCount || 0,
+      failedCount: project.failedCount || 0,
+      notExecutedCount: project.notExecutedCount || 0
+    },
     modules: [] // 默认为空，后续填充
   }
 }
@@ -93,14 +104,22 @@ export function transformModule(module, projectName = null) {
     owner_info: module.ownerInfo || module.owner_info,
     creator_name: module.creatorName || module.creator_name,
     tags: module.tags || [],
-    api_count: module.apiCount || module.api_count || 0,
-    case_count: module.caseCount || module.case_count || 0,
+    api_count: module.apiCount || module.api_count || 
+               (module.statistics ? module.statistics.apiCount : 0) || 0,
+    case_count: module.caseCount || module.case_count || 
+                (module.statistics ? module.statistics.testCaseCount : 0) || 0,
+    passed_count: module.passedCount || module.passed_count || 
+                  (module.statistics ? module.statistics.passedCount : 0) || 0,
+    failed_count: module.failedCount || module.failed_count || 
+                  (module.statistics ? module.statistics.failedCount : 0) || 0,
+    not_executed_count: module.notExecutedCount || module.not_executed_count || 
+                        (module.statistics ? module.statistics.notExecutedCount : 0) || 0,
     level: module.level || 1,
     path: module.path,
     created_time: module.createdAt || module.created_at,
     updated_time: module.updatedAt || module.updated_at,
     apis: [], // 默认为空，后续填充
-    children: [] // 子模块，默认为空
+    children: [] // 子模块，默认为空，后续填充
   }
   
   // 递归处理子模块

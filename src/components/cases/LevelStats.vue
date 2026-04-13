@@ -298,7 +298,14 @@ const loadProjectStatistics = async () => {
     console.warn('无法获取项目ID')
     return
   }
-  
+
+  // 如果已经有内联统计数据，直接使用（不再请求）
+  if (props.node.statistics && props.node.statistics.passedCount !== undefined) {
+    console.log('使用内联项目统计数据:', props.node.statistics)
+    projectStats.value = props.node.statistics
+    return
+  }
+
   try {
     loadingStats.value = true
     console.log('开始加载项目统计数据，项目ID:', projectId)
@@ -328,7 +335,14 @@ const loadModuleStatistics = async () => {
     console.warn('无法获取模块ID')
     return
   }
-  
+
+  // 如果已经有内联统计数据，直接使用（不再请求）
+  if (props.node.statistics && props.node.statistics.passedCount !== undefined) {
+    console.log('使用内联模块统计数据:', props.node.statistics)
+    moduleStats.value = props.node.statistics
+    return
+  }
+
   try {
     loadingModuleStats.value = true
     console.log('开始加载模块统计数据，模块ID:', moduleId)
@@ -415,6 +429,13 @@ const getLevelIcon = () => {
 }
 
 const getChildCount = () => {
+  // 优先使用内联统计数据
+  if (props.level === 'project' && props.node.statistics && props.node.statistics.moduleCount !== undefined) {
+    return props.node.statistics.moduleCount || 0
+  }
+  if (props.level === 'module' && props.node.statistics && props.node.statistics.apiCount !== undefined) {
+    return props.node.statistics.apiCount || 0
+  }
   // 如果是项目层级且有统计数据，使用后端数据
   if (props.level === 'project' && projectStats.value) {
     return projectStats.value.moduleCount || 0
@@ -427,6 +448,10 @@ const getChildCount = () => {
 }
 
 const getTotalCases = () => {
+  // 优先使用内联统计数据
+  if (props.node.statistics && props.node.statistics.testCaseCount !== undefined) {
+    return props.node.statistics.testCaseCount || 0
+  }
   // 如果是项目层级且有统计数据，使用后端数据
   if (props.level === 'project' && projectStats.value) {
     return projectStats.value.testCaseCount || 0
@@ -453,6 +478,10 @@ const getTotalCases = () => {
 }
 
 const getPassedCount = () => {
+  // 优先使用内联统计数据
+  if (props.node.statistics && props.node.statistics.passedCount !== undefined) {
+    return props.node.statistics.passedCount || 0
+  }
   // 如果是项目层级且有统计数据，使用后端数据
   if (props.level === 'project' && projectStats.value) {
     return projectStats.value.passedCount || 0
@@ -483,6 +512,10 @@ const getPassedCount = () => {
 }
 
 const getFailedCount = () => {
+  // 优先使用内联统计数据
+  if (props.node.statistics && props.node.statistics.failedCount !== undefined) {
+    return props.node.statistics.failedCount || 0
+  }
   // 如果是项目层级且有统计数据，使用后端数据
   if (props.level === 'project' && projectStats.value) {
     return projectStats.value.failedCount || 0
@@ -513,6 +546,10 @@ const getFailedCount = () => {
 }
 
 const getNotExecutedCount = () => {
+  // 优先使用内联统计数据
+  if (props.node.statistics && props.node.statistics.notExecutedCount !== undefined) {
+    return props.node.statistics.notExecutedCount || 0
+  }
   // 如果是项目层级且有统计数据，使用后端数据
   if (props.level === 'project' && projectStats.value) {
     return projectStats.value.notExecutedCount || 0

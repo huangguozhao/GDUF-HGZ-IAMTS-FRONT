@@ -65,6 +65,19 @@ export function getProjectStatistics(projectId) {
   })
 }
 
+// 获取项目结构（用例管理专用）
+export function getProjectStructure(params = {}) {
+  const { page = 1, pageSize = 10 } = params || {};
+  return request({
+    url: `${API_PATHS.PROJECTS}/structure`,
+    method: 'get',
+    params: {
+      page,
+      page_size: pageSize
+    }
+  })
+}
+
 // 创建项目
 export function createProject(data) {
   return request({
@@ -164,6 +177,14 @@ export function deleteModule(moduleId) {
 export function getModuleStatistics(moduleId) {
   return request({
     url: `/modules/${moduleId}/statistics`,
+    method: 'get'
+  })
+}
+
+// 获取模块完整数据（包含接口和用例）
+export function getModuleFullData(moduleId) {
+  return request({
+    url: `/modules/${moduleId}/full-data`,
     method: 'get'
   })
 }
