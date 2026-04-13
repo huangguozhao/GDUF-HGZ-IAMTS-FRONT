@@ -2651,15 +2651,51 @@ const handleSelectNode = async (node, level) => {
   else if (level === 'module') {
     await loadModuleApis(node)
   }
-  // 如果是接口，按需加载测试用例
+  // 如果是接口，调用 getApiById 获取完整数据（包括 requestHeaders 等）
   else if (level === 'api') {
-    await loadApiTestCases(node)
+    await loadApiFullData(node)
   }
   // 如果是用例，不需要在这里加载执行历史
   // 执行历史由 CaseDetail 组件自己负责加载
   else if (level === 'case') {
     // 清空之前的执行历史，让子组件重新加载
     executionHistory.value = []
+  }
+}
+
+// 加载 API 完整数据
+const loadApiFullData = async (apiNode) => {
+  if (!isMounted.value) return
+  
+  const apiId = apiNode.api_id || apiNode.id
+  if (!apiId) return
+  
+  try {
+    const response = await getApiById(apiId)
+    if (response.code === 1 && response.data) {
+      const fullApiData = transformApi(response.data)
+      // 保留测试用例等关联数据
+      fullApiData.cases = apiNode.cases || []
+      
+      // 更新 selectedNode
+      selectedNode.value = fullApiData
+      
+      // 更新树中的接口数据
+      projects.value.forEach(project => {
+        if (project.modules) {
+          project.modules.forEach(module => {
+            if (module.apis) {
+              const apiIndex = module.apis.findIndex(a => (a.api_id || a.id) === apiId)
+              if (apiIndex !== -1) {
+                module.apis[apiIndex] = fullApiData
+              }
+            }
+          })
+        }
+      })
+    }
+  } catch (error) {
+    console.error('加载 API 完整数据失败:', error)
   }
 }
 
@@ -2999,7 +3035,13 @@ const updateCurrentApiData = async () => {
       
       if (response.code === 1 && response.data) {
         const apiData = response.data
+        console.log('=== updateCurrentApiData 获取的新数据 ===')
+        console.log('apiData.requestHeaders:', apiData.requestHeaders)
+        console.log('apiData.request_headers:', apiData.request_headers)
         const transformedApi = transformApi(apiData)
+        console.log('=== transformApi 转换后的数据 ===')
+        console.log('transformedApi.requestHeaders:', transformedApi.requestHeaders)
+        console.log('transformedApi.request_headers:', transformedApi.request_headers)
         
         // 保留关联数据（测试用例列表等）
         transformedApi.cases = selectedNode.value.cases || []
@@ -3018,6 +3060,8 @@ const updateCurrentApiData = async () => {
                   Object.assign(module.apis[apiIndex], transformedApi)
                   // 更新当前选中的节点
                   selectedNode.value = module.apis[apiIndex]
+                  console.log('=== selectedNode 更新后的数据 ===')
+                  console.log('selectedNode.value.requestHeaders:', selectedNode.value.requestHeaders)
                   found = true
                 }
               }

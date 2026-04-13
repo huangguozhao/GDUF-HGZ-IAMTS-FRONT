@@ -9,7 +9,7 @@
       <div class="modal-body">
         <div class="modal-grid">
           <div class="left-panel">
-            <div class="panel-card">
+            <div class="panel-card search-card">
               <div class="panel-header">
                 <div class="panel-title">搜索并选择用户</div>
                 <div class="panel-sub">从组织中选择要添加到项目的成员</div>
@@ -168,7 +168,7 @@ watch(
   width: 95%;
   max-width: 900px;
   box-shadow: 0 12px 36px rgba(15, 23, 42, 0.08);
-  max-height: 80vh;
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
@@ -226,6 +226,7 @@ watch(
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 380px;
 }
 .panel-header {
   margin-bottom: 10px;
@@ -236,14 +237,16 @@ watch(
 .panel-header.between { justify-content: space-between; }
 .panel-title { font-size: 15px; font-weight: 600; color:#1f2937; }
 .panel-sub { font-size: 13px; color:#6b7280; }
-.panel-body { flex: 1; overflow: auto; padding-top: 6px; }
-.selected-card .panel-body { max-height: 440px; }
+.panel-body { flex: 1; overflow: auto; padding-top: 6px; min-height: 200px; }
+.selected-card .panel-body { max-height: 460px; }
+.search-card .panel-body { min-height: 220px; position: relative; }
 .btn-clear { background:none; border:1px solid #e6eef8; padding:6px 10px; border-radius:8px; cursor:pointer; color:#475569; }
 .btn-clear:hover { background:#f8fbff; border-color:#cfeeff; }
 
 @media (max-width: 900px) {
   .modal-grid { grid-template-columns: 1fr; }
   .selected-card .panel-body { max-height: 300px; }
+  .panel-card { min-height: 280px; }
 }
 
 .loading {

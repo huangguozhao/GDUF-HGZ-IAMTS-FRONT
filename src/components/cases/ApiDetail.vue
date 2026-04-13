@@ -1987,11 +1987,16 @@ const rawBody = ref('')
 
 // 从API数据初始化请求参数
 const initRequestParams = () => {
+  console.log('=== initRequestParams 被调用 ===')
+  console.log('props.api.requestHeaders:', props.api?.requestHeaders)
+  console.log('props.api.request_headers:', props.api?.request_headers)
+  
   // 初始化Body类型
   bodyType.value = props.api.request_body_type || props.api.requestBodyType || 'json'
   
   // 初始化Headers - 支持两种命名方式
   const headers = props.api.request_headers || props.api.requestHeaders
+  console.log('headers 原始值:', headers)
   if (headers) {
     if (Array.isArray(headers)) {
       // 检查是否是Map数组（如[{name: "Content-Type", value: "application/json"}]）
@@ -2009,13 +2014,18 @@ const initRequestParams = () => {
         }
         return header
       })
+      console.log('headerParams 初始化后:', headerParams.value)
     } else if (typeof headers === 'object') {
       headerParams.value = Object.entries(headers).map(([name, value]) => ({
         name,
         value: typeof value === 'string' ? value : JSON.stringify(value),
         description: ''
       }))
+      console.log('headerParams 初始化后 (object):', headerParams.value)
     }
+  } else {
+    headerParams.value = []
+    console.log('headers 为空，headerParams 设为空数组')
   }
   
   // 初始化Query参数 - 支持两种命名方式
@@ -3346,6 +3356,22 @@ watch(activeTab, (newTab) => {
 watch(() => props.api, () => {
   initRequestParams()
 }, { deep: true, immediate: true })
+
+/**
+ * 专门监听 requestHeaders 变化，用于刷新 Headers 显示
+ */
+watch(() => props.api?.request_headers || props.api?.requestHeaders, (newHeaders) => {
+  console.log('=== requestHeaders 变化检测 ===', newHeaders)
+  if (newHeaders) {
+    headerParams.value = Array.isArray(newHeaders) ? newHeaders.map(h => ({
+      name: h.name || Object.keys(h)[0] || '',
+      value: h.value || h[Object.keys(h)[0]] || '',
+      description: h.description || ''
+    })) : []
+  } else {
+    headerParams.value = []
+  }
+}, { deep: true })
 
 /**
  * 组件挂载时的初始化

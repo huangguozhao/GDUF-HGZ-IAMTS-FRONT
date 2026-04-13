@@ -18,6 +18,11 @@ export function useProjectsModules(props, apiData) {
           id: project.project_id || project.projectId || project.id,
           name: project.name || project.projectName || '未命名项目'
         }))
+
+        // 如果当前有选中项目且模块列表为空，自动加载模块
+        if (apiData.projectId && availableModules.value.length === 0) {
+          loadModules(apiData.projectId)
+        }
       } else {
         availableProjects.value = []
       }

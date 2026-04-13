@@ -5,7 +5,7 @@
         <h3 class="params-title">Headers</h3>
       </div>
       <el-table 
-        :data="headerParams"
+        :data="localHeaderParams"
         class="params-table"
         border
       >
@@ -38,7 +38,7 @@
         <h3 class="params-title">Params</h3>
       </div>
       <el-table 
-        :data="queryParams"
+        :data="localQueryParams"
         class="params-table"
         border
       >
@@ -167,6 +167,10 @@ const props = defineProps({
   bodyType: { type: String, default: 'json' },
   bodyCollapsed: { type: Boolean, default: false }
 })
+
+console.log('=== ApiParamsEditor 初始化 ===')
+console.log('props.headerParams:', props.headerParams)
+
 const emit = defineEmits(['update:headerParams','update:queryParams','update:bodyParams','update:formDataParams','update:rawBody','update:bodyType','update:bodyCollapsed','save-params','format-params'])
 
 // local copies to allow editing then emit updates
@@ -178,7 +182,14 @@ const localRawBody = ref(props.rawBody || '')
 const localBodyType = ref(props.bodyType || 'json')
 const localBodyCollapsed = ref(props.bodyCollapsed || false)
 
-watch(() => props.headerParams, (v) => localHeaderParams.value = JSON.parse(JSON.stringify(v || [])), { deep: true })
+console.log('localHeaderParams 初始化后:', localHeaderParams.value)
+
+watch(() => props.headerParams, (v) => {
+  console.log('=== ApiParamsEditor watch props.headerParams 触发 ===')
+  console.log('new value:', v)
+  localHeaderParams.value = JSON.parse(JSON.stringify(v || []))
+  console.log('localHeaderParams 更新后:', localHeaderParams.value)
+}, { deep: true })
 watch(() => props.queryParams, (v) => localQueryParams.value = JSON.parse(JSON.stringify(v || [])), { deep: true })
 watch(() => props.bodyParams, (v) => localBodyParams.value = JSON.parse(JSON.stringify(v || [])), { deep: true })
 watch(() => props.formDataParams, (v) => localFormDataParams.value = JSON.parse(JSON.stringify(v || [])), { deep: true })
