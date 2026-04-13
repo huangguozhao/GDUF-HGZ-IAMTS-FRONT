@@ -927,28 +927,59 @@
         </template>
 
         <template v-if="dialogType === 'module'">
-          <div class="module-edit-grid">
-            <div class="module-edit-left">
-              <el-form-item label="模块名称" prop="name">
-                <el-input v-model="formData.name" placeholder="请输入模块名称" />
+          <div class="module-create-layout">
+            <!-- 左侧：核心信息 -->
+            <div class="module-form-section primary-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><FolderOpened /></el-icon>
+                <span>基本信息</span>
+              </div>
+
+              <el-form-item label="模块名称" prop="name" class="required-field">
+                <el-input
+                  v-model="formData.name"
+                  placeholder="请输入模块名称，如：用户管理、订单处理"
+                  clearable
+                  size="large"
+                >
+                  <template #prefix>
+                    <el-icon><Edit /></el-icon>
+                  </template>
+                </el-input>
               </el-form-item>
 
               <el-form-item label="模块编码" prop="module_code">
-                <el-input 
-                  v-model="formData.module_code" 
+                <el-input
+                  v-model="formData.module_code"
                   placeholder="留空则自动生成"
                   :disabled="isEdit"
-                />
-                <span class="form-tip" v-if="!isEdit">模块编码在项目内唯一，留空则自动生成</span>
-                <span class="form-tip" v-else>模块编码创建后不可修改</span>
+                  clearable
+                >
+                  <template #prefix>
+                    <el-icon><Key /></el-icon>
+                  </template>
+                  <template #suffix>
+                    <el-tooltip content="模块编码在项目内唯一，用于API路径前缀" placement="top">
+                      <el-icon class="info-icon"><InfoFilled /></el-icon>
+                    </el-tooltip>
+                  </template>
+                </el-input>
+                <div class="field-hint" v-if="!isEdit">
+                  <el-icon><CircleCheck /></el-icon> 留空则自动生成唯一编码
+                </div>
+                <div class="field-warning" v-else>
+                  <el-icon><Warning /></el-icon> 模块编码创建后不可修改
+                </div>
               </el-form-item>
 
               <el-form-item label="模块描述" prop="description">
                 <el-input
                   v-model="formData.description"
                   type="textarea"
-                  :rows="4"
-                  placeholder="请输入模块描述"
+                  :rows="3"
+                  placeholder="简要描述模块的功能和用途..."
+                  maxlength="500"
+                  show-word-limit
                 />
               </el-form-item>
 
@@ -958,54 +989,72 @@
                   multiple
                   filterable
                   allow-create
-                  placeholder="请选择或输入标签"
+                  placeholder="选择或输入标签"
                   style="width: 100%"
+                  collapse-tags
+                  collapse-tags-tooltip
                 >
                   <el-option label="核心功能" value="核心功能" />
                   <el-option label="辅助功能" value="辅助功能" />
                   <el-option label="测试中" value="测试中" />
                   <el-option label="待开发" value="待开发" />
+                  <el-option label="第三方集成" value="第三方集成" />
                 </el-select>
               </el-form-item>
             </div>
 
-            <div class="module-edit-right">
+            <!-- 右侧：附加设置 -->
+            <div class="module-form-section secondary-section">
+              <div class="section-header">
+                <el-icon class="section-icon"><Setting /></el-icon>
+                <span>附加设置</span>
+              </div>
+
               <el-form-item label="模块图标">
-                <div class="cover-area small">
+                <div class="icon-upload-area">
                   <div
                     v-if="moduleIconPreview"
-                    class="cover-preview"
+                    class="icon-preview"
                     :style="{ backgroundImage: 'url(' + moduleIconPreview + ')' }"
-                    role="img"
-                    :aria-label="'模块图标预览 ' + (formData.name || '')"
                   ></div>
-                  <div v-else class="cover-placeholder">图标</div>
-                  <div class="cover-actions">
-                    <label class="upload-btn small">
+                  <div v-else class="icon-placeholder">
+                    <el-icon size="28"><Picture /></el-icon>
+                  </div>
+                  <div class="icon-actions">
+                    <label class="upload-btn">
+                      <el-icon><Upload /></el-icon>
                       上传图标
-                      <input type="file" accept="image/*" @change="handleModuleIconChange" />
+                      <input type="file" accept="image/*" @change="handleModuleIconChange" hidden />
                     </label>
-                    <el-button size="small" @click="clearModuleIcon" :disabled="!moduleIconPreview">移除</el-button>
+                    <el-button
+                      v-if="moduleIconPreview"
+                      @click="clearModuleIcon"
+                      type="danger"
+                      link
+                    >
+                      <el-icon><Delete /></el-icon>
+                    </el-button>
                   </div>
                 </div>
               </el-form-item>
 
               <el-form-item label="排序顺序" prop="sort_order">
-                <el-input-number 
-                  v-model="formData.sort_order" 
-                  :min="0" 
+                <el-input-number
+                  v-model="formData.sort_order"
+                  :min="0"
+                  :max="9999"
                   :step="1"
-                  placeholder="数字越小越靠前"
-                  style="width:100%"
+                  controls-position="right"
+                  style="width: 100%"
                 />
-                <span class="form-tip">用于控制模块在列表中的显示顺序</span>
+                <div class="field-hint">数字越小排序越靠前</div>
               </el-form-item>
 
               <el-form-item label="模块状态" prop="status">
-                <el-select v-model="formData.status" placeholder="请选择状态">
-                  <el-option label="活跃" value="active" />
-                  <el-option label="已归档" value="archived" />
-                  <el-option label="已禁用" value="disabled" />
+                <el-select v-model="formData.status" placeholder="选择状态">
+                  <el-option label="🟢 活跃" value="active" />
+                  <el-option label="📁 已归档" value="archived" />
+                  <el-option label="⏸ 已禁用" value="disabled" />
                 </el-select>
               </el-form-item>
             </div>
@@ -5595,22 +5644,164 @@ onMounted(async () => {
   line-height: 1.4;
 }
 
-/* module edit dialog styles */
-.module-edit-grid {
+/* module create dialog styles */
+.module-create-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 16px;
+  grid-template-columns: 1fr 280px;
+  gap: 24px;
+  padding: 8px 0;
 }
-.module-edit-left { min-width: 0; }
-.module-edit-right { display:flex; flex-direction:column; gap:12px; }
-.cover-area.small { padding:8px; border-radius:8px; border:1px dashed #eef3fb; background:#fbfdff; display:flex; flex-direction:column; align-items:center; gap:8px; }
-.cover-preview { width:72px; height:72px; border-radius:8px; background-size:cover; background-position:center; box-shadow:0 6px 18px rgba(15,23,42,0.06); }
-.cover-placeholder { width:72px; height:72px; border-radius:8px; background:linear-gradient(90deg,#eef3fb,#f8fbff); display:flex; align-items:center; justify-content:center; color:#6b7280; font-weight:600; }
-.cover-actions { display:flex; gap:8px; align-items:center; }
 
-@media (max-width:900px) {
-  .module-edit-grid { grid-template-columns: 1fr; }
-  .module-edit-right { order:-1; }
+.module-form-section {
+  background: #fafbfc;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #f0f2f5;
+}
+
+.secondary-section {
+  background: linear-gradient(135deg, #f8f9fb 0%, #f0f4f8 100%);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.section-icon {
+  font-size: 18px;
+  color: #3b82f6;
+}
+
+.required-field :deep(.el-form-item__label::before) {
+  color: #ef4444;
+  margin-right: 4px;
+}
+
+.field-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #10b981;
+  margin-top: 6px;
+}
+
+.field-hint .el-icon {
+  font-size: 14px;
+}
+
+.field-warning {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #f59e0b;
+  margin-top: 6px;
+}
+
+.field-warning .el-icon {
+  font-size: 14px;
+}
+
+.info-icon {
+  color: #9ca3af;
+  cursor: help;
+  font-size: 14px;
+}
+
+.info-icon:hover {
+  color: #3b82f6;
+}
+
+/* icon upload area */
+.icon-upload-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 10px;
+  border: 1px dashed #d1d5db;
+  transition: all 0.2s;
+}
+
+.icon-upload-area:hover {
+  border-color: #3b82f6;
+  background: #f8faff;
+}
+
+.icon-preview {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.icon-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+}
+
+.icon-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #3b82f6;
+  background: #eff6ff;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-btn:hover {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+/* responsive */
+@media (max-width: 768px) {
+  .module-create-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .secondary-section {
+    order: -1;
+  }
+}
+
+@media (max-width: 900px) {
+  .module-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .module-edit-right {
+    order: -1;
+  }
 }
 
 /* 状态指示行 */
