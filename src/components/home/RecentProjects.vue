@@ -89,26 +89,30 @@ const handleProjectAction = (data) => {
   const { command, project } = data
 
   try {
-    // 执行操作逻辑
+    // 执行操作逻辑 - emit 必须在显示消息之前，以便父组件可以阻止默认行为
     emit('project-action', data)
 
-    // 操作成功反馈
+    // 操作成功反馈 - 这个反馈应该在父组件处理成功后再显示
+    // 注意：对于 delete 命令，不应该在组件内显示"已删除"消息，
+    // 因为实际的删除由父组件处理，这里只负责转发事件
     let message = ''
     switch (command) {
       case 'edit':
         message = `正在编辑项目 "${project.name}"`
+        toast.info(message)
         break
-      case 'delete':
-        message = `项目 "${project.name}" 已删除`
+      case 'view':
+        message = `正在打开项目 "${project.name}"`
+        toast.info(message)
         break
       case 'duplicate':
-        message = `项目 "${project.name}" 已复制`
+        message = `正在复制项目 "${project.name}"`
+        toast.info(message)
         break
       default:
-        message = '操作成功'
+        // 其他命令不显示消息，由父组件决定
+        break
     }
-
-    toast.success(message)
   } catch (error) {
     toast.error('操作失败，请重试')
     console.error('Project action error:', error)

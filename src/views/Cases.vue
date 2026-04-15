@@ -3743,7 +3743,89 @@ const handleDelete = async (node) => {
 }
 
 const handleDeleteProject = async (project) => {
-  handleDelete(project)
+  console.log('=== 删除项目 ===')
+  console.log('项目对象:', project)
+  console.log('当前选中层级:', selectedLevel.value)
+  console.log('当前选中节点:', selectedNode.value)
+  
+  let forceDelete = false
+  
+  try {
+    // 使用自定义消息，包含强制删除选项
+    await ElMessageBox.confirm(
+      `<div>
+        <p>确定要删除项目 <strong>"${project.name}"</strong> 吗？</p>
+        <p style="color: #e6a23c; font-size: 12px; margin-top: 8px;">
+          ⚠️ 注意：如果项目下存在模块、接口、用例等关联数据，将无法直接删除
+        </p>
+        <div style="margin-top: 12px; padding: 8px; background: #fdf6ec; border-radius: 4px;">
+          <label style="cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox" id="forceDeleteCheckbox" />
+            <span style="color: #e6a23c; font-size: 12px;">强制删除（同时删除所有关联数据）</span>
+          </label>
+        </div>
+      </div>`,
+      '删除确认',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+        confirmButtonClass: 'el-button--danger',
+        dangerouslyUseHTMLString: true
+      }
+    )
+    
+    // 检查用户是否勾选了强制删除
+    const checkbox = document.getElementById('forceDeleteCheckbox')
+    if (checkbox) {
+      forceDelete = checkbox.checked
+      console.log('强制删除:', forceDelete)
+    }
+    
+    const projectId = project.project_id || project.projectId || project.id
+    console.log('项目ID:', projectId)
+    
+    if (!projectId) {
+      ElMessage.error('无法获取项目ID')
+      return
+    }
+    
+    if (USE_REAL_API) {
+      const response = await deleteProject(projectId, forceDelete)
+      console.log('删除项目响应:', response)
+      
+      if (response.code === 1) {
+        ElMessage.success(forceDelete ? '项目及关联数据已全部删除' : '项目删除成功')
+        
+        // 如果删除的是当前选中的项目，清空选中状态
+        if (selectedLevel.value === 'project' && 
+            (selectedNode.value?.project_id === projectId || selectedNode.value?.id === projectId)) {
+          selectedNode.value = null
+          selectedLevel.value = null
+        }
+        
+        // 从树中移除该项目
+        const index = projects.value.findIndex(p => 
+          (p.project_id || p.id) === projectId
+        )
+        if (index !== -1) {
+          projects.value.splice(index, 1)
+        }
+        
+        // 重新加载项目树
+        await loadProjectTree()
+      } else {
+        ElMessage.error(response.msg || '删除项目失败')
+      }
+    } else {
+      ElMessage.success('删除成功（演示模式）')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('删除项目失败:', error)
+      ElMessage.error(error.msg || error.message || '删除失败')
+    }
+  }
 }
 
 const handleDeleteModule = async (module) => {

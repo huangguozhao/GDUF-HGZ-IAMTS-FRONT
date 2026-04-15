@@ -85,7 +85,10 @@ export function createProject(data) {
     method: 'post',
     data: {
       name: data.name,
-      description: data.description
+      description: data.description || '',
+      projectType: data.projectType || 'API',
+      status: data.status || 'ACTIVE',
+      avatarUrl: data.avatarUrl || null
     }
   })
 }
@@ -97,16 +100,22 @@ export function updateProject(projectId, data) {
     method: 'put',
     data: {
       name: data.name,
-      description: data.description
+      description: data.description,
+      projectType: data.projectType,
+      status: data.status,
+      avatarUrl: data.avatarUrl
     }
   })
 }
 
 // 删除项目
-export function deleteProject(projectId) {
+export function deleteProject(projectId, forceDelete = false) {
   return request({
     url: `/projects/${projectId}`,
-    method: 'delete'
+    method: 'delete',
+    params: {
+      force_delete: forceDelete
+    }
   })
 }
 
@@ -359,14 +368,18 @@ export function addProjectMember(projectId, data) {
  * @param {number} projectId - 项目ID
  * @param {number} userId - 用户ID
  * @param {object} data - 更新数据
- * @param {string} data.role - 新角色 (owner, manager, developer, tester, viewer)
+ * @param {string} data.projectRole - 新角色 (owner, manager, developer, tester, viewer)
+ * @param {string} data.permissionLevel - 权限级别
+ * @param {string} data.status - 成员状态
  */
 export function updateProjectMemberRole(projectId, userId, data) {
   return request({
     url: `/projects/${projectId}/members/${userId}`,
     method: 'put',
     data: {
-      projectRole: data.role
+      projectRole: data.projectRole || data.role,
+      permissionLevel: data.permissionLevel,
+      status: data.status
     }
   })
 }

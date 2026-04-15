@@ -49,6 +49,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { ElMessageBox } from 'element-plus'
 import Container from '@/components/ui/Container.vue'
 import WelcomeSection from '@/components/home/WelcomeSection.vue'
 import MetricsGrid from '@/components/home/MetricsGrid.vue'
@@ -57,6 +58,7 @@ import ContentSection from '@/components/home/ContentSection.vue'
 import BottomSection from '@/components/home/BottomSection.vue'
 import toast from '@/utils/toast'
 import { getDashboardSummary, getRecentProjects } from '@/api/home'
+import { deleteProject } from '@/api/project'
 
 const router = useRouter()
 const timeRange = ref('7days')
@@ -168,10 +170,35 @@ const handleViewAllProjects = () => {
 }
 
 // 处理项目操作
-const handleProjectAction = ({ command, project }) => {
+const handleProjectAction = async ({ command, project }) => {
   console.log('项目操作:', command, project)
   if (command === 'view') {
     router.push(`/projects/${project.id}`)
+  } else if (command === 'delete') {
+    try {
+      await ElMessageBox.confirm(
+        `确定要删除项目"${project.name}"吗？删除后将无法恢复。`,
+        '删除确认',
+        {
+          confirmButtonText: '确定删除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          confirmButtonClass: 'el-button--danger'
+        }
+      )
+      const response = await deleteProject(project.id)
+      if (response.code === 1) {
+        toast.success('项目删除成功')
+        await loadDashboardData()
+      } else {
+        toast.error(response.msg || '删除失败')
+      }
+    } catch (error) {
+      if (error !== 'cancel') {
+        console.error('删除项目失败:', error)
+        toast.error('删除失败，请稍后重试')
+      }
+    }
   }
 }
 

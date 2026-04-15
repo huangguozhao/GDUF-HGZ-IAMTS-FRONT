@@ -213,12 +213,13 @@ export function executeTestCase(apiId, caseId, executeData = {}) {
     timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
       environment: executeData.environment,
-      base_url: executeData.base_url,
+      baseUrl: executeData.baseUrl || executeData.base_url,
       timeout: executeData.timeout,
-      auth_override: executeData.auth_override,
+      authOverride: executeData.authOverride || executeData.auth_override,
       variables: executeData.variables,
       async: executeData.async || false,
-      callback_url: executeData.callback_url
+      callbackUrl: executeData.callbackUrl || executeData.callback_url,
+      executionType: executeData.executionType || 'manual'
     }
   })
 }
@@ -480,18 +481,18 @@ export function getExecutionRecordsByExecutor(executedBy, limit = 10) {
  * @param {Number} apiId - 接口ID
  * @param {Object} executeData - 执行配置
  * @param {String} executeData.environment - 执行环境标识（如: dev, test, prod）
- * @param {String} executeData.base_url - 覆盖接口的基础URL
+ * @param {String} executeData.baseUrl - 覆盖接口的基础URL
  * @param {Number} executeData.timeout - 全局超时时间（秒）
- * @param {Object} executeData.auth_override - 认证信息覆盖配置
+ * @param {Object} executeData.authOverride - 认证信息覆盖配置
  * @param {Object} executeData.variables - 执行变量，用于参数化测试
  * @param {Boolean} executeData.async - 是否异步执行，默认: false
- * @param {String} executeData.callback_url - 异步执行完成后的回调URL
+ * @param {String} executeData.callbackUrl - 异步执行完成后的回调URL
  * @param {Number} executeData.concurrency - 并发执行数，默认: 3
- * @param {Object} executeData.case_filter - 用例过滤条件
- * @param {String[]} executeData.case_filter.priority - 优先级过滤
- * @param {String[]} executeData.case_filter.tags - 标签过滤
- * @param {Boolean} executeData.case_filter.enabled_only - 是否只执行启用的用例，默认: true
- * @param {String} executeData.execution_order - 执行顺序（priority_desc/priority_asc/name_asc/name_desc）
+ * @param {Object} executeData.caseFilter - 用例过滤条件
+ * @param {String[]} executeData.caseFilter.priority - 优先级过滤
+ * @param {String[]} executeData.caseFilter.tags - 标签过滤
+ * @param {Boolean} executeData.caseFilter.enabledOnly - 是否只执行启用的用例，默认: true
+ * @param {String} executeData.executionOrder - 执行顺序（priority_desc/priority_asc/name_asc/name_desc）
  */
 export function executeApiTest(apiId, executeData = {}) {
   // 根据执行模式设置不同的超时时间
@@ -505,15 +506,15 @@ export function executeApiTest(apiId, executeData = {}) {
     timeout: requestTimeout,  // 覆盖全局超时设置
     data: {
       environment: executeData.environment,
-      base_url: executeData.base_url,
+      baseUrl: executeData.baseUrl || executeData.base_url,
       timeout: executeData.timeout,
-      auth_override: executeData.auth_override,
+      authOverride: executeData.authOverride || executeData.auth_override,
       variables: executeData.variables,
       async: executeData.async || false,
-      callback_url: executeData.callback_url,
+      callbackUrl: executeData.callbackUrl || executeData.callback_url,
       concurrency: executeData.concurrency || 3,
-      case_filter: executeData.case_filter,
-      execution_order: executeData.execution_order || 'priority_desc'
+      caseFilter: executeData.caseFilter || executeData.case_filter,
+      executionOrder: executeData.executionOrder || executeData.execution_order || 'priority_desc'
     }
   })
 }
@@ -530,15 +531,15 @@ export function executeApiTestAsync(apiId, executeData = {}) {
     timeout: 10000,  // 异步执行只是提交任务，使用默认超时即可
     data: {
       environment: executeData.environment,
-      base_url: executeData.base_url,
+      baseUrl: executeData.baseUrl || executeData.base_url,
       timeout: executeData.timeout,
-      auth_override: executeData.auth_override,
+      authOverride: executeData.authOverride || executeData.auth_override,
       variables: executeData.variables,
       async: true,  // 强制异步
-      callback_url: executeData.callback_url,
+      callbackUrl: executeData.callbackUrl || executeData.callback_url,
       concurrency: executeData.concurrency || 3,
-      case_filter: executeData.case_filter,
-      execution_order: executeData.execution_order || 'priority_desc'
+      caseFilter: executeData.caseFilter || executeData.case_filter,
+      executionOrder: executeData.executionOrder || executeData.execution_order || 'priority_desc'
     }
   })
 }

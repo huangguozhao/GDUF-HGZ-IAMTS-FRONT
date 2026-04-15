@@ -252,15 +252,30 @@ export function useHistoryExport(props, emit, deps = {}) {
           '重新测试',
           { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' }
         ).then(async () => {
+          // 获取用例ID - 优先使用record中的refId（用例ID），其次使用当前查看的用例ID
+          const caseIdToExecute = record.refId || record.caseId || record.id
+          // 获取接口ID - 优先使用record中的apiId，其次使用props.api中的id
+          const apiIdToExecute = record.apiId || props.api?.id || record.api_id || props.api?.api_id
+          
+          if (!caseIdToExecute) {
+            ElMessage.error('无法获取用例ID，请重新选择历史记录')
+            return
+          }
+          
           const executeData = {
             environment: historyConfig?.environment || record.environment,
-            baseUrl: historyConfig?.baseUrl,
+            baseUrl: historyConfig?.baseUrl || record.baseUrl,
             timeout: historyConfig?.timeout,
             authOverride: historyConfig?.authOverride,
             variables: historyConfig?.variables,
             async: false
           }
-          const executeResponse = await executeTestCase(props.api.id, props.api.id, executeData)
+          console.log('=== 重新测试 ===')
+          console.log('用例ID:', caseIdToExecute)
+          console.log('接口ID:', apiIdToExecute)
+          console.log('执行配置:', executeData)
+          
+          const executeResponse = await executeTestCase(apiIdToExecute, caseIdToExecute, executeData)
           if (executeResponse.code === 1) {
             ElMessage.success('测试执行成功')
             await loadHistoryRecords()
