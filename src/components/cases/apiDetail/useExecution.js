@@ -170,9 +170,10 @@ export function useExecution(props, emit, deps = {}) {
           } else {
             // 单个测试用例执行结果
             // 使用后端返回的实际断言统计，如果没有则根据状态判断
-            const assertionsPassed = response.data.assertionsPassed ?? response.data.assertions_passed ?? 
-              (response.data.status === 'passed' ? 1 : 0)
-            const assertionsFailed = response.data.assertionsFailed ?? response.data.assertions_failed ?? 
+            // 兼容多种可能的字段名：passed, assertionsPassed, assertions_passed, passedAssertions
+            const passedCount = response.data.passed ?? response.data.assertionsPassed ?? response.data.assertions_passed ?? response.data.passedAssertions ?? 
+              (response.data.status === 'passed' || response.data.status === 'completed' ? 1 : 0)
+            const failedCount = response.data.failed ?? response.data.assertionsFailed ?? response.data.assertions_failed ?? response.data.failedAssertions ?? 
               (response.data.status === 'failed' || response.data.status === 'broken' ? 1 : 0)
             
             executionResult.value = {
@@ -186,7 +187,7 @@ export function useExecution(props, emit, deps = {}) {
               // 接口信息（新增）
               apiId: response.data.apiId || response.data.api_id,
               apiName: response.data.apiName || response.data.api_name,
-              status: response.data.status,
+              status: response.data.status === 'completed' ? 'passed' : response.data.status,
               // 时间信息
               startTime: response.data.startTime || response.data.start_time,
               endTime: response.data.endTime || response.data.end_time,
@@ -195,14 +196,14 @@ export function useExecution(props, emit, deps = {}) {
               // 测试统计（单个用例）
               totalCases: 1,
               executedCases: 1,
-              passedCases: assertionsPassed,
-              failedCases: assertionsFailed,
+              passedCases: passedCount,
+              failedCases: failedCount,
               skippedCases: response.data.skippedCases || response.data.skipped_cases || 0,
-              successRate: response.data.successRate || response.data.success_rate || (assertionsFailed === 0 && assertionsPassed > 0 ? 100 : 0),
+              successRate: response.data.successRate || response.data.success_rate || (failedCount === 0 && passedCount > 0 ? 100 : 0),
               // 断言结果
               responseStatus: response.data.responseStatus || response.data.response_status,
-              assertionsPassed,
-              assertionsFailed,
+              assertionsPassed: passedCount,
+              assertionsFailed: failedCount,
               failureMessage: response.data.failureMessage || response.data.failure_message,
               failureType: response.data.failureType || response.data.failure_type,
               failureTrace: response.data.failureTrace || response.data.failure_trace,
@@ -277,9 +278,10 @@ export function useExecution(props, emit, deps = {}) {
         const response = await executeTestCase(caseId, requestData)
         
         if (response.code === 1) {
-          const assertionsPassed = response.data.assertionsPassed ?? response.data.assertions_passed ?? 
-            (response.data.status === 'passed' ? 1 : 0)
-          const assertionsFailed = response.data.assertionsFailed ?? response.data.assertions_failed ?? 
+          // 兼容多种可能的字段名：passed, assertionsPassed, assertions_passed, passedAssertions
+          const passedCount = response.data.passed ?? response.data.assertionsPassed ?? response.data.assertions_passed ?? response.data.passedAssertions ?? 
+            (response.data.status === 'passed' || response.data.status === 'completed' ? 1 : 0)
+          const failedCount = response.data.failed ?? response.data.assertionsFailed ?? response.data.assertions_failed ?? response.data.failedAssertions ?? 
             (response.data.status === 'failed' || response.data.status === 'broken' ? 1 : 0)
           
           executionResult.value = {
@@ -291,20 +293,20 @@ export function useExecution(props, emit, deps = {}) {
             scopeName: response.data.caseName || response.data.case_name || '单个测试用例',
             apiId: response.data.apiId || response.data.api_id,
             apiName: response.data.apiName || response.data.api_name,
-            status: response.data.status,
+            status: response.data.status === 'completed' ? 'passed' : response.data.status,
             startTime: response.data.startTime || response.data.start_time,
             endTime: response.data.endTime || response.data.end_time,
             duration: response.data.duration || 0,
             durationSeconds: (response.data.duration || 0) / 1000,
             totalCases: 1,
             executedCases: 1,
-            passedCases: assertionsPassed,
-            failedCases: assertionsFailed,
+            passedCases: passedCount,
+            failedCases: failedCount,
             skippedCases: response.data.skippedCases || response.data.skipped_cases || 0,
-            successRate: response.data.successRate || response.data.success_rate || (assertionsFailed === 0 && assertionsPassed > 0 ? 100 : 0),
+            successRate: response.data.successRate || response.data.success_rate || (failedCount === 0 && passedCount > 0 ? 100 : 0),
             responseStatus: response.data.responseStatus || response.data.response_status,
-            assertionsPassed,
-            assertionsFailed,
+            assertionsPassed: passedCount,
+            assertionsFailed: failedCount,
             failureMessage: response.data.failureMessage || response.data.failure_message,
             failureType: response.data.failureType || response.data.failure_type,
             failureTrace: response.data.failureTrace || response.data.failure_trace,

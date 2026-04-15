@@ -4,20 +4,41 @@ export const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + '...'
 }
 
-export const formatTestData = (preConditions) => {
-  if (!preConditions) return '📋 无测试数据'
+export const formatTestData = (row) => {
+  // 支持多种字段名格式
+  const preConditions = row?.preConditions ?? row?.pre_conditions ?? row?.testData ?? null
+  // 修复：空对象 {} 也要显示，而不是显示"无测试数据"
+  if (preConditions === null || preConditions === undefined || preConditions === '') return '📋 无测试数据'
   if (typeof preConditions === 'string') {
     try {
-      preConditions = JSON.parse(preConditions)
+      const parsed = JSON.parse(preConditions)
+      if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length > 0) {
+        const pairs = []
+        for (const [key, value] of Object.entries(parsed)) {
+          const displayKey = key.charAt(0).toUpperCase() + key.slice(1)
+          const displayValue = value === '' ? '(空)' : (typeof value === 'object' ? JSON.stringify(value) : value)
+          pairs.push(`${displayKey}: ${displayValue}`)
+        }
+        return pairs.length > 0 ? `📊 ${pairs.join(' | ')}` : '📋 无测试数据'
+      }
+      // 字符串解析后是空对象，也返回无测试数据
+      if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
+        return '📋 无测试数据'
+      }
+      return `📝 ${preConditions}`
     } catch (e) {
       return `📝 ${preConditions}`
     }
   }
   if (typeof preConditions === 'object' && preConditions !== null) {
+    // 空对象判断
+    if (Object.keys(preConditions).length === 0) {
+      return '📋 无测试数据'
+    }
     const pairs = []
     for (const [key, value] of Object.entries(preConditions)) {
       const displayKey = key.charAt(0).toUpperCase() + key.slice(1)
-      const displayValue = value === '' ? '(空)' : value
+      const displayValue = value === '' ? '(空)' : (typeof value === 'object' ? JSON.stringify(value) : value)
       pairs.push(`${displayKey}: ${displayValue}`)
     }
     return pairs.length > 0 ? `📊 ${pairs.join(' | ')}` : '📋 无测试数据'
@@ -25,25 +46,41 @@ export const formatTestData = (preConditions) => {
   return `📝 ${String(preConditions)}`
 }
 
-export const formatTestDataFull = (preConditions) => {
-  if (!preConditions) return '暂无测试数据'
+export const formatTestDataFull = (row) => {
+  // 支持多种字段名格式
+  const preConditions = row?.preConditions ?? row?.pre_conditions ?? row?.testData ?? null
+  // 空对象也要返回"暂无测试数据"
+  if (preConditions === null || preConditions === undefined || preConditions === '') return '暂无测试数据'
   if (typeof preConditions === 'string') {
     try {
       const parsed = JSON.parse(preConditions)
+      // 空对象判断
+      if (typeof parsed === 'object' && parsed !== null && Object.keys(parsed).length === 0) {
+        return '暂无测试数据'
+      }
       return JSON.stringify(parsed, null, 2)
     } catch (e) {
       return preConditions
     }
   }
   if (typeof preConditions === 'object' && preConditions !== null) {
+    // 空对象判断
+    if (Object.keys(preConditions).length === 0) {
+      return '暂无测试数据'
+    }
     return JSON.stringify(preConditions, null, 2)
   }
   return String(preConditions)
 }
 
-export const formatExpectedResult = (expectedResponseBody) => {
-  if (!expectedResponseBody) return '📋 无预期结果'
+export const formatExpectedResult = (row) => {
+  // 支持多种字段名格式
+  const expectedResponseBody = row?.expectedResponseBody ?? row?.expected_response_body ?? row?.expectedResult ?? null
+  // 修复：空字符串也要显示"无预期结果"
+  if (!expectedResponseBody && expectedResponseBody !== 0) return '📋 无预期结果'
   if (typeof expectedResponseBody === 'string') {
+    // 空字符串判断
+    if (expectedResponseBody.trim() === '') return '📋 无预期结果'
     try {
       const parsed = JSON.parse(expectedResponseBody)
       if (parsed.code !== undefined && parsed.msg) {
@@ -52,6 +89,15 @@ export const formatExpectedResult = (expectedResponseBody) => {
       }
       if (parsed.data !== undefined && parsed.data !== null) {
         return `✓ 包含数据: ${typeof parsed.data === 'object' ? 'Object' : parsed.data}`
+      }
+      if (typeof parsed === 'object') {
+        const pairs = []
+        for (const [key, value] of Object.entries(parsed)) {
+          if (key !== 'code' && key !== 'msg' && key !== 'data') {
+            pairs.push(`${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
+          }
+        }
+        return pairs.length > 0 ? `📊 ${pairs.join(' | ')}` : `📄 ${JSON.stringify(parsed)}`
       }
       return `📄 ${JSON.stringify(parsed)}`
     } catch (e) {
@@ -68,8 +114,12 @@ export const formatExpectedResult = (expectedResponseBody) => {
   return `📝 ${String(expectedResponseBody)}`
 }
 
-export const formatExpectedResultFull = (expectedResponseBody) => {
-  if (!expectedResponseBody) return '暂无预期结果'
+export const formatExpectedResultFull = (row) => {
+  // 支持多种字段名格式
+  const expectedResponseBody = row?.expectedResponseBody ?? row?.expected_response_body ?? row?.expectedResult ?? null
+  // 修复：空字符串也要返回"暂无预期结果"
+  if (expectedResponseBody === null || expectedResponseBody === undefined) return '暂无预期结果'
+  if (typeof expectedResponseBody === 'string' && expectedResponseBody.trim() === '') return '暂无预期结果'
   if (typeof expectedResponseBody === 'string') {
     try {
       const parsed = JSON.parse(expectedResponseBody)

@@ -5181,16 +5181,19 @@ onMounted(async () => {
 
 /* 项目/模块内容 - 从左侧滑入 */
 .content-project {
+  height: 100%;
   animation: slideInFromLeft 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 /* 接口内容 - 从右侧滑入 */
 .content-api {
+  height: 100%;
   animation: slideInFromRight 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 
 /* 用例内容 - 从底部滑入 */
 .content-case {
+  height: 100%;
   animation: slideInFromBottom 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
 }
 

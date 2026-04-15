@@ -3,8 +3,10 @@
     :model-value="visible"
     @update:model-value="handleVisibleChange"
     title="测试执行结果"
-    width="900px"
+    :width="dialogWidth"
     :close-on-click-modal="false"
+    z-index="2000"
+    :modal-append-to-body="true"
   >
     <div class="execution-result-container" v-if="executionResult">
       <!-- 结果状态横幅 -->
@@ -428,20 +430,23 @@
                   <div class="case-item-info">
                     <div class="case-item-name">{{ caseItem.caseName || caseItem.caseCode || '未知用例' }}</div>
                     <div class="case-item-code">
-                      <span v-if="caseItem.caseCode">{{ caseItem.caseCode }}</span>
+                      <span v-if="caseItem.caseCode" class="case-code-text">{{ caseItem.caseCode }}</span>
                       <span v-if="caseItem.moduleName" class="case-tag">{{ caseItem.moduleName }}</span>
                       <span v-if="caseItem.apiName" class="case-tag">{{ caseItem.apiName }}</span>
                     </div>
                   </div>
-                  <div class="case-item-meta">
+                  <div class="case-item-status">
                     <el-tag size="small" :type="getStatusTagType(caseItem.status)">
                       {{ getStatusText(caseItem.status) }}
                     </el-tag>
+                  </div>
+                  <div class="case-item-meta">
                     <span class="case-duration" v-if="caseItem.duration">
+                      <el-icon><Timer /></el-icon>
                       {{ formatCaseDuration(caseItem.duration) }}
                     </span>
                     <span class="case-response-status" v-if="caseItem.responseStatus">
-                      HTTP {{ caseItem.responseStatus }}
+                      <el-tag size="small" type="info">HTTP {{ caseItem.responseStatus }}</el-tag>
                     </span>
                   </div>
                   <div class="case-item-toggle">
@@ -602,23 +607,17 @@
         >
           重新测试
         </el-button>
-      </div>
-    </div>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button type="primary" @click="visible = false">
+        <el-button @click="visible = false">
           关闭
         </el-button>
       </div>
-    </template>
-
+    </div>
   </el-dialog>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick, WarningFilled, InfoFilled, ArrowDown, ArrowUp, Loading, Edit, Search, List, Link, Picture } from '@element-plus/icons-vue'
+import { CircleCheckFilled, CircleCloseFilled, DocumentCopy, Document, Refresh, MagicStick, WarningFilled, InfoFilled, ArrowDown, ArrowUp, Loading, Edit, Search, List, Link, Picture, Timer } from '@element-plus/icons-vue'
 import { formatTime } from './apiDetail/formatters'
 import { diagnose, getDiagnosisResult } from '@/api/diagnosis'
 import { updateReportName } from '@/api/report'
@@ -633,6 +632,14 @@ const emit = defineEmits(['update:modelValue', 'view-logs', 'view-report', 'rete
 const visible = computed({
   get: () => props.modelValue,
   set: (v) => emit('update:modelValue', v)
+})
+
+// 响应式弹窗宽度
+const dialogWidth = computed(() => {
+  const screenWidth = window.innerWidth
+  if (screenWidth < 768) return '95%'
+  if (screenWidth < 1200) return '90%'
+  return '1100px'
 })
 
 // 处理字段名映射（兼容不同的字段名）
@@ -984,8 +991,26 @@ watch(visible, (newVal) => {
 })
 
 // 获取显示状态（将后端状态转换为前端显示状态）
+// 需要根据 passedCases 和 failedCases 来判断真实状态，因为后端可能返回 completed 但实际有失败用例
 const getDisplayStatus = (backendStatus) => {
-  return backendStatus === 'completed' ? 'passed' : backendStatus
+  // 如果后端状态已经是 passed/failed，直接返回
+  if (backendStatus === 'passed' || backendStatus === 'failed') {
+    return backendStatus
+  }
+  // 对于 completed 状态，需要根据 passedCases/failedCases 判断
+  if (backendStatus === 'completed') {
+    const passed = props.executionResult?.passedCases ?? 0
+    const failed = props.executionResult?.failedCases ?? 0
+    // 如果有失败的用例，显示为 failed
+    if (failed > 0) {
+      return 'failed'
+    }
+    // 如果有通过的用例，显示为 passed
+    if (passed > 0) {
+      return 'passed'
+    }
+  }
+  return backendStatus
 }
 
 // 获取环境文本
@@ -1031,13 +1056,44 @@ const handleVisibleChange = (value) => {
 </script>
 
 <style scoped>
+/* 对话框容器优化 */
+:deep(.el-dialog) {
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  margin-top: 3vh !important;
+}
+
+:deep(.el-dialog__body) {
+  padding: 16px 20px;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100vh - 200px);
+}
+
+:deep(.el-dialog__header) {
+  padding: 16px 20px;
+  margin-right: 0;
+  border-bottom: 1px solid #ebeef5;
+}
+
+:deep(.el-dialog__headerbtn) {
+  top: 16px;
+  right: 16px;
+}
+
+.execution-result-container {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .result-banner {
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 28px 32px;
+  gap: 20px;
+  padding: 20px 24px;
   border-radius: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
   position: relative;
   overflow: hidden;
@@ -1136,10 +1192,10 @@ const handleVisibleChange = (value) => {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 16px;
+  padding: 10px 14px;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border-radius: 10px;
-  margin-bottom: 20px;
+  border-radius: 8px;
+  margin-bottom: 14px;
   border: 1px solid #e2e8f0;
 }
 
@@ -1167,7 +1223,7 @@ const handleVisibleChange = (value) => {
 }
 
 .result-info-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .info-grid {
@@ -1176,8 +1232,32 @@ const handleVisibleChange = (value) => {
   gap: 16px;
 }
 
+@media (max-width: 900px) {
+  .info-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .info-grid-api {
   grid-template-columns: repeat(3, 1fr);
+}
+
+@media (max-width: 900px) {
+  .info-grid-api {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .info-grid-api {
+    grid-template-columns: 1fr;
+  }
 }
 
 .info-card {
@@ -1251,9 +1331,9 @@ const handleVisibleChange = (value) => {
 
 .result-time-section {
   background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
-  border-radius: 12px;
-  padding: 24px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
   display: flex;
   justify-content: space-around;
   border: 1px solid #e4e7ed;
@@ -1296,9 +1376,9 @@ const handleVisibleChange = (value) => {
 .result-failure-section {
   background: linear-gradient(135deg, #fef0f0 0%, #fff5f5 100%);
   border: 1px solid #fbc4c4;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
   overflow: hidden;
 }
 
@@ -1526,7 +1606,7 @@ const handleVisibleChange = (value) => {
 }
 
 .test-stats-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .test-stats-title {
@@ -1735,9 +1815,9 @@ const handleVisibleChange = (value) => {
 
 /* 测试用例详情区域 */
 .case-details-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
   border: 1px solid #e4e7ed;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: #fff;
 }
@@ -1746,7 +1826,7 @@ const handleVisibleChange = (value) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: 12px 16px;
   background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1778,22 +1858,24 @@ const handleVisibleChange = (value) => {
 }
 
 .case-details-content {
-  padding: 20px;
+  padding: 12px;
 }
 
 .case-filter-bar {
   display: flex;
   align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 16px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #ebeef5;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .case-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  max-height: 500px;
+  gap: 8px;
+  max-height: 350px;
   overflow-y: auto;
 }
 
@@ -1827,10 +1909,12 @@ const handleVisibleChange = (value) => {
 .case-item-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 12px 14px;
   cursor: pointer;
   background: #fff;
+  flex-wrap: nowrap;
+  overflow: hidden;
 }
 
 .case-item-header:hover {
@@ -1839,8 +1923,8 @@ const handleVisibleChange = (value) => {
 
 .case-status-icon {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1849,6 +1933,7 @@ const handleVisibleChange = (value) => {
 .case-item-info {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
 }
 
 .case-item-name {
@@ -1865,32 +1950,77 @@ const handleVisibleChange = (value) => {
   color: #909399;
   font-family: 'Monaco', 'Menlo', monospace;
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.case-code-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.case-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  color: #606266;
+  background: #f0f2f5;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.case-item-status {
+  flex-shrink: 0;
 }
 
 .case-item-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-shrink: 0;
+  flex-wrap: nowrap;
 }
 
 .case-duration {
-  font-size: 13px;
+  font-size: 12px;
   color: #606266;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
 }
 
 .case-response-status {
-  font-size: 12px;
-  color: #909399;
-  padding: 2px 8px;
-  background: #f5f7fa;
-  border-radius: 4px;
+  flex-shrink: 0;
 }
 
 .case-item-toggle {
   color: #c0c4cc;
   transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .case-item-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .case-item-info {
+    flex-basis: calc(100% - 50px);
+  }
+
+  .case-item-status,
+  .case-item-meta {
+    flex-wrap: wrap;
+  }
 }
 
 .case-item-detail {
@@ -1940,8 +2070,15 @@ const handleVisibleChange = (value) => {
   color: #606266;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 200px;
+  max-height: 180px;
   overflow-y: auto;
+}
+
+@media (max-width: 600px) {
+  .case-json-content {
+    font-size: 11px;
+    max-height: 150px;
+  }
 }
 
 .case-logs-link {
@@ -2003,17 +2140,6 @@ const handleVisibleChange = (value) => {
   max-height: 200px;
   overflow-y: auto;
   line-height: 1.5;
-}
-
-/* 标签样式 */
-.case-tag {
-  display: inline-block;
-  padding: 1px 6px;
-  margin-right: 6px;
-  font-size: 11px;
-  color: #909399;
-  background: #e4e7ed;
-  border-radius: 3px;
 }
 
 /* 附件链接样式 */

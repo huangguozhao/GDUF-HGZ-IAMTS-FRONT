@@ -743,10 +743,10 @@
                   <template #content>
                     <div class="tooltip-content">
                       <div class="tooltip-title">🔍 完整测试数据</div>
-                      <pre class="tooltip-json">{{ formatTestDataFull(row.preConditions) }}</pre>
+                      <pre class="tooltip-json">{{ formatTestDataFull(row) }}</pre>
                     </div>
                   </template>
-                  <span class="test-data-text">{{ truncateText(formatTestData(row.preConditions), 50) }}</span>
+                  <span class="test-data-text">{{ truncateText(formatTestData(row), 50) }}</span>
                 </el-tooltip>
         </div>
             </template>
@@ -759,10 +759,10 @@
                   <template #content>
                     <div class="tooltip-content">
                       <div class="tooltip-title">🎯 完整预期结果</div>
-                      <pre class="tooltip-json">{{ formatExpectedResultFull(row.expectedResponseBody) }}</pre>
+                      <pre class="tooltip-json">{{ formatExpectedResultFull(row) }}</pre>
                     </div>
                   </template>
-                  <span class="result-summary">{{ truncateText(formatExpectedResult(row.expectedResponseBody), 40) }}</span>
+                  <span class="result-summary">{{ truncateText(formatExpectedResult(row), 40) }}</span>
                 </el-tooltip>
       </div>
             </template>
